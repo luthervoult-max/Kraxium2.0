@@ -23,7 +23,7 @@ const navItems: NavItem[] = [
   { id: 'dashboard', icon: BarChart3, label: 'Dashboard', navigable: true },
   { id: 'flowIntel', icon: GitBranch, label: 'Flow Intel', navigable: true },
   { id: 'bots', icon: Bot, label: 'Bots', navigable: true },
-  { id: 'users', icon: Users, label: 'Users', navigable: false },
+  { id: 'users', icon: Users, label: 'Users', navigable: true },
   { id: 'analytics', icon: Activity, label: 'Analytics', navigable: false },
 ]
 

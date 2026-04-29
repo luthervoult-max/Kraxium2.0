@@ -1,1 +1,1 @@
-export type Page = 'dashboard' | 'flowIntel' | 'bots'
+export type Page = 'dashboard' | 'flowIntel' | 'bots' | 'users'

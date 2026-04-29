@@ -9,6 +9,7 @@ import RevenueChart from '@/components/RevenueChart'
 import BotsPage from '@/components/BotsPage'
 import FlowIntel from '@/components/FlowIntel'
 import LoginPage from '@/components/LoginPage'
+import UsersPage from '@/components/UsersPage'
 import { Button } from '@/components/ui/button'
 import { AuthProvider, useAuth } from '@/lib/auth/AuthContext'
 import { generateRevenueSeries, generateSparkline } from '@/lib/mockData'
@@ -51,12 +52,14 @@ const pageConfig: Record<Page, { eyebrow: string; title: string; titleHighlight?
   dashboard: { eyebrow: '', title: 'Pulse da', titleHighlight: 'Operacao' },
   bots: { eyebrow: 'SISTEMA', title: 'Configuracoes' },
   flowIntel: { eyebrow: 'ANALISE', title: 'Flow Intel' },
+  users: { eyebrow: 'CRM', title: 'Base de', titleHighlight: 'Clientes' },
 }
 
 const mobilePages: Array<{ id: Page; label: string }> = [
   { id: 'dashboard', label: 'Dashboard' },
   { id: 'flowIntel', label: 'Flow Intel' },
   { id: 'bots', label: 'Bots' },
+  { id: 'users', label: 'Users' },
 ]
 
 type PendingLeaveAction = { type: 'page'; page: Page } | { type: 'signOut' }
@@ -235,6 +238,7 @@ function Shell() {
         {page === 'bots' && (
           <BotsPage selectedBotId={selectedBotId} onSelectBot={setSelectedBotId} />
         )}
+        {page === 'users' && <UsersPage />}
       </div>
 
       {pendingLeaveAction && (
