@@ -1,4 +1,14 @@
-import { BarChart3, Bot, Users, GitBranch, Activity, type LucideIcon } from 'lucide-react'
+import { useState } from 'react'
+import {
+  Activity,
+  BarChart3,
+  Bot,
+  GitBranch,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Users,
+  type LucideIcon,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Page } from '@/lib/pages'
 
@@ -23,25 +33,64 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ currentPage, onNavigate }: SidebarProps) {
+  const [isCollapsed, setIsCollapsed] = useState(false)
+
   return (
-    <aside className="hidden w-64 flex-col border-r border-white/5 bg-deep-800/80 px-4 py-6 backdrop-blur-md lg:flex">
-      <div className="flex items-center gap-3 mb-8">
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-neon-blue to-neon-magenta flex items-center justify-center shadow-[0_0_8px_rgba(0,212,255,0.5)]">
-          <span aria-label="Kraxium" role="img" className="text-white text-lg">
-            👽
-          </span>
+    <aside
+      className={cn(
+        'hidden flex-col border-r border-white/5 bg-deep-800/80 py-6 backdrop-blur-md transition-[width,padding] duration-300 lg:flex',
+        isCollapsed ? 'w-20 px-3' : 'w-64 px-4',
+      )}
+    >
+      <div
+        className={cn(
+          'mb-8 flex items-center gap-3',
+          isCollapsed ? 'flex-col justify-center' : 'justify-between',
+        )}
+      >
+        <div className={cn('flex min-w-0 items-center gap-3', isCollapsed && 'justify-center')}>
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-neon-blue to-neon-magenta shadow-[0_0_8px_rgba(0,212,255,0.5)]">
+            <span aria-label="Kraxium" role="img" className="text-lg text-white">
+              👽
+            </span>
+          </div>
+          {!isCollapsed && (
+            <span className="font-display truncate text-lg font-bold tracking-wider text-white">
+              KRAXI<span className="text-neon-blue">UM</span>
+            </span>
+          )}
         </div>
-        <span className="font-display font-bold text-lg text-white tracking-wider">
-          KRAXI<span className="text-neon-blue">UM</span>
-        </span>
+
+        <button
+          type="button"
+          onClick={() => setIsCollapsed((value) => !value)}
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-gray-300 transition-colors hover:border-neon-blue/35 hover:text-neon-blue"
+          aria-label={isCollapsed ? 'Expandir menu lateral' : 'Recolher menu lateral'}
+          aria-expanded={!isCollapsed}
+          title={isCollapsed ? 'Expandir menu' : 'Recolher menu'}
+        >
+          {isCollapsed ? (
+            <PanelLeftOpen size={16} aria-hidden="true" />
+          ) : (
+            <PanelLeftClose size={16} aria-hidden="true" />
+          )}
+        </button>
       </div>
 
-      <div className="flex items-center gap-2 mb-8 px-2 py-1.5 rounded-full bg-neon-green/10 border border-neon-green/30 w-fit">
+      <div
+        className={cn(
+          'mb-8 flex items-center gap-2 rounded-full border border-neon-green/30 bg-neon-green/10 py-1.5',
+          isCollapsed ? 'mx-auto w-10 justify-center px-0' : 'w-fit px-2',
+        )}
+        title="System online"
+      >
         <span className="relative flex h-2.5 w-2.5">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-neon-green opacity-75" />
-          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-neon-green" />
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-neon-green opacity-75" />
+          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-neon-green" />
         </span>
-        <span className="text-xs font-medium text-neon-green tracking-wider">SYSTEM ONLINE</span>
+        {!isCollapsed && (
+          <span className="text-xs font-medium tracking-wider text-neon-green">SYSTEM ONLINE</span>
+        )}
       </div>
 
       <nav className="flex-1 space-y-1">
@@ -56,20 +105,21 @@ export default function Sidebar({ currentPage, onNavigate }: SidebarProps) {
               aria-current={isActive ? 'page' : undefined}
               disabled={isDisabled}
               onClick={() => item.navigable && onNavigate(item.id as Page)}
-              title={isDisabled ? 'Em breve' : undefined}
+              title={isDisabled ? `${item.label} - em breve` : item.label}
               className={cn(
-                'w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-all',
+                'flex w-full items-center rounded-lg border px-3 py-3 text-sm font-medium transition-all',
+                isCollapsed ? 'justify-center gap-0' : 'gap-3',
                 isActive
-                  ? 'bg-neon-blue/15 text-neon-blue border border-neon-blue/30 shadow-[0_0_12px_rgba(0,212,255,0.25)]'
+                  ? 'border-neon-blue/30 bg-neon-blue/15 text-neon-blue shadow-[0_0_12px_rgba(0,212,255,0.25)]'
                   : isDisabled
-                  ? 'text-gray-600 border border-transparent cursor-not-allowed'
-                  : 'text-gray-400 hover:text-white hover:bg-white/5 border border-transparent',
+                    ? 'cursor-not-allowed border-transparent text-gray-600'
+                    : 'border-transparent text-gray-400 hover:bg-white/5 hover:text-white',
               )}
             >
               <item.icon size={18} aria-hidden="true" />
-              <span>{item.label}</span>
-              {isDisabled && (
-                <span className="ml-auto text-[9px] uppercase tracking-wider text-gray-700 font-semibold">
+              {!isCollapsed && <span className="truncate">{item.label}</span>}
+              {isDisabled && !isCollapsed && (
+                <span className="ml-auto text-[9px] font-semibold uppercase tracking-wider text-gray-700">
                   em breve
                 </span>
               )}
@@ -78,7 +128,14 @@ export default function Sidebar({ currentPage, onNavigate }: SidebarProps) {
         })}
       </nav>
 
-      <div className="pt-4 border-t border-white/5 text-xs text-gray-500">v1.0.0 · kraxium.io</div>
+      <div
+        className={cn(
+          'border-t border-white/5 pt-4 text-xs text-gray-500',
+          isCollapsed && 'text-center',
+        )}
+      >
+        {isCollapsed ? 'v1' : 'v1.0.0 · kraxium.io'}
+      </div>
     </aside>
   )
 }
