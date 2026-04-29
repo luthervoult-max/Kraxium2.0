@@ -363,21 +363,6 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
 
     setNodes((currentNodes) => [...currentNodes, nextNode])
 
-    if (selectedNodeId) {
-      setEdges((currentEdges) => [
-        ...currentEdges,
-        buildEdge(
-          {
-            source: selectedNodeId,
-            target: nextNode.id,
-            sourceHandle: null,
-            targetHandle: null,
-          },
-          [...nodes, nextNode],
-        ),
-      ])
-    }
-
     setSelectedNodeId(nextNode.id)
     markUnsaved()
   }
@@ -698,6 +683,8 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
                 onPaneClick={() => setSelectedNodeId(null)}
                 fitView
                 fitViewOptions={{ padding: 0.2 }}
+                minZoom={0.05}
+                maxZoom={1.8}
                 nodesDraggable
                 nodesConnectable
                 elementsSelectable
