@@ -37,6 +37,13 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  getNodeRuntimeHealth,
+  getRecentNodeErrorLogs,
+  type FlowNodeTrace,
+  type FlowTraceNodeRef,
+  type NodeRuntimeHealth,
+} from '@/lib/api/flowNodeTraces'
 import { blocksByCategory, categoryMeta, type BlockDef, type Category } from '@/lib/blocks'
 import {
   buildFlowPreview,
@@ -96,6 +103,9 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
   const [showSimulator, setShowSimulator] = useState(false)
   const [isBlockPaletteCollapsed, setIsBlockPaletteCollapsed] = useState(false)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [nodeHealth, setNodeHealth] = useState<Record<string, NodeRuntimeHealth>>({})
+  const [selectedNodeErrors, setSelectedNodeErrors] = useState<FlowNodeTrace[]>([])
+  const [loadingNodeErrors, setLoadingNodeErrors] = useState(false)
   const [loadingFlow, setLoadingFlow] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
 
@@ -156,10 +166,61 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
     [nodes, edges],
   )
   const logsParse = useMemo(() => parseLogsInput(logsText), [logsText])
+  const runtimeFlowId = flow?.id ?? botId ?? `draft:${flowName.trim() || 'novo-fluxo'}`
+  const traceNodeRefs = useMemo(() => nodes.map(toTraceNodeRef), [nodes])
+  const nodesWithRuntime = useMemo(
+    () =>
+      nodes.map((node) => {
+        const health = nodeHealth[node.id]
+
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            runtimeStatus: health?.status ?? 'ok',
+            errorCount: health?.errorCount ?? 0,
+            lastErrorAt: health?.lastErrorAt ?? null,
+            lastTraceId: health?.lastTraceId ?? null,
+          },
+        }
+      }),
+    [nodeHealth, nodes],
+  )
+  const totalErrorCount = useMemo(
+    () => Object.values(nodeHealth).reduce((total, health) => total + health.errorCount, 0),
+    [nodeHealth],
+  )
+  const errorNodeCount = useMemo(
+    () => Object.values(nodeHealth).filter((health) => health.status === 'error').length,
+    [nodeHealth],
+  )
 
   useEffect(() => {
     setFlowDraft(canvasFlowJson)
   }, [canvasFlowJson])
+
+  useEffect(() => {
+    let cancelled = false
+
+    if (traceNodeRefs.length === 0) {
+      setNodeHealth({})
+      return
+    }
+
+    getNodeRuntimeHealth({
+      flowId: runtimeFlowId,
+      botId,
+      nodes: traceNodeRefs,
+    }).then((health) => {
+      if (!cancelled) {
+        setNodeHealth(health)
+      }
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [botId, runtimeFlowId, traceNodeRefs])
 
   useEffect(() => {
     const selectedStillExists = nodes.some((node) => node.id === selectedNodeId)
@@ -280,10 +341,43 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
   }
 
   const selectedNode = selectedNodeId
-    ? nodes.find((node) => node.id === selectedNodeId) ?? null
+    ? nodesWithRuntime.find((node) => node.id === selectedNodeId) ?? null
     : null
+  const selectedNodeHealth = selectedNode ? nodeHealth[selectedNode.id] : null
   const isFocusMode = isBlockPaletteCollapsed
   const builderPanelHeightClass = 'h-[calc(100vh-260px)] min-h-[620px] xl:h-[calc(100vh-220px)]'
+
+  useEffect(() => {
+    let cancelled = false
+
+    if (!selectedNode) {
+      setSelectedNodeErrors([])
+      setLoadingNodeErrors(false)
+      return
+    }
+
+    setLoadingNodeErrors(true)
+    getRecentNodeErrorLogs({
+      flowId: runtimeFlowId,
+      botId,
+      node: toTraceNodeRef(selectedNode),
+      limit: 3,
+    })
+      .then((logs) => {
+        if (!cancelled) {
+          setSelectedNodeErrors(logs)
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoadingNodeErrors(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [botId, runtimeFlowId, selectedNode])
 
   function handleToggleFocusMode() {
     const nextFocusMode = !isFocusMode
@@ -521,16 +615,28 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
                 <BuilderPill label={`${nodes.length} nos`} tone="blue" />
                 <BuilderPill label={`${edges.length} conexoes`} tone="magenta" />
                 <BuilderPill
-                  label={logsParse.errors.length === 0 ? `${logsParse.counts.logs ?? 0} logs` : 'logs pendentes'}
-                  tone={logsParse.errors.length === 0 ? 'green' : 'orange'}
+                  label={totalErrorCount > 0 ? `${totalErrorCount} erros` : '0 erros'}
+                  tone={totalErrorCount > 0 ? 'red' : 'green'}
                 />
+                {errorNodeCount > 0 && (
+                  <BuilderPill label={`${errorNodeCount} nos com falha`} tone="red" />
+                )}
                 {selectedNode && (
                 <BuilderPill label={`selecionado: ${selectedNode.data.code}`} tone="neutral" />
                 )}
               </div>
 
+              {selectedNode && (
+                <NodeTracePanel
+                  node={selectedNode}
+                  health={selectedNodeHealth}
+                  logs={selectedNodeErrors}
+                  loading={loadingNodeErrors}
+                />
+              )}
+
               <ReactFlow<BuilderNode, BuilderEdge>
-                nodes={nodes}
+                nodes={nodesWithRuntime}
                 edges={edges}
                 nodeTypes={nodeTypes}
                 onInit={setReactFlowInstance}
@@ -559,7 +665,10 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
                 <MiniMap
                   pannable
                   zoomable
-                  nodeColor={(node) => categoryMeta[(node.data as FlowNodeData).category].color}
+                  nodeColor={(node) => {
+                    const data = node.data as FlowNodeData
+                    return data.runtimeStatus === 'error' ? '#ff3b5f' : categoryMeta[data.category].color
+                  }}
                   maskColor="rgba(8, 10, 16, 0.74)"
                   style={{
                     background: '#0f1118',
@@ -593,13 +702,15 @@ function BuilderPill({
   tone,
 }: {
   label: string
-  tone: 'blue' | 'magenta' | 'green' | 'orange' | 'neutral'
+  tone: 'blue' | 'magenta' | 'green' | 'orange' | 'red' | 'neutral'
 }) {
   const toneClass =
     tone === 'blue'
       ? 'border-neon-blue/30 bg-neon-blue/12 text-neon-blue'
       : tone === 'magenta'
       ? 'border-neon-magenta/30 bg-neon-magenta/12 text-neon-magenta'
+      : tone === 'red'
+      ? 'border-[#ff3b5f]/35 bg-[#ff3b5f]/15 text-[#ff6b84]'
       : tone === 'green'
       ? 'border-neon-green/30 bg-neon-green/12 text-neon-green'
       : tone === 'orange'
@@ -611,6 +722,95 @@ function BuilderPill({
       {label}
     </Badge>
   )
+}
+
+function NodeTracePanel({
+  node,
+  health,
+  logs,
+  loading,
+}: {
+  node: BuilderNode
+  health: NodeRuntimeHealth | null
+  logs: FlowNodeTrace[]
+  loading: boolean
+}) {
+  const hasErrors = (health?.errorCount ?? 0) > 0
+
+  return (
+    <div className="absolute right-5 top-5 z-20 w-[360px] max-w-[calc(100%-2.5rem)] rounded-[22px] border border-white/10 bg-[#11141d]/95 p-4 shadow-[0_20px_70px_rgba(0,0,0,0.45)] backdrop-blur-md">
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-gray-500">
+            Trace do no
+          </p>
+          <h3 className="mt-1 text-sm font-bold uppercase tracking-[0.08em] text-white">
+            {node.data.title}
+          </h3>
+        </div>
+        <Badge
+          variant="outline"
+          className={cn(
+            'rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em]',
+            hasErrors
+              ? 'border-[#ff3b5f]/35 bg-[#ff3b5f]/15 text-[#ff6b84]'
+              : 'border-neon-green/30 bg-neon-green/12 text-neon-green',
+          )}
+        >
+          {hasErrors ? `${health?.errorCount ?? 0} erros` : 'ok'}
+        </Badge>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center rounded-[16px] border border-white/6 bg-white/5 px-4 py-5 text-sm text-gray-400">
+          <Loader2 size={15} className="mr-2 animate-spin" aria-hidden="true" />
+          Buscando ultimos logs...
+        </div>
+      ) : logs.length > 0 ? (
+        <div className="space-y-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-500">
+            Ultimos 3 logs de erro
+          </p>
+          {logs.map((log) => (
+            <div key={log._id} className="rounded-[16px] border border-[#ff3b5f]/20 bg-[#ff3b5f]/8 p-3">
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <span className="rounded-full border border-[#ff3b5f]/30 bg-[#ff3b5f]/12 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.18em] text-[#ff6b84]">
+                  {log.error?.code ?? 'NODE_ERROR'}
+                </span>
+                <span className="text-[10px] font-mono text-gray-500">{formatTraceTime(log.createdAt)}</span>
+              </div>
+              <p className="text-xs leading-5 text-gray-200">{log.error?.message}</p>
+              <div className="mt-3 grid grid-cols-2 gap-2 text-[10px] text-gray-500">
+                <span className="truncate font-mono">trace: {log.traceId}</span>
+                <span className="text-right font-mono">{log.durationMs}ms</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-[16px] border border-white/6 bg-white/5 px-4 py-5 text-sm leading-6 text-gray-400">
+          Nenhum erro recente para este no. Quando uma execucao do Telegram falhar, os ultimos traces aparecem aqui.
+        </div>
+      )}
+    </div>
+  )
+}
+
+function toTraceNodeRef(node: BuilderNode): FlowTraceNodeRef {
+  return {
+    id: node.id,
+    type: node.data.code,
+    label: node.data.title,
+    category: node.data.category,
+  }
+}
+
+function formatTraceTime(value: string) {
+  return new Intl.DateTimeFormat('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  }).format(new Date(value))
 }
 
 function IntelDock({

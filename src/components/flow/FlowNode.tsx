@@ -9,32 +9,41 @@ export interface FlowNodeData extends Record<string, unknown> {
   description: string
   text?: string
   options?: string[]
+  runtimeStatus?: 'ok' | 'error'
+  errorCount?: number
+  lastErrorAt?: string | null
+  lastTraceId?: string | null
 }
 
 function FlowNodeComponent({ data, selected }: NodeProps & { data: FlowNodeData }) {
   const { code, category, title, description } = data
   const meta = categoryMeta[category]
+  const hasRuntimeError = data.runtimeStatus === 'error'
+  const nodeColor = hasRuntimeError ? '#ff3b5f' : meta.color
+  const nodeRgb = hasRuntimeError ? '255,59,95' : meta.rgb
 
   return (
     <div
       className="relative w-[260px] rounded-2xl border bg-[#151720]/95 backdrop-blur-md transition-all"
       style={{
-        borderColor: selected ? meta.color : `rgba(${meta.rgb}, 0.25)`,
+        borderColor: selected || hasRuntimeError ? nodeColor : `rgba(${nodeRgb}, 0.25)`,
         boxShadow: selected
-          ? `0 0 0 1px ${meta.color}, 0 0 24px rgba(${meta.rgb}, 0.35)`
-          : `0 0 12px rgba(${meta.rgb}, 0.12)`,
+          ? `0 0 0 1px ${nodeColor}, 0 0 24px rgba(${nodeRgb}, 0.35)`
+          : hasRuntimeError
+            ? `0 0 0 1px rgba(${nodeRgb}, 0.35), 0 0 24px rgba(${nodeRgb}, 0.26)`
+            : `0 0 12px rgba(${nodeRgb}, 0.12)`,
       }}
     >
       <div
         className="absolute inset-x-0 top-0 h-[3px] rounded-t-2xl"
-        style={{ background: `linear-gradient(90deg, ${meta.color}, rgba(${meta.rgb}, 0.4))` }}
+        style={{ background: `linear-gradient(90deg, ${nodeColor}, rgba(${nodeRgb}, 0.4))` }}
       />
 
       <Handle
         type="target"
         position={Position.Left}
         className="!h-3 !w-3 !border-0"
-        style={{ background: meta.color, boxShadow: `0 0 8px ${meta.color}` }}
+        style={{ background: nodeColor, boxShadow: `0 0 8px ${nodeColor}` }}
       />
 
       <div className="p-4">
@@ -57,16 +66,23 @@ function FlowNodeComponent({ data, selected }: NodeProps & { data: FlowNodeData 
               {meta.label}
             </p>
           </div>
-          <span
-            className="rounded-full px-2 py-0.5 text-[8px] font-semibold uppercase tracking-[0.22em]"
-            style={{
-              background: `rgba(${meta.rgb}, 0.1)`,
-              color: meta.color,
-              border: `1px solid rgba(${meta.rgb}, 0.25)`,
-            }}
-          >
-            {meta.label.split(' ')[0]}
-          </span>
+          <div className="flex shrink-0 items-center gap-1">
+            {hasRuntimeError && (
+              <span className="rounded-full border border-[#ff3b5f]/35 bg-[#ff3b5f]/15 px-2 py-0.5 text-[8px] font-semibold uppercase tracking-[0.18em] text-[#ff6b84]">
+                {data.errorCount ?? 1} erro{(data.errorCount ?? 1) > 1 ? 's' : ''}
+              </span>
+            )}
+            <span
+              className="rounded-full px-2 py-0.5 text-[8px] font-semibold uppercase tracking-[0.22em]"
+              style={{
+                background: `rgba(${meta.rgb}, 0.1)`,
+                color: meta.color,
+                border: `1px solid rgba(${meta.rgb}, 0.25)`,
+              }}
+            >
+              {meta.label.split(' ')[0]}
+            </span>
+          </div>
         </div>
 
         <p className="mb-2 text-[13px] font-bold uppercase tracking-wide text-white font-display">{title}</p>
@@ -87,7 +103,7 @@ function FlowNodeComponent({ data, selected }: NodeProps & { data: FlowNodeData 
         type="source"
         position={Position.Right}
         className="!h-3 !w-3 !border-0"
-        style={{ background: meta.color, boxShadow: `0 0 8px ${meta.color}` }}
+        style={{ background: nodeColor, boxShadow: `0 0 8px ${nodeColor}` }}
       />
     </div>
   )
