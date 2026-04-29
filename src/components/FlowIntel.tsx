@@ -22,6 +22,12 @@ import {
   FileJson,
   GitBranch,
   Loader2,
+  Maximize2,
+  Minimize2,
+  PanelBottomClose,
+  PanelBottomOpen,
+  PanelLeftClose,
+  PanelLeftOpen,
   Plus,
   RefreshCcw,
   Save,
@@ -98,6 +104,8 @@ export default function FlowIntel({ botId }: FlowIntelProps) {
   const [copyState, setCopyState] = useState<'idle' | 'done'>('idle')
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance<BuilderNode, BuilderEdge> | null>(null)
   const [showSimulator, setShowSimulator] = useState(false)
+  const [isBlockPaletteCollapsed, setIsBlockPaletteCollapsed] = useState(false)
+  const [isDockCollapsed, setIsDockCollapsed] = useState(false)
   const [loadingFlow, setLoadingFlow] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
 
@@ -293,6 +301,13 @@ export default function FlowIntel({ botId }: FlowIntelProps) {
   const selectedNode = selectedNodeId
     ? nodes.find((node) => node.id === selectedNodeId) ?? null
     : null
+  const isFocusMode = isBlockPaletteCollapsed && isDockCollapsed
+
+  function handleToggleFocusMode() {
+    const nextFocusMode = !isFocusMode
+    setIsBlockPaletteCollapsed(nextFocusMode)
+    setIsDockCollapsed(nextFocusMode)
+  }
 
   if (loadingFlow) {
     return (
@@ -313,15 +328,60 @@ export default function FlowIntel({ botId }: FlowIntelProps) {
         </div>
       )}
 
-      <div className="grid gap-6 xl:grid-cols-[260px_minmax(0,1fr)]">
-        <aside className="rounded-l-[34px] border border-white/6 bg-[#171923] shadow-[0_24px_80px_rgba(0,0,0,0.32)] max-h-full overflow-y-auto w-full max-w-[260px]">
-          <div className="border-b border-white/6 px-6 py-8">
-            <h2 className="text-lg font-bold uppercase text-neon-blue tracking-wider">
-              Blocos disponíveis
-            </h2>
-                                  </div>
+      <div
+        className={cn(
+          'grid gap-6',
+          isBlockPaletteCollapsed
+            ? 'xl:grid-cols-[72px_minmax(0,1fr)]'
+            : 'xl:grid-cols-[260px_minmax(0,1fr)]',
+        )}
+      >
+        <aside
+          className={cn(
+            'overflow-hidden border border-white/6 bg-[#171923] shadow-[0_24px_80px_rgba(0,0,0,0.32)] transition-all',
+            isBlockPaletteCollapsed
+              ? 'w-full rounded-[24px] xl:min-h-[640px] xl:w-[72px]'
+              : 'w-full rounded-l-[34px] xl:max-h-full xl:max-w-[260px]',
+          )}
+        >
+          <div
+            className={cn(
+              'flex items-center justify-between gap-3 border-b border-white/6',
+              isBlockPaletteCollapsed ? 'px-4 py-4 xl:flex-col xl:px-3 xl:py-5' : 'px-6 py-6',
+            )}
+          >
+            {isBlockPaletteCollapsed ? (
+              <div className="flex items-center gap-3 xl:flex-col">
+                <span className="flex h-10 w-10 items-center justify-center rounded-[6px] border border-neon-blue/25 bg-neon-blue/12 text-neon-blue">
+                  <GitBranch size={17} aria-hidden="true" />
+                </span>
+                <span className="text-xs font-bold uppercase tracking-[0.2em] text-neon-blue xl:[writing-mode:vertical-rl] xl:rotate-180">
+                  Blocos
+                </span>
+              </div>
+            ) : (
+              <h2 className="text-lg font-bold uppercase tracking-wider text-neon-blue">
+                Blocos disponiveis
+              </h2>
+            )}
 
-          <div className="max-h-[980px] space-y-8 overflow-y-auto px-6 py-6">
+            <button
+              type="button"
+              onClick={() => setIsBlockPaletteCollapsed((value) => !value)}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[6px] border border-white/10 bg-white/5 text-gray-300 transition-colors hover:border-neon-blue/30 hover:text-neon-blue"
+              aria-label={isBlockPaletteCollapsed ? 'Expandir blocos' : 'Minimizar blocos'}
+              title={isBlockPaletteCollapsed ? 'Expandir blocos' : 'Minimizar blocos'}
+            >
+              {isBlockPaletteCollapsed ? (
+                <PanelLeftOpen size={16} aria-hidden="true" />
+              ) : (
+                <PanelLeftClose size={16} aria-hidden="true" />
+              )}
+            </button>
+          </div>
+
+          {!isBlockPaletteCollapsed && (
+            <div className="max-h-[980px] space-y-8 overflow-y-auto px-6 py-6">
             {blocksByCategory.map((group) => (
               <section key={group.category} className="space-y-4">
                 <div className="flex items-center gap-3">
@@ -369,7 +429,8 @@ export default function FlowIntel({ botId }: FlowIntelProps) {
                 </div>
               </section>
             ))}
-          </div>
+            </div>
+          )}
         </aside>
 
         <div className="space-y-5">
@@ -392,6 +453,24 @@ export default function FlowIntel({ botId }: FlowIntelProps) {
                 >
                   <Wand2 size={15} className="mr-2" aria-hidden="true" />
                   Gerar com IA
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleToggleFocusMode}
+                  className={cn(
+                    'h-14 rounded-full px-6 text-[12px] font-bold uppercase tracking-[0.26em]',
+                    isFocusMode
+                      ? 'border-neon-green/40 bg-neon-green/15 text-neon-green hover:bg-neon-green/20'
+                      : 'border-white/10 bg-white/5 text-white hover:bg-white/10',
+                  )}
+                >
+                  {isFocusMode ? (
+                    <Minimize2 size={15} className="mr-2" aria-hidden="true" />
+                  ) : (
+                    <Maximize2 size={15} className="mr-2" aria-hidden="true" />
+                  )}
+                  {isFocusMode ? 'Sair do foco' : 'Modo foco'}
                 </Button>
                 <Button
                   type="button"
@@ -442,11 +521,14 @@ export default function FlowIntel({ botId }: FlowIntelProps) {
             <div
               className={cn(
                 'grid bg-[#12141b]',
-                showSimulator ? 'grid-cols-[minmax(0,1fr)_400px]' : 'grid-cols-1',
+                showSimulator ? 'grid-cols-1 xl:grid-cols-[minmax(0,1fr)_400px]' : 'grid-cols-1',
               )}
             >
             <div
-              className="relative h-[620px] bg-[#12141b] xl:h-[760px]"
+              className={cn(
+                'relative min-h-[620px] bg-[#12141b]',
+                isDockCollapsed ? 'h-[calc(100vh-260px)] xl:h-[calc(100vh-220px)]' : 'h-[620px] xl:h-[760px]',
+              )}
               onDrop={handleCanvasDrop}
               onDragOver={(event) => {
                 event.preventDefault()
@@ -519,30 +601,62 @@ export default function FlowIntel({ botId }: FlowIntelProps) {
           </section>
 
           <section className="overflow-hidden rounded-[28px] border border-white/6 bg-[#171923] shadow-[0_24px_80px_rgba(0,0,0,0.24)]">
-            <div className="flex flex-wrap gap-2 border-b border-white/6 p-3">
-              {dockTabs.map((tab) => {
-                const Icon = tab.icon
-                const isActive = dockTab === tab.id
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/6 p-3">
+              <div className="flex flex-wrap gap-2">
+                {dockTabs.map((tab) => {
+                  const Icon = tab.icon
+                  const isActive = dockTab === tab.id
 
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => setDockTab(tab.id)}
-                    className={cn(
-                      'flex h-10 items-center gap-2 rounded-[6px] border px-3 text-xs font-semibold uppercase tracking-[0.18em] transition-colors',
-                      isActive
-                        ? 'border-neon-blue/35 bg-neon-blue/15 text-neon-blue'
-                        : 'border-white/8 bg-white/5 text-gray-400 hover:border-white/14 hover:text-white',
-                    )}
-                  >
-                    <Icon size={14} aria-hidden="true" />
-                    {tab.label}
-                  </button>
-                )
-              })}
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setDockTab(tab.id)}
+                      disabled={isDockCollapsed}
+                      className={cn(
+                        'flex h-10 items-center gap-2 rounded-[6px] border px-3 text-xs font-semibold uppercase tracking-[0.18em] transition-colors disabled:cursor-not-allowed disabled:opacity-55',
+                        isActive
+                          ? 'border-neon-blue/35 bg-neon-blue/15 text-neon-blue'
+                          : 'border-white/8 bg-white/5 text-gray-400 hover:border-white/14 hover:text-white',
+                      )}
+                    >
+                      <Icon size={14} aria-hidden="true" />
+                      {tab.label}
+                    </button>
+                  )
+                })}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsDockCollapsed((value) => !value)}
+                className="flex h-10 items-center gap-2 rounded-[6px] border border-white/10 bg-white/5 px-3 text-xs font-semibold uppercase tracking-[0.18em] text-gray-300 transition-colors hover:border-neon-blue/30 hover:text-neon-blue"
+                aria-label={isDockCollapsed ? 'Expandir painel de abas' : 'Minimizar painel de abas'}
+                title={isDockCollapsed ? 'Expandir painel de abas' : 'Minimizar painel de abas'}
+              >
+                {isDockCollapsed ? (
+                  <PanelBottomOpen size={14} aria-hidden="true" />
+                ) : (
+                  <PanelBottomClose size={14} aria-hidden="true" />
+                )}
+                {isDockCollapsed ? 'Expandir' : 'Minimizar'}
+              </button>
             </div>
 
+            {isDockCollapsed ? (
+              <div className="flex items-center justify-between gap-3 p-4 text-sm text-gray-400">
+                <span>Painel recolhido</span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsDockCollapsed(false)}
+                  className="h-10 rounded-[6px] border-white/10 bg-white/5 px-4 text-xs font-semibold uppercase tracking-[0.18em] text-gray-200 hover:bg-white/10"
+                >
+                  <PanelBottomOpen size={14} className="mr-2" aria-hidden="true" />
+                  Restaurar painel
+                </Button>
+              </div>
+            ) : (
             <div className="p-5">
               {dockTab === 'intel' && (
                 <IntelDock
@@ -655,6 +769,7 @@ export default function FlowIntel({ botId }: FlowIntelProps) {
                 />
               )}
             </div>
+            )}
           </section>
 
         </div>
