@@ -1,74 +1,292 @@
 import { useState } from 'react'
-import { Sparkles } from 'lucide-react'
+import { Eye, EyeOff, Loader2, LockKeyhole, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/lib/auth/AuthContext'
+import { cn } from '@/lib/utils'
+import loginLogoUrl from '../../logo.png'
+
+type LoginMode = 'password' | 'google'
+type AuthMode = 'signIn' | 'signUp'
 
 export default function LoginPage() {
-  const { signInWithGoogle } = useAuth()
+  const { resetPassword, signInWithGoogle, signInWithPassword, signUpWithPassword } = useAuth()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [remember, setRemember] = useState(true)
+  const [showPassword, setShowPassword] = useState(false)
+  const [authMode, setAuthMode] = useState<AuthMode>('signIn')
   const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [notice, setNotice] = useState<string | null>(null)
+  const [loadingMode, setLoadingMode] = useState<LoginMode | null>(null)
 
-  async function handleSignIn() {
+  async function handlePasswordSignIn(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
     setError(null)
-    setLoading(true)
+    setNotice(null)
+
+    if (!email.trim() || !password) {
+      setError('Informe seu e-mail e senha para entrar.')
+      return
+    }
+
+    setLoadingMode('password')
     try {
-      await signInWithGoogle()
+      if (authMode === 'signUp') {
+        await signUpWithPassword(email.trim(), password)
+        setNotice('Conta criada. Verifique seu e-mail se a confirmacao estiver ativada.')
+        setAuthMode('signIn')
+        setPassword('')
+        setLoadingMode(null)
+        return
+      }
+
+      await signInWithPassword(email.trim(), password)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Falha ao iniciar login.')
-      setLoading(false)
+      setError(err instanceof Error ? err.message : 'Falha ao autenticar com e-mail e senha.')
+      setLoadingMode(null)
     }
   }
 
+  async function handleGoogleSignIn() {
+    setError(null)
+    setNotice(null)
+    setLoadingMode('google')
+    try {
+      await signInWithGoogle()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Falha ao iniciar login com Google.')
+      setLoadingMode(null)
+    }
+  }
+
+  async function handleResetPassword() {
+    setError(null)
+    setNotice(null)
+
+    if (!email.trim()) {
+      setError('Informe seu e-mail antes de recuperar a senha.')
+      return
+    }
+
+    try {
+      await resetPassword(email.trim())
+      setNotice('Enviamos as instrucoes de recuperacao para o seu e-mail.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Falha ao enviar recuperacao de senha.')
+    }
+  }
+
+  const isLoading = loadingMode !== null
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-deep-900 p-6">
-      <div className="w-full max-w-md rounded-[34px] border border-white/8 bg-[#11141d] p-8 shadow-[0_24px_80px_rgba(0,0,0,0.4)]">
-        <div className="mb-6 flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-neon-blue/15 text-neon-blue">
-            <Sparkles size={20} aria-hidden />
-          </div>
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-neon-blue">
-              Kraxium
-            </p>
-            <h1 className="text-xl font-bold text-white">Flow Intel Dashboard</h1>
-          </div>
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#0a0a12] px-5 py-8 text-white">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle,rgba(139,92,246,0.16)_1px,transparent_1px)] bg-[length:32px_32px] opacity-45" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(139,92,246,0.12),transparent_32%,rgba(0,255,136,0.08)_100%)]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#8b5cf6]/60 to-transparent" />
+
+      <section className="relative z-10 w-full max-w-[420px] animate-in fade-in slide-in-from-bottom-4 duration-500 rounded-[20px] border border-[#8b5cf6]/20 bg-[#16213e]/85 px-9 pb-8 pt-9 shadow-[0_0_0_1px_rgba(139,92,246,0.08),0_24px_80px_rgba(0,0,0,0.7),0_0_60px_rgba(139,92,246,0.06)] backdrop-blur-2xl max-[480px]:px-6 max-[480px]:py-7">
+        <div className="mb-7 flex flex-col items-center">
+          <img
+            src={loginLogoUrl}
+            alt="KRAXIUM BOT"
+            className="mb-[-4px] h-[220px] w-[220px] object-contain drop-shadow-[0_0_28px_rgba(139,92,246,0.55)] max-[480px]:h-[118px] max-[480px]:w-[118px]"
+          />
+          <p className="font-mono text-[11px] font-medium uppercase tracking-[0.24em] text-slate-600">
+            KRAXIUM BOT
+          </p>
         </div>
 
-        <p className="mb-8 text-sm leading-7 text-gray-400">
-          Entre com sua conta Google para acessar seus bots e fluxos.
-        </p>
+        <div className="mb-7 text-center">
+          <h1 className="font-display text-[22px] font-bold tracking-normal text-white">
+            {authMode === 'signIn' ? 'Bem-vindo de volta' : 'Crie sua conta'}
+          </h1>
+          <p className="mt-1 text-[13px] text-slate-500">
+            {authMode === 'signIn' ? 'Acesse sua conta KRAXIUM BOT' : 'Comece a usar o KRAXIUM BOT'}
+          </p>
+        </div>
+
+        <div className="mb-7 h-px bg-white/6" />
+
+        <form onSubmit={handlePasswordSignIn} className="space-y-4">
+          <LoginField
+            id="login-email"
+            label="E-mail"
+            type="email"
+            value={email}
+            onChange={setEmail}
+            placeholder="seu@email.com"
+            autoComplete="email"
+            icon={<Mail size={15} aria-hidden="true" />}
+          />
+
+          <LoginField
+            id="login-password"
+            label="Senha"
+            type={showPassword ? 'text' : 'password'}
+            value={password}
+            onChange={setPassword}
+            placeholder="********"
+            autoComplete="current-password"
+            icon={<LockKeyhole size={15} aria-hidden="true" />}
+            action={
+              <button
+                type="button"
+                onClick={() => setShowPassword((value) => !value)}
+                className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center text-slate-600 transition-colors hover:text-[#8b5cf6]"
+                aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+              >
+                {showPassword ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
+              </button>
+            }
+          />
+
+          <div className="flex items-center justify-between gap-3">
+            <label className="flex cursor-pointer items-center gap-2 text-xs text-slate-500">
+              <input
+                type="checkbox"
+                checked={remember}
+                onChange={(event) => setRemember(event.target.checked)}
+                className="h-3.5 w-3.5 accent-[#8b5cf6]"
+              />
+              Lembrar-me
+            </label>
+            <button
+              type="button"
+              onClick={() => void handleResetPassword()}
+              className="text-xs font-medium text-[#8b5cf6] transition-colors hover:text-[#a78bfa]"
+            >
+              Esqueci a senha
+            </button>
+          </div>
+
+          <Button
+            type="submit"
+            disabled={isLoading}
+            className="relative h-[46px] w-full overflow-hidden rounded-[10px] border-0 bg-[linear-gradient(135deg,#8b5cf6,#6d28d9)] text-sm font-bold tracking-[0.03em] text-white shadow-[0_4px_20px_rgba(139,92,246,0.35)] transition-all hover:-translate-y-px hover:bg-[linear-gradient(135deg,#9b6ef7,#7c3aed)] hover:shadow-[0_4px_28px_rgba(139,92,246,0.55)] disabled:translate-y-0 disabled:opacity-70"
+          >
+            {loadingMode === 'password' ? (
+              <>
+                <Loader2 size={16} className="mr-2 animate-spin" aria-hidden="true" />
+                Autenticando...
+              </>
+            ) : (
+              authMode === 'signIn' ? 'Entrar na Plataforma' : 'Criar conta gratis'
+            )}
+          </Button>
+        </form>
+
+        <div className="my-4 flex items-center gap-3 text-[11px] text-slate-700">
+          <span className="h-px flex-1 bg-white/6" />
+          ou continue com
+          <span className="h-px flex-1 bg-white/6" />
+        </div>
 
         <Button
           type="button"
-          onClick={handleSignIn}
-          disabled={loading}
-          className="h-12 w-full rounded-full border border-white/10 bg-white text-[13px] font-semibold uppercase tracking-[0.18em] text-[#16181f] hover:bg-white/95 disabled:opacity-60"
+          variant="outline"
+          onClick={() => void handleGoogleSignIn()}
+          disabled={isLoading}
+          className="h-[44px] w-full rounded-[10px] border-white/10 bg-white/5 text-[13px] font-semibold text-slate-200 transition-all hover:border-white/20 hover:bg-white/10"
         >
-          <GoogleIcon className="mr-3 h-5 w-5" />
-          {loading ? 'Redirecionando…' : 'Continuar com Google'}
+          {loadingMode === 'google' ? (
+            <Loader2 size={16} className="mr-2 animate-spin" aria-hidden="true" />
+          ) : (
+            <GoogleIcon className="mr-2 h-4 w-4" />
+          )}
+          Entrar com Google
         </Button>
 
         {error && (
-          <div className="mt-4 rounded-2xl border border-red-500/30 bg-red-500/8 px-4 py-3 text-sm text-red-200">
+          <div className="mt-4 rounded-[14px] border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm leading-6 text-red-200">
             {error}
           </div>
         )}
 
-        <p className="mt-6 text-[11px] leading-5 text-gray-500">
-          Ao continuar, você concorda em conectar sua conta Google ao Kraxium para autenticação.
-        </p>
-      </div>
+        {notice && (
+          <div className="mt-4 rounded-[14px] border border-neon-green/25 bg-neon-green/10 px-4 py-3 text-sm leading-6 text-neon-green">
+            {notice}
+          </div>
+        )}
+
+        <div className="mt-5 border-t border-white/5 pt-4 text-center text-xs text-slate-600">
+          {authMode === 'signIn' ? 'Nao tem conta?' : 'Ja tem conta?'}{' '}
+          <button
+            type="button"
+            onClick={() => {
+              setAuthMode((mode) => (mode === 'signIn' ? 'signUp' : 'signIn'))
+              setError(null)
+              setNotice(null)
+            }}
+            className="font-semibold text-[#8b5cf6] transition-colors hover:text-[#a78bfa]"
+          >
+            {authMode === 'signIn' ? 'Criar conta gratis' : 'Entrar agora'}
+          </button>
+        </div>
+      </section>
+    </main>
+  )
+}
+
+interface LoginFieldProps {
+  id: string
+  label: string
+  type: string
+  value: string
+  onChange: (value: string) => void
+  placeholder: string
+  autoComplete: string
+  icon: React.ReactNode
+  action?: React.ReactNode
+}
+
+function LoginField({
+  id,
+  label,
+  type,
+  value,
+  onChange,
+  placeholder,
+  autoComplete,
+  icon,
+  action,
+}: LoginFieldProps) {
+  return (
+    <div className="block">
+      <label
+        htmlFor={id}
+        className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-[#a78bfa]"
+      >
+        {label}
+      </label>
+      <span className="relative block">
+        <span className="absolute left-3 top-1/2 flex -translate-y-1/2 items-center text-slate-600">
+          {icon}
+        </span>
+        <input
+          id={id}
+          type={type}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={placeholder}
+          autoComplete={autoComplete}
+          className={cn(
+            'h-[43px] w-full rounded-[10px] border border-white/10 bg-[#0a0a12]/80 px-10 text-sm text-white outline-none transition-[border-color,box-shadow] placeholder:text-slate-700 focus:border-[#8b5cf6]/60 focus:shadow-[0_0_0_3px_rgba(139,92,246,0.12)]',
+            action && 'pr-11',
+          )}
+        />
+        {action}
+      </span>
     </div>
   )
 }
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} aria-hidden>
-      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
-      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z" />
+    <svg viewBox="0 0 48 48" className={className} aria-hidden="true">
+      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+      <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.36-8.16 2.36-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
     </svg>
   )
 }
