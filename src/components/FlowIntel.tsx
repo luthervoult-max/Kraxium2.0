@@ -15,17 +15,11 @@ import {
   type ReactFlowInstance,
 } from '@xyflow/react'
 import {
-  Bot,
-  BrainCircuit,
   Check,
-  Copy,
-  FileJson,
   GitBranch,
   Loader2,
   Maximize2,
   Minimize2,
-  PanelBottomClose,
-  PanelBottomOpen,
   PanelLeftClose,
   PanelLeftOpen,
   Plus,
@@ -57,15 +51,8 @@ import { cn } from '@/lib/utils'
 
 type BuilderNode = Node<FlowNodeData, 'flowNode'>
 type BuilderEdge = Edge
-type DockTab = 'intel' | 'flow' | 'logs' | 'output'
 
 const nodeTypes = { flowNode: FlowNode }
-const dockTabs: Array<{ id: DockTab; label: string; icon: typeof BrainCircuit }> = [
-  { id: 'intel', label: 'Flow Intel', icon: BrainCircuit },
-  { id: 'flow', label: 'Fluxo JSON', icon: GitBranch },
-  { id: 'logs', label: 'Logs', icon: Bot },
-  { id: 'output', label: 'JSON de saida', icon: FileJson },
-]
 
 const starterFlowObject = {
   nodes: [
@@ -98,14 +85,11 @@ export default function FlowIntel({ botId }: FlowIntelProps) {
   const [flowDraft, setFlowDraft] = useState(flowIntelExampleFlowJson)
   const [logsText, setLogsText] = useState(flowIntelExampleLogsJson)
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(demoAnalysis)
-  const [dockTab, setDockTab] = useState<DockTab>('intel')
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [saveState, setSaveState] = useState<'idle' | 'saved' | 'saving'>('idle')
-  const [copyState, setCopyState] = useState<'idle' | 'done'>('idle')
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance<BuilderNode, BuilderEdge> | null>(null)
   const [showSimulator, setShowSimulator] = useState(false)
   const [isBlockPaletteCollapsed, setIsBlockPaletteCollapsed] = useState(false)
-  const [isDockCollapsed, setIsDockCollapsed] = useState(false)
   const [loadingFlow, setLoadingFlow] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
 
@@ -137,7 +121,7 @@ export default function FlowIntel({ botId }: FlowIntelProps) {
           setFlowDraft(starterFlowJson)
           setLogsText('[]')
           setAnalysis(null)
-          setLoadError('Nenhum fluxo salvo para este bot. Voce pode montar um novo fluxo e usar a demo de logs no painel abaixo.')
+          setLoadError('Nenhum fluxo salvo para este bot. Voce pode montar um novo fluxo no canvas.')
           return
         }
         setFlow(data)
@@ -169,7 +153,6 @@ export default function FlowIntel({ botId }: FlowIntelProps) {
   )
   const flowDraftParse = useMemo(() => parseFlowInput(flowDraft), [flowDraft])
   const logsParse = useMemo(() => parseLogsInput(logsText), [logsText])
-  const outputJson = analysis ? JSON.stringify(analysis, null, 2) : ''
 
   useEffect(() => {
     setFlowDraft(canvasFlowJson)
@@ -188,13 +171,11 @@ export default function FlowIntel({ botId }: FlowIntelProps) {
 
   function handleAnalyze() {
     if (!logsParse.data || logsParse.errors.length > 0) {
-      setDockTab('logs')
       return
     }
 
     const report = generateFlowIntelReport(canvasFlowJson, logsText).report
     setAnalysis(report?.result ?? null)
-    setDockTab(report ? 'intel' : 'logs')
   }
 
   async function handleSave() {
@@ -217,42 +198,7 @@ export default function FlowIntel({ botId }: FlowIntelProps) {
     setEdges(next.edges)
     setLogsText('[]')
     setAnalysis(null)
-    setDockTab('intel')
     setSelectedNodeId(null)
-  }
-
-  function handleRestoreDemo() {
-    const next = buildCanvasState(flowIntelExampleFlowJson)
-    const report = generateFlowIntelReport(flowIntelExampleFlowJson, flowIntelExampleLogsJson).report
-
-    setFlowName('VIP Onboarding Kraxium')
-    setNodes(next.nodes)
-    setEdges(next.edges)
-    setLogsText(flowIntelExampleLogsJson)
-    setAnalysis(report?.result ?? null)
-    setDockTab('intel')
-    setSelectedNodeId(null)
-  }
-
-  function handleApplyFlowJson() {
-    if (!flowDraftParse.data || flowDraftParse.errors.length > 0) {
-      return
-    }
-
-    const next = buildCanvasState(flowDraft)
-    setNodes(next.nodes)
-    setEdges(next.edges)
-    setSelectedNodeId(null)
-  }
-
-  async function handleCopyOutput() {
-    if (!outputJson) {
-      return
-    }
-
-    await navigator.clipboard.writeText(outputJson)
-    setCopyState('done')
-    window.setTimeout(() => setCopyState('idle'), 1600)
   }
 
   function handleCanvasDrop(event: React.DragEvent<HTMLDivElement>) {
@@ -301,12 +247,12 @@ export default function FlowIntel({ botId }: FlowIntelProps) {
   const selectedNode = selectedNodeId
     ? nodes.find((node) => node.id === selectedNodeId) ?? null
     : null
-  const isFocusMode = isBlockPaletteCollapsed && isDockCollapsed
+  const isFocusMode = isBlockPaletteCollapsed
+  const builderPanelHeightClass = 'h-[calc(100vh-260px)] min-h-[620px] xl:h-[calc(100vh-220px)]'
 
   function handleToggleFocusMode() {
     const nextFocusMode = !isFocusMode
     setIsBlockPaletteCollapsed(nextFocusMode)
-    setIsDockCollapsed(nextFocusMode)
   }
 
   if (loadingFlow) {
@@ -338,7 +284,8 @@ export default function FlowIntel({ botId }: FlowIntelProps) {
       >
         <aside
           className={cn(
-            'overflow-hidden border border-white/6 bg-[#171923] shadow-[0_24px_80px_rgba(0,0,0,0.32)] transition-all',
+            'flex flex-col overflow-hidden border border-white/6 bg-[#171923] shadow-[0_24px_80px_rgba(0,0,0,0.32)] transition-all',
+            builderPanelHeightClass,
             isBlockPaletteCollapsed
               ? 'w-full rounded-[24px] xl:min-h-[640px] xl:w-[72px]'
               : 'w-full rounded-l-[34px] xl:max-h-full xl:max-w-[260px]',
@@ -381,7 +328,7 @@ export default function FlowIntel({ botId }: FlowIntelProps) {
           </div>
 
           {!isBlockPaletteCollapsed && (
-            <div className="max-h-[980px] space-y-8 overflow-y-auto px-6 py-6">
+            <div className="min-h-0 flex-1 space-y-8 overflow-y-auto px-6 py-6">
             {blocksByCategory.map((group) => (
               <section key={group.category} className="space-y-4">
                 <div className="flex items-center gap-3">
@@ -433,8 +380,8 @@ export default function FlowIntel({ botId }: FlowIntelProps) {
           )}
         </aside>
 
-        <div className="space-y-5">
-          <section className="overflow-hidden rounded-[34px] border border-white/6 bg-[#171923] shadow-[0_24px_80px_rgba(0,0,0,0.32)]">
+        <div className="min-w-0">
+          <section className={cn('flex flex-col overflow-hidden rounded-[34px] border border-white/6 bg-[#171923] shadow-[0_24px_80px_rgba(0,0,0,0.32)]', builderPanelHeightClass)}>
             <div className="flex flex-col gap-4 border-b border-white/6 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex min-w-0 flex-1 items-center gap-3">
                 <input
@@ -520,15 +467,12 @@ export default function FlowIntel({ botId }: FlowIntelProps) {
 
             <div
               className={cn(
-                'grid bg-[#12141b]',
+                'grid min-h-0 flex-1 bg-[#12141b]',
                 showSimulator ? 'grid-cols-1 xl:grid-cols-[minmax(0,1fr)_400px]' : 'grid-cols-1',
               )}
             >
             <div
-              className={cn(
-                'relative min-h-[620px] bg-[#12141b]',
-                isDockCollapsed ? 'h-[calc(100vh-260px)] xl:h-[calc(100vh-220px)]' : 'h-[620px] xl:h-[760px]',
-              )}
+              className="relative h-full min-h-[520px] bg-[#12141b]"
               onDrop={handleCanvasDrop}
               onDragOver={(event) => {
                 event.preventDefault()
@@ -598,178 +542,6 @@ export default function FlowIntel({ botId }: FlowIntelProps) {
                 </div>
               )}
             </div>
-          </section>
-
-          <section className="overflow-hidden rounded-[28px] border border-white/6 bg-[#171923] shadow-[0_24px_80px_rgba(0,0,0,0.24)]">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/6 p-3">
-              <div className="flex flex-wrap gap-2">
-                {dockTabs.map((tab) => {
-                  const Icon = tab.icon
-                  const isActive = dockTab === tab.id
-
-                  return (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      onClick={() => setDockTab(tab.id)}
-                      disabled={isDockCollapsed}
-                      className={cn(
-                        'flex h-10 items-center gap-2 rounded-[6px] border px-3 text-xs font-semibold uppercase tracking-[0.18em] transition-colors disabled:cursor-not-allowed disabled:opacity-55',
-                        isActive
-                          ? 'border-neon-blue/35 bg-neon-blue/15 text-neon-blue'
-                          : 'border-white/8 bg-white/5 text-gray-400 hover:border-white/14 hover:text-white',
-                      )}
-                    >
-                      <Icon size={14} aria-hidden="true" />
-                      {tab.label}
-                    </button>
-                  )
-                })}
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setIsDockCollapsed((value) => !value)}
-                className="flex h-10 items-center gap-2 rounded-[6px] border border-white/10 bg-white/5 px-3 text-xs font-semibold uppercase tracking-[0.18em] text-gray-300 transition-colors hover:border-neon-blue/30 hover:text-neon-blue"
-                aria-label={isDockCollapsed ? 'Expandir painel de abas' : 'Minimizar painel de abas'}
-                title={isDockCollapsed ? 'Expandir painel de abas' : 'Minimizar painel de abas'}
-              >
-                {isDockCollapsed ? (
-                  <PanelBottomOpen size={14} aria-hidden="true" />
-                ) : (
-                  <PanelBottomClose size={14} aria-hidden="true" />
-                )}
-                {isDockCollapsed ? 'Expandir' : 'Minimizar'}
-              </button>
-            </div>
-
-            {isDockCollapsed ? (
-              <div className="flex items-center justify-between gap-3 p-4 text-sm text-gray-400">
-                <span>Painel recolhido</span>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsDockCollapsed(false)}
-                  className="h-10 rounded-[6px] border-white/10 bg-white/5 px-4 text-xs font-semibold uppercase tracking-[0.18em] text-gray-200 hover:bg-white/10"
-                >
-                  <PanelBottomOpen size={14} className="mr-2" aria-hidden="true" />
-                  Restaurar painel
-                </Button>
-              </div>
-            ) : (
-            <div className="p-5">
-              {dockTab === 'intel' && (
-                <IntelDock
-                  analysis={analysis}
-                  selectedNode={selectedNode}
-                  onRestoreDemo={handleRestoreDemo}
-                  onAnalyze={handleAnalyze}
-                  logsReady={Boolean(logsParse.data && logsParse.errors.length === 0)}
-                />
-              )}
-
-              {dockTab === 'flow' && (
-                <JsonDock
-                  title="Fluxo JSON"
-                  description="Edite o grafo bruto e aplique no canvas."
-                  value={flowDraft}
-                  onChange={setFlowDraft}
-                  errors={flowDraftParse.errors}
-                  actions={
-                    <>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={handleRestoreDemo}
-                        className="border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
-                      >
-                        <RefreshCcw size={14} className="mr-2" aria-hidden="true" />
-                        Demo
-                      </Button>
-                      <Button
-                        type="button"
-                        onClick={handleApplyFlowJson}
-                        disabled={!flowDraftParse.data || flowDraftParse.errors.length > 0}
-                        className="border border-neon-blue bg-neon-blue/20 text-neon-blue hover:bg-neon-blue/30"
-                      >
-                        <Check size={14} className="mr-2" aria-hidden="true" />
-                        Aplicar
-                      </Button>
-                    </>
-                  }
-                />
-              )}
-
-              {dockTab === 'logs' && (
-                <JsonDock
-                  title="Logs"
-                  description="Cole eventos do usuario para a analise encontrar gargalos e intencoes."
-                  value={logsText}
-                  onChange={setLogsText}
-                  errors={logsParse.errors}
-                  actions={
-                    <>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setLogsText(flowIntelExampleLogsJson)}
-                        className="border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
-                      >
-                        <RefreshCcw size={14} className="mr-2" aria-hidden="true" />
-                        Logs demo
-                      </Button>
-                      <Button
-                        type="button"
-                        onClick={handleAnalyze}
-                        disabled={!logsParse.data || logsParse.errors.length > 0}
-                        className="border border-neon-blue bg-neon-blue/20 text-neon-blue hover:bg-neon-blue/30"
-                      >
-                        <Sparkles size={14} className="mr-2" aria-hidden="true" />
-                        Analisar
-                      </Button>
-                    </>
-                  }
-                />
-              )}
-
-              {dockTab === 'output' && (
-                <JsonDock
-                  title="JSON de saida"
-                  description="Resultado pronto para copiar e reaproveitar em automacoes."
-                  value={outputJson || '{\n  "status": "rode a analise para gerar o JSON"\n}'}
-                  onChange={() => undefined}
-                  errors={[]}
-                  readOnly
-                  actions={
-                    <>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={handleAnalyze}
-                        className="border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
-                      >
-                        <Wand2 size={14} className="mr-2" aria-hidden="true" />
-                        Regerar
-                      </Button>
-                      <Button
-                        type="button"
-                        onClick={() => void handleCopyOutput()}
-                        disabled={!outputJson}
-                        className="border border-neon-green bg-neon-green/20 text-neon-green hover:bg-neon-green/30"
-                      >
-                        {copyState === 'done' ? (
-                          <Check size={14} className="mr-2" aria-hidden="true" />
-                        ) : (
-                          <Copy size={14} className="mr-2" aria-hidden="true" />
-                        )}
-                        {copyState === 'done' ? 'Copiado' : 'Copiar'}
-                      </Button>
-                    </>
-                  }
-                />
-              )}
-            </div>
-            )}
           </section>
 
         </div>
