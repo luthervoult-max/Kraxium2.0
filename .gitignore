@@ -14,6 +14,7 @@ dist-ssr/
 # editor / OS
 .vscode/
 .idea/
+.claude/
 .DS_Store
 Thumbs.db
 
@@ -22,8 +23,15 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+.codex-vite.*.log
 
 # vitest / coverage
 coverage/
 
 .vercel
+
+# generated local artifacts
+*.tsbuildinfo
+flow-intel-*.png
+vite.config.js
+vite.config.d.ts

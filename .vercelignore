@@ -4,6 +4,7 @@ dist-ssr
 .git
 .vercel
 .claude
+.codex-vite.*.log
 .env
 .env.*
 *.tsbuildinfo

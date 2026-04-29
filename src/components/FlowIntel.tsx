@@ -27,8 +27,6 @@ import {
   Save,
   Sparkles,
   Wand2,
-  ChevronLeft,
-  ChevronRight,
   Smartphone,
 } from 'lucide-react'
 import { getFlowByBotId, saveFlow, type Flow } from '@/lib/api/flows'
@@ -76,6 +74,11 @@ const starterFlowObject = {
 }
 
 const starterFlowJson = JSON.stringify(starterFlowObject, null, 2)
+const demoCanvasState = buildCanvasState(flowIntelExampleFlowJson)
+const demoAnalysis = generateFlowIntelReport(
+  flowIntelExampleFlowJson,
+  flowIntelExampleLogsJson,
+).report?.result ?? null
 
 interface FlowIntelProps {
   botId: string | null
@@ -83,12 +86,12 @@ interface FlowIntelProps {
 
 export default function FlowIntel({ botId }: FlowIntelProps) {
   const [flow, setFlow] = useState<Flow | null>(null)
-  const [flowName, setFlowName] = useState('')
-  const [nodes, setNodes, onNodesChange] = useNodesState<BuilderNode>([])
-  const [edges, setEdges, onEdgesChange] = useEdgesState<BuilderEdge>([])
-  const [flowDraft, setFlowDraft] = useState(starterFlowJson)
-  const [logsText, setLogsText] = useState('[]')
-  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null)
+  const [flowName, setFlowName] = useState('VIP Onboarding Kraxium')
+  const [nodes, setNodes, onNodesChange] = useNodesState<BuilderNode>(demoCanvasState.nodes)
+  const [edges, setEdges, onEdgesChange] = useEdgesState<BuilderEdge>(demoCanvasState.edges)
+  const [flowDraft, setFlowDraft] = useState(flowIntelExampleFlowJson)
+  const [logsText, setLogsText] = useState(flowIntelExampleLogsJson)
+  const [analysis, setAnalysis] = useState<AnalysisResult | null>(demoAnalysis)
   const [dockTab, setDockTab] = useState<DockTab>('intel')
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [saveState, setSaveState] = useState<'idle' | 'saved' | 'saving'>('idle')
@@ -101,9 +104,14 @@ export default function FlowIntel({ botId }: FlowIntelProps) {
   useEffect(() => {
     if (!botId) {
       setFlow(null)
-      setNodes([])
-      setEdges([])
-      setFlowName('')
+      setNodes(demoCanvasState.nodes)
+      setEdges(demoCanvasState.edges)
+      setFlowName('VIP Onboarding Kraxium')
+      setFlowDraft(flowIntelExampleFlowJson)
+      setLogsText(flowIntelExampleLogsJson)
+      setAnalysis(demoAnalysis)
+      setLoadError(null)
+      setLoadingFlow(false)
       return
     }
     let cancelled = false
@@ -113,7 +121,15 @@ export default function FlowIntel({ botId }: FlowIntelProps) {
       .then((data) => {
         if (cancelled) return
         if (!data) {
-          setLoadError('Fluxo não encontrado para este bot.')
+          const next = buildCanvasState(starterFlowJson)
+          setFlow(null)
+          setFlowName('Novo fluxo')
+          setNodes(next.nodes)
+          setEdges(next.edges)
+          setFlowDraft(starterFlowJson)
+          setLogsText('[]')
+          setAnalysis(null)
+          setLoadError('Nenhum fluxo salvo para este bot. Voce pode montar um novo fluxo e usar a demo de logs no painel abaixo.')
           return
         }
         setFlow(data)
@@ -278,19 +294,6 @@ export default function FlowIntel({ botId }: FlowIntelProps) {
     ? nodes.find((node) => node.id === selectedNodeId) ?? null
     : null
 
-  if (!botId) {
-    return (
-      <main className="p-6">
-        <div className="rounded-[28px] border border-white/8 bg-[#11141d] p-10 text-center">
-          <p className="text-sm text-gray-400">
-            Selecione um bot na aba <span className="text-neon-blue font-semibold">Bots</span> para
-            carregar seu fluxo.
-          </p>
-        </div>
-      </main>
-    )
-  }
-
   if (loadingFlow) {
     return (
       <main className="p-6">
@@ -302,18 +305,14 @@ export default function FlowIntel({ botId }: FlowIntelProps) {
     )
   }
 
-  if (loadError) {
-    return (
-      <main className="p-6">
-        <div className="rounded-[28px] border border-red-500/30 bg-red-500/8 p-8 text-sm text-red-200">
-          {loadError}
-        </div>
-      </main>
-    )
-  }
-
   return (
     <main className="p-4 lg:p-6">
+      {(!botId || loadError) && (
+        <div className="mb-5 rounded-[18px] border border-neon-blue/20 bg-neon-blue/8 px-5 py-4 text-sm leading-6 text-gray-300">
+          {loadError ?? 'Modo demo ativo. Selecione um bot na aba Bots quando quiser salvar em um fluxo real.'}
+        </div>
+      )}
+
       <div className="grid gap-6 xl:grid-cols-[260px_minmax(0,1fr)]">
         <aside className="rounded-l-[34px] border border-white/6 bg-[#171923] shadow-[0_24px_80px_rgba(0,0,0,0.32)] max-h-full overflow-y-auto w-full max-w-[260px]">
           <div className="border-b border-white/6 px-6 py-8">
@@ -397,7 +396,8 @@ export default function FlowIntel({ botId }: FlowIntelProps) {
                 <Button
                   type="button"
                   onClick={() => void handleSave()}
-                  disabled={saveState === 'saving'}
+                  disabled={!flow || saveState === 'saving'}
+                  title={!flow ? 'Selecione um bot para salvar no Supabase.' : undefined}
                   className="h-14 rounded-full border border-[#8f69f4] bg-[linear-gradient(90deg,#a96bff,#70f1a5)] px-6 text-[12px] font-bold uppercase tracking-[0.26em] text-[#16181f] hover:opacity-95 disabled:opacity-60"
                 >
                   {saveState === 'saving' ? (
@@ -514,6 +514,145 @@ export default function FlowIntel({ botId }: FlowIntelProps) {
                     edges={edges}
                   />
                 </div>
+              )}
+            </div>
+          </section>
+
+          <section className="overflow-hidden rounded-[28px] border border-white/6 bg-[#171923] shadow-[0_24px_80px_rgba(0,0,0,0.24)]">
+            <div className="flex flex-wrap gap-2 border-b border-white/6 p-3">
+              {dockTabs.map((tab) => {
+                const Icon = tab.icon
+                const isActive = dockTab === tab.id
+
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setDockTab(tab.id)}
+                    className={cn(
+                      'flex h-10 items-center gap-2 rounded-[6px] border px-3 text-xs font-semibold uppercase tracking-[0.18em] transition-colors',
+                      isActive
+                        ? 'border-neon-blue/35 bg-neon-blue/15 text-neon-blue'
+                        : 'border-white/8 bg-white/5 text-gray-400 hover:border-white/14 hover:text-white',
+                    )}
+                  >
+                    <Icon size={14} aria-hidden="true" />
+                    {tab.label}
+                  </button>
+                )
+              })}
+            </div>
+
+            <div className="p-5">
+              {dockTab === 'intel' && (
+                <IntelDock
+                  analysis={analysis}
+                  selectedNode={selectedNode}
+                  onRestoreDemo={handleRestoreDemo}
+                  onAnalyze={handleAnalyze}
+                  logsReady={Boolean(logsParse.data && logsParse.errors.length === 0)}
+                />
+              )}
+
+              {dockTab === 'flow' && (
+                <JsonDock
+                  title="Fluxo JSON"
+                  description="Edite o grafo bruto e aplique no canvas."
+                  value={flowDraft}
+                  onChange={setFlowDraft}
+                  errors={flowDraftParse.errors}
+                  actions={
+                    <>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleRestoreDemo}
+                        className="border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
+                      >
+                        <RefreshCcw size={14} className="mr-2" aria-hidden="true" />
+                        Demo
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={handleApplyFlowJson}
+                        disabled={!flowDraftParse.data || flowDraftParse.errors.length > 0}
+                        className="border border-neon-blue bg-neon-blue/20 text-neon-blue hover:bg-neon-blue/30"
+                      >
+                        <Check size={14} className="mr-2" aria-hidden="true" />
+                        Aplicar
+                      </Button>
+                    </>
+                  }
+                />
+              )}
+
+              {dockTab === 'logs' && (
+                <JsonDock
+                  title="Logs"
+                  description="Cole eventos do usuario para a analise encontrar gargalos e intencoes."
+                  value={logsText}
+                  onChange={setLogsText}
+                  errors={logsParse.errors}
+                  actions={
+                    <>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setLogsText(flowIntelExampleLogsJson)}
+                        className="border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
+                      >
+                        <RefreshCcw size={14} className="mr-2" aria-hidden="true" />
+                        Logs demo
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={handleAnalyze}
+                        disabled={!logsParse.data || logsParse.errors.length > 0}
+                        className="border border-neon-blue bg-neon-blue/20 text-neon-blue hover:bg-neon-blue/30"
+                      >
+                        <Sparkles size={14} className="mr-2" aria-hidden="true" />
+                        Analisar
+                      </Button>
+                    </>
+                  }
+                />
+              )}
+
+              {dockTab === 'output' && (
+                <JsonDock
+                  title="JSON de saida"
+                  description="Resultado pronto para copiar e reaproveitar em automacoes."
+                  value={outputJson || '{\n  "status": "rode a analise para gerar o JSON"\n}'}
+                  onChange={() => undefined}
+                  errors={[]}
+                  readOnly
+                  actions={
+                    <>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleAnalyze}
+                        className="border-white/10 bg-white/5 text-gray-200 hover:bg-white/10"
+                      >
+                        <Wand2 size={14} className="mr-2" aria-hidden="true" />
+                        Regerar
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={() => void handleCopyOutput()}
+                        disabled={!outputJson}
+                        className="border border-neon-green bg-neon-green/20 text-neon-green hover:bg-neon-green/30"
+                      >
+                        {copyState === 'done' ? (
+                          <Check size={14} className="mr-2" aria-hidden="true" />
+                        ) : (
+                          <Copy size={14} className="mr-2" aria-hidden="true" />
+                        )}
+                        {copyState === 'done' ? 'Copiado' : 'Copiar'}
+                      </Button>
+                    </>
+                  }
+                />
               )}
             </div>
           </section>
@@ -721,6 +860,7 @@ function JsonDock({
   onChange,
   errors,
   actions,
+  readOnly = false,
 }: {
   title: string
   description: string
@@ -728,6 +868,7 @@ function JsonDock({
   onChange: (value: string) => void
   errors: string[]
   actions: React.ReactNode
+  readOnly?: boolean
 }) {
   return (
     <Card className="border-white/6 bg-[#11131a]">
@@ -744,6 +885,7 @@ function JsonDock({
           <Textarea
             value={value}
             onChange={(event) => onChange(event.target.value)}
+            readOnly={readOnly}
             spellCheck={false}
             className="min-h-[360px] resize-y border-white/10 bg-[#0f1118] font-mono text-xs leading-6 text-gray-200 placeholder:text-gray-600"
           />
