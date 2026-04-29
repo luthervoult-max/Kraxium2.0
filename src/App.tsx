@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Loader2, LogOut } from 'lucide-react'
 import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
@@ -59,10 +59,72 @@ const mobilePages: Array<{ id: Page; label: string }> = [
   { id: 'bots', label: 'Bots' },
 ]
 
+type PendingLeaveAction = { type: 'page'; page: Page } | { type: 'signOut' }
+
 function Shell() {
   const { user, loading, signOut } = useAuth()
   const [page, setPage] = useState<Page>('dashboard')
   const [selectedBotId, setSelectedBotId] = useState<string | null>(null)
+  const [flowDirty, setFlowDirty] = useState(false)
+  const [pendingLeaveAction, setPendingLeaveAction] = useState<PendingLeaveAction | null>(null)
+  const [flowSaveHandler, setFlowSaveHandler] = useState<(() => Promise<boolean>) | null>(null)
+  const [savingBeforeLeave, setSavingBeforeLeave] = useState(false)
+
+  useEffect(() => {
+    if (!flowDirty) return
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [flowDirty])
+
+  const registerFlowSaveHandler = useCallback((handler: (() => Promise<boolean>) | null) => {
+    setFlowSaveHandler(() => handler)
+  }, [])
+
+  function requestNavigate(nextPage: Page) {
+    if (nextPage === page) return
+    if (page === 'flowIntel' && flowDirty) {
+      setPendingLeaveAction({ type: 'page', page: nextPage })
+      return
+    }
+    setPage(nextPage)
+  }
+
+  async function finishLeave(action: PendingLeaveAction) {
+    setFlowDirty(false)
+    setPendingLeaveAction(null)
+    if (action.type === 'page') {
+      setPage(action.page)
+      return
+    }
+    await signOut()
+  }
+
+  async function handleSaveAndLeave() {
+    if (!pendingLeaveAction || !flowSaveHandler) return
+    setSavingBeforeLeave(true)
+    try {
+      const saved = await flowSaveHandler()
+      if (saved) {
+        await finishLeave(pendingLeaveAction)
+      }
+    } finally {
+      setSavingBeforeLeave(false)
+    }
+  }
+
+  function requestSignOut() {
+    if (page === 'flowIntel' && flowDirty) {
+      setPendingLeaveAction({ type: 'signOut' })
+      return
+    }
+    void signOut()
+  }
 
   if (loading) {
     return (
@@ -81,7 +143,7 @@ function Shell() {
 
   return (
     <div className="min-h-screen bg-deep-900 lg:flex lg:h-screen lg:overflow-hidden">
-      <Sidebar currentPage={page} onNavigate={setPage} />
+      <Sidebar currentPage={page} onNavigate={requestNavigate} />
       <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
         <Header
           eyebrow={eyebrow || undefined}
@@ -93,7 +155,7 @@ function Shell() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => void signOut()}
+                onClick={requestSignOut}
                 className="h-9 rounded-full border-white/10 bg-white/5 px-3 text-xs text-gray-200 hover:bg-white/10"
               >
                 <LogOut size={13} className="mr-2" aria-hidden />
@@ -111,7 +173,7 @@ function Shell() {
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => setPage(item.id)}
+                  onClick={() => requestNavigate(item.id)}
                   className={
                     isActive
                       ? 'shrink-0 rounded-full border border-neon-blue/30 bg-neon-blue/15 px-3 py-2 text-xs font-semibold text-neon-blue'
@@ -163,11 +225,69 @@ function Shell() {
           </main>
         )}
 
-        {page === 'flowIntel' && <FlowIntel botId={selectedBotId} />}
+        {page === 'flowIntel' && (
+          <FlowIntel
+            botId={selectedBotId}
+            onDirtyChange={setFlowDirty}
+            onRegisterSave={registerFlowSaveHandler}
+          />
+        )}
         {page === 'bots' && (
           <BotsPage selectedBotId={selectedBotId} onSelectBot={setSelectedBotId} />
         )}
       </div>
+
+      {pendingLeaveAction && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="unsaved-flow-title"
+            className="w-full max-w-lg rounded-[28px] border border-neon-blue/25 bg-[#11141d] p-6 shadow-[0_24px_90px_rgba(0,0,0,0.55)]"
+          >
+            <div className="mb-5 flex items-start gap-4">
+              <span className="mt-1 h-3 w-3 shrink-0 rounded-full bg-neon-orange shadow-[0_0_18px_rgba(255,177,0,0.8)]" />
+              <div>
+                <h2 id="unsaved-flow-title" className="text-xl font-bold text-white">
+                  Salvar fluxo antes de sair?
+                </h2>
+                <p className="mt-3 text-sm leading-6 text-gray-400">
+                  Se voce sair agora, o canvas sera resetado e os blocos que ainda nao foram salvos serao perdidos.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => void finishLeave(pendingLeaveAction)}
+                disabled={savingBeforeLeave}
+                className="rounded-full border-white/10 bg-white/5 px-5 text-gray-200 hover:bg-white/10"
+              >
+                Sair sem salvar
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setPendingLeaveAction(null)}
+                disabled={savingBeforeLeave}
+                className="rounded-full border-white/10 bg-transparent px-5 text-gray-300 hover:bg-white/5"
+              >
+                Continuar no canvas
+              </Button>
+              <Button
+                type="button"
+                onClick={() => void handleSaveAndLeave()}
+                disabled={!flowSaveHandler || savingBeforeLeave}
+                className="rounded-full border border-[#8f69f4] bg-[linear-gradient(90deg,#a96bff,#70f1a5)] px-5 font-bold text-[#16181f] hover:opacity-95 disabled:opacity-60"
+              >
+                {savingBeforeLeave ? 'Salvando...' : 'Salvar e sair'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

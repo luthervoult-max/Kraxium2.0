@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   addEdge,
   Background,
@@ -29,7 +29,7 @@ import {
   Wand2,
   Smartphone,
 } from 'lucide-react'
-import { getFlowByBotId, saveFlow, type Flow } from '@/lib/api/flows'
+import { getFlowByBotId, saveFlow, upsertFlowByBotId, type Flow } from '@/lib/api/flows'
 import '@xyflow/react/dist/style.css'
 import { FlowNode, type FlowNodeData } from '@/components/flow/FlowNode'
 import { TelegramSimulator } from '@/components/telegram/TelegramSimulator'
@@ -53,6 +53,9 @@ type BuilderNode = Node<FlowNodeData, 'flowNode'>
 type BuilderEdge = Edge
 
 const nodeTypes = { flowNode: FlowNode }
+const emptyFlowObject = { nodes: [], edges: [] }
+const emptyFlowJson = JSON.stringify(emptyFlowObject, null, 2)
+const emptyCanvasState = { nodes: [] as BuilderNode[], edges: [] as BuilderEdge[] }
 
 const starterFlowObject = {
   nodes: [
@@ -75,65 +78,66 @@ const demoAnalysis = generateFlowIntelReport(
 
 interface FlowIntelProps {
   botId: string | null
+  onDirtyChange?: (dirty: boolean) => void
+  onRegisterSave?: (handler: (() => Promise<boolean>) | null) => void
 }
 
-export default function FlowIntel({ botId }: FlowIntelProps) {
+export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: FlowIntelProps) {
   const [flow, setFlow] = useState<Flow | null>(null)
-  const [flowName, setFlowName] = useState('VIP Onboarding Kraxium')
-  const [nodes, setNodes, onNodesChange] = useNodesState<BuilderNode>(demoCanvasState.nodes)
-  const [edges, setEdges, onEdgesChange] = useEdgesState<BuilderEdge>(demoCanvasState.edges)
-  const [flowDraft, setFlowDraft] = useState(flowIntelExampleFlowJson)
-  const [logsText, setLogsText] = useState(flowIntelExampleLogsJson)
-  const [analysis, setAnalysis] = useState<AnalysisResult | null>(demoAnalysis)
+  const [flowName, setFlowName] = useState('Novo fluxo')
+  const [nodes, setNodes, onNodesChange] = useNodesState<BuilderNode>(emptyCanvasState.nodes)
+  const [edges, setEdges, onEdgesChange] = useEdgesState<BuilderEdge>(emptyCanvasState.edges)
+  const [flowDraft, setFlowDraft] = useState(emptyFlowJson)
+  const [logsText, setLogsText] = useState('[]')
+  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null)
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [saveState, setSaveState] = useState<'idle' | 'saved' | 'saving'>('idle')
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance<BuilderNode, BuilderEdge> | null>(null)
   const [showSimulator, setShowSimulator] = useState(false)
   const [isBlockPaletteCollapsed, setIsBlockPaletteCollapsed] = useState(false)
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [loadingFlow, setLoadingFlow] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
 
+  const resetCanvasDraft = useCallback((nextFlowName = 'Novo fluxo') => {
+    setNodes(emptyCanvasState.nodes)
+    setEdges(emptyCanvasState.edges)
+    setFlowName(nextFlowName)
+    setFlowDraft(emptyFlowJson)
+    setLogsText('[]')
+    setAnalysis(null)
+    setSelectedNodeId(null)
+    setHasUnsavedChanges(false)
+    setSaveState('idle')
+  }, [setNodes, setEdges])
+
+  const markUnsaved = useCallback(() => {
+    setHasUnsavedChanges(true)
+  }, [])
+
   useEffect(() => {
+    resetCanvasDraft()
     if (!botId) {
       setFlow(null)
-      setNodes(demoCanvasState.nodes)
-      setEdges(demoCanvasState.edges)
-      setFlowName('VIP Onboarding Kraxium')
-      setFlowDraft(flowIntelExampleFlowJson)
-      setLogsText(flowIntelExampleLogsJson)
-      setAnalysis(demoAnalysis)
-      setLoadError(null)
+      setLoadError('Canvas limpo. Selecione um bot na aba Bots quando quiser salvar o fluxo.')
       setLoadingFlow(false)
       return
     }
+
     let cancelled = false
     setLoadingFlow(true)
     setLoadError(null)
     getFlowByBotId(botId)
       .then((data) => {
         if (cancelled) return
+        setFlow(data)
         if (!data) {
-          const next = buildCanvasState(starterFlowJson)
-          setFlow(null)
           setFlowName('Novo fluxo')
-          setNodes(next.nodes)
-          setEdges(next.edges)
-          setFlowDraft(starterFlowJson)
-          setLogsText('[]')
-          setAnalysis(null)
-          setLoadError('Nenhum fluxo salvo para este bot. Voce pode montar um novo fluxo no canvas.')
+          setLoadError('Canvas limpo. Monte um fluxo e clique em Salvar fluxo para gravar neste bot.')
           return
         }
-        setFlow(data)
         setFlowName(data.name)
-        const graphJson =
-          data.graph && Object.keys(data.graph as object).length > 0
-            ? JSON.stringify(data.graph, null, 2)
-            : starterFlowJson
-        const next = buildCanvasState(graphJson)
-        setNodes(next.nodes)
-        setEdges(next.edges)
-        setFlowDraft(graphJson)
+        setLoadError(null)
       })
       .catch((err) => {
         if (cancelled) return
@@ -145,13 +149,12 @@ export default function FlowIntel({ botId }: FlowIntelProps) {
     return () => {
       cancelled = true
     }
-  }, [botId, setNodes, setEdges])
+  }, [botId, resetCanvasDraft])
 
   const canvasFlowJson = useMemo(
     () => JSON.stringify(exportCanvasFlow(nodes, edges), null, 2),
     [nodes, edges],
   )
-  const flowDraftParse = useMemo(() => parseFlowInput(flowDraft), [flowDraft])
   const logsParse = useMemo(() => parseLogsInput(logsText), [logsText])
 
   useEffect(() => {
@@ -165,7 +168,22 @@ export default function FlowIntel({ botId }: FlowIntelProps) {
     }
   }, [nodes, selectedNodeId])
 
+  const handleNodesChange = (changes: Parameters<typeof onNodesChange>[0]) => {
+    onNodesChange(changes)
+    if (changes.some((change) => change.type !== 'select')) {
+      markUnsaved()
+    }
+  }
+
+  const handleEdgesChange = (changes: Parameters<typeof onEdgesChange>[0]) => {
+    onEdgesChange(changes)
+    if (changes.some((change) => change.type !== 'select')) {
+      markUnsaved()
+    }
+  }
+
   const onConnect: OnConnect = (connection) => {
+    markUnsaved()
     setEdges((currentEdges) => addEdge(buildEdge(connection, nodes), currentEdges))
   }
 
@@ -178,27 +196,43 @@ export default function FlowIntel({ botId }: FlowIntelProps) {
     setAnalysis(report?.result ?? null)
   }
 
-  async function handleSave() {
-    if (!flow) return
+  const handleSave = useCallback(async () => {
+    if (!botId) {
+      setLoadError('Selecione um bot na aba Bots antes de salvar o fluxo.')
+      return false
+    }
+
     setSaveState('saving')
     try {
       const graph = exportCanvasFlow(nodes, edges)
-      await saveFlow(flow.id, flowName.trim() || 'Sem nome', graph)
+      const savedFlow = flow
+        ? await saveFlow(flow.id, flowName.trim() || 'Sem nome', graph)
+        : await upsertFlowByBotId(botId, flowName.trim() || 'Sem nome', graph)
+      setFlow(savedFlow)
       setSaveState('saved')
+      setHasUnsavedChanges(false)
+      setLoadError(null)
       window.setTimeout(() => setSaveState('idle'), 1800)
+      return true
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : 'Falha ao salvar fluxo.')
       setSaveState('idle')
+      return false
     }
-  }
+  }, [botId, edges, flow, flowName, nodes])
+
+  useEffect(() => {
+    onDirtyChange?.(hasUnsavedChanges)
+    return () => onDirtyChange?.(false)
+  }, [hasUnsavedChanges, onDirtyChange])
+
+  useEffect(() => {
+    onRegisterSave?.(botId ? handleSave : null)
+    return () => onRegisterSave?.(null)
+  }, [botId, handleSave, onRegisterSave])
 
   function handleNewFlow() {
-    const next = buildCanvasState(starterFlowJson)
-    setNodes(next.nodes)
-    setEdges(next.edges)
-    setLogsText('[]')
-    setAnalysis(null)
-    setSelectedNodeId(null)
+    resetCanvasDraft(flowName.trim() || 'Novo fluxo')
   }
 
   function handleCanvasDrop(event: React.DragEvent<HTMLDivElement>) {
@@ -242,6 +276,7 @@ export default function FlowIntel({ botId }: FlowIntelProps) {
     }
 
     setSelectedNodeId(nextNode.id)
+    markUnsaved()
   }
 
   const selectedNode = selectedNodeId
@@ -386,7 +421,10 @@ export default function FlowIntel({ botId }: FlowIntelProps) {
               <div className="flex min-w-0 flex-1 items-center gap-3">
                 <input
                   value={flowName}
-                  onChange={(event) => setFlowName(event.target.value)}
+                  onChange={(event) => {
+                    setFlowName(event.target.value)
+                    markUnsaved()
+                  }}
                   className="h-14 w-full rounded-full border border-white/10 bg-[#11131a] px-6 text-lg text-white outline-none transition-colors focus:border-neon-blue/50"
                   placeholder="Nome do fluxo"
                 />
@@ -422,8 +460,8 @@ export default function FlowIntel({ botId }: FlowIntelProps) {
                 <Button
                   type="button"
                   onClick={() => void handleSave()}
-                  disabled={!flow || saveState === 'saving'}
-                  title={!flow ? 'Selecione um bot para salvar no Supabase.' : undefined}
+                  disabled={!botId || saveState === 'saving'}
+                  title={!botId ? 'Selecione um bot para salvar no Supabase.' : undefined}
                   className="h-14 rounded-full border border-[#8f69f4] bg-[linear-gradient(90deg,#a96bff,#70f1a5)] px-6 text-[12px] font-bold uppercase tracking-[0.26em] text-[#16181f] hover:opacity-95 disabled:opacity-60"
                 >
                   {saveState === 'saving' ? (
@@ -496,8 +534,8 @@ export default function FlowIntel({ botId }: FlowIntelProps) {
                 edges={edges}
                 nodeTypes={nodeTypes}
                 onInit={setReactFlowInstance}
-                onNodesChange={onNodesChange}
-                onEdgesChange={onEdgesChange}
+                onNodesChange={handleNodesChange}
+                onEdgesChange={handleEdgesChange}
                 onConnect={onConnect}
                 onNodeClick={(_, node) => setSelectedNodeId(node.id)}
                 onPaneClick={() => setSelectedNodeId(null)}
