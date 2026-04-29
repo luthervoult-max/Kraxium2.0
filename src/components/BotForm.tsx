@@ -62,7 +62,7 @@ export default function BotForm({ bot, onChanged }: BotFormProps) {
     }
   }
 
-  const labelClass = 'text-[10px] font-semibold uppercase tracking-widest text-neon-blue mb-2 block'
+  const labelClass = 'text-[10px] font-semibold uppercase tracking-widest text-neon-purple mb-2 block'
   const groupClass = 'bg-deep-800/60 border border-white/5 rounded-xl p-5 flex flex-col gap-5'
 
   return (
@@ -71,7 +71,7 @@ export default function BotForm({ bot, onChanged }: BotFormProps) {
         <p className={labelClass}>Informações do Bot</p>
 
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="bot-name" className="text-[10px] font-semibold uppercase tracking-widest text-neon-blue">
+          <label htmlFor="bot-name" className="text-[10px] font-semibold uppercase tracking-widest text-neon-purple">
             Nome do Bot
           </label>
           <Input
@@ -83,7 +83,7 @@ export default function BotForm({ bot, onChanged }: BotFormProps) {
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="bot-token" className="text-[10px] font-semibold uppercase tracking-widest text-neon-blue">
+          <label htmlFor="bot-token" className="text-[10px] font-semibold uppercase tracking-widest text-neon-purple">
             Token do Telegram
           </label>
           <div className="relative">
@@ -99,7 +99,7 @@ export default function BotForm({ bot, onChanged }: BotFormProps) {
               type="button"
               aria-label={showToken ? 'Ocultar token' : 'Mostrar token'}
               onClick={() => setShowToken((value) => !value)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-neon-blue transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-neon-purple transition-colors"
             >
               {showToken ? <EyeOff size={15} aria-hidden="true" /> : <Eye size={15} aria-hidden="true" />}
             </button>
@@ -107,7 +107,7 @@ export default function BotForm({ bot, onChanged }: BotFormProps) {
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="bot-webhook" className="text-[10px] font-semibold uppercase tracking-widest text-neon-blue">
+          <label htmlFor="bot-webhook" className="text-[10px] font-semibold uppercase tracking-widest text-neon-purple">
             Webhook URL
           </label>
           <Input
@@ -149,7 +149,7 @@ export default function BotForm({ bot, onChanged }: BotFormProps) {
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className="bg-neon-blue/20 border border-neon-blue text-neon-blue hover:bg-neon-blue/30 shadow-[0_0_12px_rgba(0,212,255,0.25)] transition-all disabled:opacity-60"
+          className="bg-neon-purple/20 border border-neon-purple text-neon-purple hover:bg-neon-purple/30 shadow-[0_0_12px_rgba(180,77,255,0.25)] transition-all disabled:opacity-60"
         >
           {saving ? (
             <Loader2 size={15} className="mr-2 animate-spin" aria-hidden />

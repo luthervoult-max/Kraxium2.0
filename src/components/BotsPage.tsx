@@ -71,7 +71,7 @@ export default function BotsPage({ selectedBotId, onSelectBot }: BotsPageProps) 
         <aside className="w-full shrink-0 lg:w-64">
           <div className="rounded-2xl border border-white/8 bg-deep-800/60 p-3">
             <div className="mb-3 flex items-center justify-between px-2">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-neon-blue">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-neon-purple">
                 Seus bots
               </p>
               <Button
@@ -79,7 +79,7 @@ export default function BotsPage({ selectedBotId, onSelectBot }: BotsPageProps) 
                 size="sm"
                 onClick={handleCreate}
                 disabled={creating}
-                className="h-7 rounded-full bg-neon-blue/15 border border-neon-blue/30 text-neon-blue text-[10px] font-bold uppercase tracking-[0.18em] hover:bg-neon-blue/25"
+                className="h-7 rounded-full bg-neon-purple/15 border border-neon-purple/30 text-neon-purple text-[10px] font-bold uppercase tracking-[0.18em] hover:bg-neon-purple/25"
               >
                 {creating ? (
                   <Loader2 size={12} className="mr-1 animate-spin" aria-hidden />
@@ -113,7 +113,7 @@ export default function BotsPage({ selectedBotId, onSelectBot }: BotsPageProps) 
                       className={cn(
                         'group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors',
                         isActive
-                          ? 'bg-neon-blue/12 text-white'
+                          ? 'bg-neon-purple/12 text-white'
                           : 'text-gray-300 hover:bg-white/4',
                       )}
                     >
@@ -121,7 +121,7 @@ export default function BotsPage({ selectedBotId, onSelectBot }: BotsPageProps) 
                         className={cn(
                           'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
                           isActive
-                            ? 'bg-neon-blue/20 text-neon-blue'
+                            ? 'bg-neon-purple/20 text-neon-purple'
                             : 'bg-white/4 text-gray-400',
                         )}
                       >

@@ -56,7 +56,7 @@ function MessageBubbleComponent({ message, awaitingButton }: MessageBubbleProps)
         className={cn(
           'max-w-[78%] rounded-2xl px-3.5 py-2.5 text-sm leading-6 shadow-md',
           isUser
-            ? 'bg-[#2b87f5] text-white rounded-br-sm'
+            ? 'bg-neon-purple text-white rounded-br-sm'
             : 'bg-[#1c2230] text-gray-100 rounded-bl-sm border border-white/4',
         )}
         style={
@@ -102,7 +102,7 @@ function MessageBubbleComponent({ message, awaitingButton }: MessageBubbleProps)
                   className={cn(
                     'rounded-lg border px-3 py-2 text-left text-[13px] font-medium transition-colors',
                     isSelected
-                      ? 'border-[#2b87f5] bg-[#2b87f5]/15 text-white'
+                      ? 'border-neon-purple bg-neon-purple/15 text-white'
                       : 'border-white/10 bg-white/4 text-gray-200 hover:bg-white/8',
                     disabled && !isSelected && 'opacity-50 cursor-not-allowed',
                   )}

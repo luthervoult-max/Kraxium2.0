@@ -22,7 +22,7 @@ export default function Header({ eyebrow, title, titleHighlight, right }: Header
           )}
           <h1 className="font-display text-2xl font-bold tracking-tight text-white">
             {title}
-            {titleHighlight && <span className="text-neon-blue"> {titleHighlight}</span>}
+            {titleHighlight && <span className="text-neon-purple"> {titleHighlight}</span>}
           </h1>
         </div>
 
@@ -44,14 +44,14 @@ export default function Header({ eyebrow, title, titleHighlight, right }: Header
             variant="outline"
             size="icon"
             aria-label="Notificacoes"
-            className="relative border-white/5 text-gray-400 hover:text-neon-blue"
+            className="relative border-white/5 text-gray-400 hover:text-neon-purple"
           >
             <Bell size={18} aria-hidden="true" />
             <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-neon-magenta" />
           </Button>
 
           {right ?? (
-            <Button className="border border-neon-blue bg-neon-blue/20 text-neon-blue hover:bg-neon-blue/30 shadow-[0_0_15px_rgba(0,212,255,0.3)]">
+            <Button className="border border-neon-purple bg-neon-purple/20 text-neon-purple hover:bg-neon-purple/30 shadow-[0_0_15px_rgba(180,77,255,0.3)]">
               <Plus size={16} aria-hidden="true" className="mr-2" />
               Novo Bot
             </Button>

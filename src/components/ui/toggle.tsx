@@ -22,8 +22,8 @@ export function Toggle({ checked, onChange, label, id }: ToggleProps) {
         aria-checked={checked}
         onClick={() => onChange(!checked)}
         className={cn(
-          'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-blue focus-visible:ring-offset-2 focus-visible:ring-offset-deep-800',
-          checked ? 'bg-neon-blue' : 'bg-deep-700 border border-white/10',
+          'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neon-purple focus-visible:ring-offset-2 focus-visible:ring-offset-deep-800',
+          checked ? 'bg-neon-purple' : 'bg-deep-700 border border-white/10',
         )}
       >
         <span

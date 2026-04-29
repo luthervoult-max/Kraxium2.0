@@ -4,7 +4,7 @@ export default function StatusBar() {
   return (
     <div className="flex flex-wrap items-center gap-4 px-4 py-2 bg-deep-800/50 border border-white/5 rounded-lg text-xs text-gray-400">
       <span className="flex items-center gap-1.5">
-        <Cloud size={14} aria-hidden="true" className="text-neon-blue" />
+        <Cloud size={14} aria-hidden="true" className="text-neon-purple" />
         Sistema sincronizado
       </span>
       <span className="flex items-center gap-1.5">

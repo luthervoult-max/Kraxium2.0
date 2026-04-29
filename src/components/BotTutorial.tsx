@@ -35,9 +35,9 @@ const requirements = [
 
 export default function BotTutorial() {
   return (
-    <aside className="sticky top-6 bg-deep-800/40 border border-neon-blue/10 rounded-xl p-5 flex flex-col gap-5">
+    <aside className="sticky top-6 bg-deep-800/40 border border-neon-purple/10 rounded-xl p-5 flex flex-col gap-5">
       <div className="flex items-center gap-2">
-        <span className="text-[10px] font-semibold uppercase tracking-widest text-neon-blue bg-neon-blue/10 border border-neon-blue/20 rounded px-2 py-1">
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-neon-purple bg-neon-purple/10 border border-neon-purple/20 rounded px-2 py-1">
           Como conectar
         </span>
       </div>
@@ -50,10 +50,10 @@ export default function BotTutorial() {
         {steps.map((step) => (
           <li key={step.number} className="flex gap-3">
             <div className="flex flex-col items-center gap-1 shrink-0">
-              <div className="w-7 h-7 rounded-full bg-neon-blue/10 border border-neon-blue/25 flex items-center justify-center">
-                <step.icon size={13} className="text-neon-blue" aria-hidden="true" />
+              <div className="w-7 h-7 rounded-full bg-neon-purple/10 border border-neon-purple/25 flex items-center justify-center">
+                <step.icon size={13} className="text-neon-purple" aria-hidden="true" />
               </div>
-              <span className="text-[9px] font-bold text-neon-blue/40 font-mono">{step.number}</span>
+              <span className="text-[9px] font-bold text-neon-purple/40 font-mono">{step.number}</span>
             </div>
             <div className="pt-0.5">
               <p className="text-xs font-semibold text-white mb-1">{step.title}</p>
@@ -70,7 +70,7 @@ export default function BotTutorial() {
         <ul className="flex flex-col gap-2">
           {requirements.map((req) => (
             <li key={req.text} className="flex items-center gap-2 text-xs text-gray-400">
-              <req.icon size={13} className="text-neon-blue shrink-0" aria-hidden="true" />
+              <req.icon size={13} className="text-neon-purple shrink-0" aria-hidden="true" />
               {req.text}
             </li>
           ))}

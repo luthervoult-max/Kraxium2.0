@@ -16,7 +16,7 @@ export default function MetricCard({ title, value, change, color, trend }: Metri
   const trendColor = isPositive ? 'text-neon-green' : 'text-neon-magenta'
 
   return (
-    <Card className="bg-deep-800/60 backdrop-blur-md border-white/5 hover:border-neon-blue/40 hover:shadow-[0_0_25px_rgba(0,212,255,0.2)] transition-all duration-300">
+    <Card className="bg-deep-800/60 backdrop-blur-md border-white/5 hover:border-neon-purple/40 hover:shadow-[0_0_25px_rgba(180,77,255,0.2)] transition-all duration-300">
       <CardContent className="p-5 flex flex-col gap-3">
         <div className="flex items-start justify-between gap-2">
           <p className="text-xs text-gray-400 uppercase tracking-wider">{title}</p>

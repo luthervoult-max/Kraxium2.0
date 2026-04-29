@@ -49,14 +49,14 @@ export default function Sidebar({ currentPage, onNavigate }: SidebarProps) {
         )}
       >
         <div className={cn('flex min-w-0 items-center gap-3', isCollapsed && 'justify-center')}>
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-neon-blue to-neon-magenta shadow-[0_0_8px_rgba(0,212,255,0.5)]">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-neon-purple to-neon-magenta shadow-[0_0_8px_rgba(180,77,255,0.5)]">
             <span aria-label="Kraxium" role="img" className="text-lg text-white">
               👽
             </span>
           </div>
           {!isCollapsed && (
             <span className="font-display truncate text-lg font-bold tracking-wider text-white">
-              KRAXI<span className="text-neon-blue">UM</span>
+              KRAXI<span className="text-neon-purple">UM</span>
             </span>
           )}
         </div>
@@ -64,7 +64,7 @@ export default function Sidebar({ currentPage, onNavigate }: SidebarProps) {
         <button
           type="button"
           onClick={() => setIsCollapsed((value) => !value)}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-gray-300 transition-colors hover:border-neon-blue/35 hover:text-neon-blue"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-gray-300 transition-colors hover:border-neon-purple/35 hover:text-neon-purple"
           aria-label={isCollapsed ? 'Expandir menu lateral' : 'Recolher menu lateral'}
           aria-expanded={!isCollapsed}
           title={isCollapsed ? 'Expandir menu' : 'Recolher menu'}
@@ -110,7 +110,7 @@ export default function Sidebar({ currentPage, onNavigate }: SidebarProps) {
                 'flex w-full items-center rounded-lg border px-3 py-3 text-sm font-medium transition-all',
                 isCollapsed ? 'justify-center gap-0' : 'gap-3',
                 isActive
-                  ? 'border-neon-blue/30 bg-neon-blue/15 text-neon-blue shadow-[0_0_12px_rgba(0,212,255,0.25)]'
+                  ? 'border-neon-purple/30 bg-neon-purple/15 text-neon-purple shadow-[0_0_12px_rgba(180,77,255,0.25)]'
                   : isDisabled
                     ? 'cursor-not-allowed border-transparent text-gray-600'
                     : 'border-transparent text-gray-400 hover:bg-white/5 hover:text-white',

@@ -47,7 +47,7 @@ export function SimulatorControls({ flowId, nodes, edges }: SimulatorControlsPro
             'flex h-9 items-center gap-2 rounded-full px-4 text-xs font-bold uppercase tracking-[0.2em] transition-colors',
             isActive
               ? 'border border-orange-400/40 bg-orange-400/12 text-orange-300 hover:bg-orange-400/18'
-              : 'bg-[#2b87f5] text-white hover:opacity-90',
+              : 'bg-neon-purple text-white hover:opacity-90',
           )}
         >
           {isActive ? <Pause size={14} aria-hidden /> : <Play size={14} aria-hidden />}

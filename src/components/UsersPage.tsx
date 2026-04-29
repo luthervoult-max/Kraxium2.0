@@ -240,7 +240,7 @@ export default function UsersPage() {
               resetToFirstPage()
             }}
             placeholder="Buscar por nome, telefone, email..."
-            className="h-[54px] w-full rounded-[14px] border border-white/10 bg-[#0c0d10] pl-12 pr-4 text-sm font-semibold text-white outline-none transition-colors placeholder:text-gray-600 focus:border-neon-blue/45"
+            className="h-[54px] w-full rounded-[14px] border border-white/10 bg-[#0c0d10] pl-12 pr-4 text-sm font-semibold text-white outline-none transition-colors placeholder:text-gray-600 focus:border-neon-purple/45"
           />
         </label>
 
@@ -320,7 +320,7 @@ export default function UsersPage() {
               {!loading && leads.length === 0 && (
                 <tr>
                   <td colSpan={10} className="px-7 py-16 text-center">
-                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-neon-blue/20 bg-neon-blue/10 text-neon-blue">
+                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-neon-purple/20 bg-neon-purple/10 text-neon-purple">
                       <Users size={22} aria-hidden="true" />
                     </div>
                     <h2 className="mt-4 text-lg font-bold text-white">Nenhum lead encontrado</h2>
@@ -360,7 +360,7 @@ export default function UsersPage() {
               type="button"
               disabled={page >= totalPages}
               onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
-              className="h-9 rounded-lg bg-neon-blue/80 px-4 text-xs font-bold text-deep-900 hover:bg-neon-blue disabled:opacity-40"
+              className="h-9 rounded-lg bg-neon-purple/80 px-4 text-xs font-bold text-deep-900 hover:bg-neon-purple disabled:opacity-40"
             >
               Proxima
             </Button>
@@ -463,14 +463,14 @@ function FilterSelect({
     <label className="relative block">
       <Icon
         size={16}
-        className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-neon-blue/80"
+        className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-neon-purple/80"
         aria-hidden="true"
       />
       <select
         value={value}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
-        className="h-[54px] w-full appearance-none rounded-[14px] border border-white/10 bg-[#0c0d10] pl-11 pr-9 text-sm font-bold text-gray-300 outline-none transition-colors focus:border-neon-blue/45 disabled:opacity-50"
+        className="h-[54px] w-full appearance-none rounded-[14px] border border-white/10 bg-[#0c0d10] pl-11 pr-9 text-sm font-bold text-gray-300 outline-none transition-colors focus:border-neon-purple/45 disabled:opacity-50"
       >
         {options.map((option) => (
           <option key={option.value} value={option.value} className="bg-[#0c0d10] text-gray-200">
@@ -543,7 +543,7 @@ function LeadRow({ lead, onOpen }: { lead: LeadListItem; onOpen: () => void }) {
           type="button"
           variant="outline"
           onClick={onOpen}
-          className="h-12 rounded-[10px] border-white/10 bg-white/5 px-4 text-xs font-black text-gray-300 hover:border-neon-blue/30 hover:bg-neon-blue/10 hover:text-white"
+          className="h-12 rounded-[10px] border-white/10 bg-white/5 px-4 text-xs font-black text-gray-300 hover:border-neon-purple/30 hover:bg-neon-purple/10 hover:text-white"
         >
           <MessageSquare size={13} className="mr-2" aria-hidden="true" />
           Abrir Chat
@@ -577,7 +577,7 @@ function LeadDrawer({
         <header className="border-b border-white/10 p-6">
           <div className="mb-5 flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-neon-blue">Timeline do lead</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-neon-purple">Timeline do lead</p>
               <h2 className="mt-2 truncate text-2xl font-black text-white">{getLeadName(lead)}</h2>
               <p className="mt-1 text-sm text-gray-500">{getLeadContact(lead)}</p>
             </div>
@@ -601,13 +601,13 @@ function LeadDrawer({
           <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
             <div className="mb-2 flex items-center justify-between text-xs">
               <span className="font-bold text-gray-400">Progresso do fluxo</span>
-              <span className="font-mono text-neon-green">
+              <span className="font-mono text-neon-purple">
                 {progress === null ? `${visitedNodes} nos visitados` : `${progress}%`}
               </span>
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-white/10">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-neon-blue via-neon-purple to-neon-green"
+                className="h-full rounded-full bg-gradient-to-r from-neon-purple via-neon-magenta to-neon-purple"
                 style={{ width: `${progress ?? Math.min(100, visitedNodes * 12)}%` }}
               />
             </div>
@@ -676,7 +676,7 @@ function TimelineEvent({ event }: { event: LeadFlowEvent }) {
         </div>
         <p className="mt-2 text-sm leading-6 text-gray-400">{getEventDescription(event)}</p>
         {event.node_label && (
-          <Badge className="mt-3 border-neon-blue/20 bg-neon-blue/10 text-neon-blue">
+          <Badge className="mt-3 border-neon-purple/20 bg-neon-purple/10 text-neon-purple">
             {event.node_type ? `${event.node_type} - ${event.node_label}` : event.node_label}
           </Badge>
         )}
@@ -717,7 +717,7 @@ function getEventTone(event: LeadFlowEvent): {
   if (event.event_type === 'node_error') {
     return { label: 'Erro no no', icon: AlertTriangle, className: 'border-red-500/25 bg-red-500/10 text-red-300' }
   }
-  return { label: 'Avancou no fluxo', icon: GitBranch, className: 'border-neon-blue/25 bg-neon-blue/10 text-neon-blue' }
+  return { label: 'Avancou no fluxo', icon: GitBranch, className: 'border-neon-purple/25 bg-neon-purple/10 text-neon-purple' }
 }
 
 function getEventDescription(event: LeadFlowEvent) {

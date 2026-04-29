@@ -43,7 +43,7 @@ export default function RevenueChart({ data }: RevenueChartProps) {
                 <p className="text-[10px] text-gray-500 uppercase tracking-wider">Receita</p>
                 <p
                   className="text-2xl font-bold text-white font-display"
-                  style={{ textShadow: '0 0 12px rgba(0,212,255,0.4)' }}
+                  style={{ textShadow: '0 0 12px rgba(180,77,255,0.4)' }}
                 >
                   {formatBRL(totalReceita)}
                 </p>
@@ -71,7 +71,7 @@ export default function RevenueChart({ data }: RevenueChartProps) {
                 className={cn(
                   'px-3 py-1 text-xs font-medium rounded transition-colors',
                   range === r
-                    ? 'bg-neon-blue/20 text-neon-blue border border-neon-blue/30'
+                    ? 'bg-neon-purple/20 text-neon-purple border border-neon-purple/30'
                     : 'text-gray-400 hover:text-white border border-transparent',
                 )}
               >
@@ -85,7 +85,7 @@ export default function RevenueChart({ data }: RevenueChartProps) {
           data={sliced}
           index="date"
           categories={['Receita', 'Conversões']}
-          colors={['cyan', 'green']}
+          colors={['purple', 'green']}
           valueFormatter={(value) => value.toLocaleString('pt-BR')}
           showLegend
           showGridLines={false}

@@ -398,7 +398,7 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
   return (
     <main className="p-4 lg:p-6">
       {(!botId || loadError) && (
-        <div className="mb-5 rounded-[18px] border border-neon-blue/20 bg-neon-blue/8 px-5 py-4 text-sm leading-6 text-gray-300">
+        <div className="mb-5 rounded-[18px] border border-neon-purple/20 bg-neon-purple/8 px-5 py-4 text-sm leading-6 text-gray-300">
           {loadError ?? 'Modo demo ativo. Selecione um bot na aba Bots quando quiser salvar em um fluxo real.'}
         </div>
       )}
@@ -428,15 +428,15 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
           >
             {isBlockPaletteCollapsed ? (
               <div className="flex items-center gap-3 xl:flex-col">
-                <span className="flex h-10 w-10 items-center justify-center rounded-[6px] border border-neon-blue/25 bg-neon-blue/12 text-neon-blue">
+                <span className="flex h-10 w-10 items-center justify-center rounded-[6px] border border-neon-purple/25 bg-neon-purple/12 text-neon-purple">
                   <GitBranch size={17} aria-hidden="true" />
                 </span>
-                <span className="text-xs font-bold uppercase tracking-[0.2em] text-neon-blue xl:[writing-mode:vertical-rl] xl:rotate-180">
+                <span className="text-xs font-bold uppercase tracking-[0.2em] text-neon-purple xl:[writing-mode:vertical-rl] xl:rotate-180">
                   Blocos
                 </span>
               </div>
             ) : (
-              <h2 className="text-lg font-bold uppercase tracking-wider text-neon-blue">
+              <h2 className="text-lg font-bold uppercase tracking-wider text-neon-purple">
                 Blocos disponiveis
               </h2>
             )}
@@ -444,7 +444,7 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
             <button
               type="button"
               onClick={() => setIsBlockPaletteCollapsed((value) => !value)}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[6px] border border-white/10 bg-white/5 text-gray-300 transition-colors hover:border-neon-blue/30 hover:text-neon-blue"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[6px] border border-white/10 bg-white/5 text-gray-300 transition-colors hover:border-neon-purple/30 hover:text-neon-purple"
               aria-label={isBlockPaletteCollapsed ? 'Expandir blocos' : 'Minimizar blocos'}
               title={isBlockPaletteCollapsed ? 'Expandir blocos' : 'Minimizar blocos'}
             >
@@ -519,7 +519,7 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
                     setFlowName(event.target.value)
                     markUnsaved()
                   }}
-                  className="h-14 w-full rounded-full border border-white/10 bg-[#11131a] px-6 text-lg text-white outline-none transition-colors focus:border-neon-blue/50"
+                  className="h-14 w-full rounded-full border border-white/10 bg-[#11131a] px-6 text-lg text-white outline-none transition-colors focus:border-neon-purple/50"
                   placeholder="Nome do fluxo"
                 />
               </div>
@@ -540,7 +540,7 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
                   className={cn(
                     'h-14 rounded-full px-6 text-[12px] font-bold uppercase tracking-[0.26em]',
                     isFocusMode
-                      ? 'border-neon-green/40 bg-neon-green/15 text-neon-green hover:bg-neon-green/20'
+                      ? 'border-neon-purple/45 bg-neon-purple/15 text-neon-purple hover:bg-neon-purple/20'
                       : 'border-white/10 bg-white/5 text-white hover:bg-white/10',
                   )}
                 >
@@ -556,7 +556,7 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
                   onClick={() => void handleSave()}
                   disabled={!botId || saveState === 'saving'}
                   title={!botId ? 'Selecione um bot para salvar no Supabase.' : undefined}
-                  className="h-14 rounded-full border border-[#8f69f4] bg-[linear-gradient(90deg,#a96bff,#70f1a5)] px-6 text-[12px] font-bold uppercase tracking-[0.26em] text-[#16181f] hover:opacity-95 disabled:opacity-60"
+                  className="h-14 rounded-full border border-neon-purple/70 bg-[linear-gradient(90deg,#b44dff,#ff2a9d)] px-6 text-[12px] font-bold uppercase tracking-[0.26em] text-white shadow-[0_0_18px_rgba(180,77,255,0.25)] hover:opacity-95 disabled:opacity-60"
                 >
                   {saveState === 'saving' ? (
                     <Loader2 size={15} className="mr-2 animate-spin" aria-hidden="true" />
@@ -587,7 +587,7 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
                   className={cn(
                     'h-14 rounded-full px-6 text-[12px] font-bold uppercase tracking-[0.26em]',
                     showSimulator
-                      ? 'border-[#2b87f5] bg-[#2b87f5]/15 text-[#2b87f5] hover:bg-[#2b87f5]/20'
+                      ? 'border-neon-purple/45 bg-neon-purple/15 text-neon-purple hover:bg-neon-purple/20'
                       : 'border-white/10 bg-white/5 text-white hover:bg-white/10',
                   )}
                 >
@@ -706,7 +706,7 @@ function BuilderPill({
 }) {
   const toneClass =
     tone === 'blue'
-      ? 'border-neon-blue/30 bg-neon-blue/12 text-neon-blue'
+      ? 'border-neon-purple/30 bg-neon-purple/12 text-neon-purple'
       : tone === 'magenta'
       ? 'border-neon-magenta/30 bg-neon-magenta/12 text-neon-magenta'
       : tone === 'red'
@@ -830,7 +830,7 @@ function IntelDock({
     ? [
         { label: 'Gargalos', value: analysis.bottlenecks.length, tone: 'text-neon-orange' },
         { label: 'Mensagens', value: analysis.messageEvaluations.length, tone: 'text-neon-magenta' },
-        { label: 'Intencoes', value: analysis.unmappedIntents.length, tone: 'text-neon-blue' },
+        { label: 'Intencoes', value: analysis.unmappedIntents.length, tone: 'text-neon-purple' },
         { label: 'Estrutura', value: analysis.structuralOptimizations.length, tone: 'text-neon-green' },
       ]
     : []
@@ -839,7 +839,7 @@ function IntelDock({
     <div className="space-y-5">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div className="space-y-2">
-          <Badge variant="outline" className="w-fit rounded-full border-neon-blue/30 bg-neon-blue/12 px-3 py-1 text-neon-blue">
+          <Badge variant="outline" className="w-fit rounded-full border-neon-purple/30 bg-neon-purple/12 px-3 py-1 text-neon-purple">
             estilo builder + intel heuristico
           </Badge>
           <p className="max-w-3xl text-sm leading-7 text-gray-400">
@@ -862,7 +862,7 @@ function IntelDock({
             type="button"
             onClick={onAnalyze}
             disabled={!logsReady}
-            className="bg-neon-blue/20 border border-neon-blue text-neon-blue hover:bg-neon-blue/30"
+            className="bg-neon-purple/20 border border-neon-purple text-neon-purple hover:bg-neon-purple/30"
           >
             <Sparkles size={14} className="mr-2" aria-hidden="true" />
             Rodar analise
@@ -1043,7 +1043,7 @@ function IntelSection({
   return (
     <section className="space-y-3">
       <div className="flex items-center gap-2">
-        <span className="h-2 w-2 rounded-full bg-neon-blue" />
+        <span className="h-2 w-2 rounded-full bg-neon-purple" />
         <p className="text-sm font-semibold text-white">{title}</p>
       </div>
       <div className="space-y-3">{children}</div>
@@ -1064,7 +1064,7 @@ function IntelItem({
 }) {
   const toneClass =
     tone === 'blue'
-      ? 'border-neon-blue/30 bg-neon-blue/12 text-neon-blue'
+      ? 'border-neon-purple/30 bg-neon-purple/12 text-neon-purple'
       : tone === 'magenta'
       ? 'border-neon-magenta/30 bg-neon-magenta/12 text-neon-magenta'
       : tone === 'green'

@@ -20,7 +20,7 @@ const metrics = [
     title: 'Receita Total',
     value: 'R$ 42.8k',
     change: '+12.5%',
-    color: '#00d4ff',
+    color: '#b44dff',
     trend: generateSparkline(1, 7, 5800, 1200),
   },
   {
@@ -179,7 +179,7 @@ function Shell() {
                   onClick={() => requestNavigate(item.id)}
                   className={
                     isActive
-                      ? 'shrink-0 rounded-full border border-neon-blue/30 bg-neon-blue/15 px-3 py-2 text-xs font-semibold text-neon-blue'
+                      ? 'shrink-0 rounded-full border border-neon-purple/30 bg-neon-purple/15 px-3 py-2 text-xs font-semibold text-neon-purple'
                       : 'shrink-0 rounded-full border border-white/10 bg-deep-800/60 px-3 py-2 text-xs font-semibold text-gray-400'
                   }
                 >
@@ -196,7 +196,7 @@ function Shell() {
 
             <section>
               <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-white">
-                <span className="h-2 w-2 rounded-full bg-neon-blue" />
+                <span className="h-2 w-2 rounded-full bg-neon-purple" />
                 Metricas Principais
               </h2>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -247,7 +247,7 @@ function Shell() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="unsaved-flow-title"
-            className="w-full max-w-lg rounded-[28px] border border-neon-blue/25 bg-[#11141d] p-6 shadow-[0_24px_90px_rgba(0,0,0,0.55)]"
+            className="w-full max-w-lg rounded-[28px] border border-neon-purple/25 bg-[#11141d] p-6 shadow-[0_24px_90px_rgba(0,0,0,0.55)]"
           >
             <div className="mb-5 flex items-start gap-4">
               <span className="mt-1 h-3 w-3 shrink-0 rounded-full bg-neon-orange shadow-[0_0_18px_rgba(255,177,0,0.8)]" />
@@ -284,7 +284,7 @@ function Shell() {
                 type="button"
                 onClick={() => void handleSaveAndLeave()}
                 disabled={!flowSaveHandler || savingBeforeLeave}
-                className="rounded-full border border-[#8f69f4] bg-[linear-gradient(90deg,#a96bff,#70f1a5)] px-5 font-bold text-[#16181f] hover:opacity-95 disabled:opacity-60"
+                className="rounded-full border border-neon-purple/70 bg-[linear-gradient(90deg,#b44dff,#ff2a9d)] px-5 font-bold text-white shadow-[0_0_18px_rgba(180,77,255,0.25)] hover:opacity-95 disabled:opacity-60"
               >
                 {savingBeforeLeave ? 'Salvando...' : 'Salvar e sair'}
               </Button>

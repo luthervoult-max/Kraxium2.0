@@ -15,7 +15,7 @@ export function TelegramSimulator({ flowId, flowName, nodes, edges }: TelegramSi
   return (
     <div className="flex h-[640px] flex-col overflow-hidden rounded-[28px] border border-white/8 bg-[#0a0d14] shadow-[0_24px_80px_rgba(0,0,0,0.4)]">
       <div className="flex items-center gap-3 border-b border-white/6 bg-[#11141d] px-4 py-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#2b87f5]/15 text-[#2b87f5]">
+        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-neon-purple/15 text-neon-purple">
           <Smartphone size={16} aria-hidden />
         </div>
         <div className="min-w-0 flex-1">

@@ -81,17 +81,17 @@ export default function LoginPage() {
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-deep-900 px-5 py-8 text-white">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle,rgba(180,77,255,0.16)_1px,transparent_1px)] bg-[length:32px_32px] opacity-45" />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(180,77,255,0.14),transparent_34%,rgba(57,255,20,0.1)_100%)]" />
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-neon-magenta/60 to-neon-green/60" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(180,77,255,0.16),transparent_34%,rgba(255,42,157,0.08)_100%)]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-neon-purple/70 to-neon-magenta/60" />
 
-      <section className="relative z-10 w-full max-w-[420px] animate-in fade-in slide-in-from-bottom-4 duration-500 rounded-[20px] border border-neon-purple/30 bg-deep-800/90 px-9 pb-8 pt-9 shadow-[0_0_0_1px_rgba(180,77,255,0.12),0_24px_80px_rgba(0,0,0,0.72),0_0_42px_rgba(57,255,20,0.08)] backdrop-blur-2xl max-[480px]:px-6 max-[480px]:py-7">
+      <section className="relative z-10 w-full max-w-[420px] animate-in fade-in slide-in-from-bottom-4 duration-500 rounded-[20px] border border-neon-purple/35 bg-deep-800/90 px-9 pb-8 pt-9 shadow-[0_0_0_1px_rgba(180,77,255,0.16),0_24px_80px_rgba(0,0,0,0.72),0_0_42px_rgba(180,77,255,0.14)] backdrop-blur-2xl max-[480px]:px-6 max-[480px]:py-7">
         <div className="mb-7 flex flex-col items-center">
           <img
             src={loginLogoUrl}
             alt="KRAXIUM BOT"
             className="mb-[-4px] h-[220px] w-[220px] object-contain drop-shadow-[0_0_28px_rgba(180,77,255,0.58)] max-[480px]:h-[118px] max-[480px]:w-[118px]"
           />
-          <p className="font-mono text-[11px] font-medium uppercase tracking-[0.24em] text-neon-green/65">
+          <p className="font-mono text-[11px] font-medium uppercase tracking-[0.24em] text-neon-purple/80">
             KRAXIUM BOT
           </p>
         </div>
@@ -146,14 +146,14 @@ export default function LoginPage() {
                 type="checkbox"
                 checked={remember}
                 onChange={(event) => setRemember(event.target.checked)}
-                className="h-3.5 w-3.5 accent-[#39ff14]"
+                className="h-3.5 w-3.5 accent-[#b44dff]"
               />
               Lembrar-me
             </label>
             <button
               type="button"
               onClick={() => void handleResetPassword()}
-              className="text-xs font-medium text-neon-green transition-colors hover:text-neon-magenta"
+              className="text-xs font-medium text-neon-purple transition-colors hover:text-neon-magenta"
             >
               Esqueci a senha
             </button>
@@ -162,7 +162,7 @@ export default function LoginPage() {
           <Button
             type="submit"
             disabled={isLoading}
-            className="relative h-[46px] w-full overflow-hidden rounded-[10px] border-0 bg-[linear-gradient(135deg,#ff2a9d_0%,#b44dff_48%,#39ff14_100%)] text-sm font-black tracking-[0.08em] text-deep-900 shadow-[0_4px_24px_rgba(180,77,255,0.35),0_0_24px_rgba(57,255,20,0.14)] transition-all hover:-translate-y-px hover:shadow-[0_4px_30px_rgba(180,77,255,0.55),0_0_30px_rgba(57,255,20,0.2)] disabled:translate-y-0 disabled:opacity-70"
+            className="relative h-[46px] w-full overflow-hidden rounded-[10px] border-0 bg-[linear-gradient(135deg,#ff2a9d_0%,#b44dff_55%,#7c3aed_100%)] text-sm font-black tracking-[0.08em] text-white shadow-[0_4px_24px_rgba(180,77,255,0.4),0_0_24px_rgba(255,42,157,0.14)] transition-all hover:-translate-y-px hover:shadow-[0_4px_30px_rgba(180,77,255,0.6),0_0_30px_rgba(255,42,157,0.22)] disabled:translate-y-0 disabled:opacity-70"
           >
             {loadingMode === 'password' ? (
               <>
@@ -178,7 +178,7 @@ export default function LoginPage() {
         <div className="my-4 flex items-center gap-3 text-[11px] text-gray-600">
           <span className="h-px flex-1 bg-neon-purple/15" />
           ou continue com
-          <span className="h-px flex-1 bg-neon-green/15" />
+          <span className="h-px flex-1 bg-neon-magenta/15" />
         </div>
 
         <Button
@@ -186,7 +186,7 @@ export default function LoginPage() {
           variant="outline"
           onClick={() => void handleGoogleSignIn()}
           disabled={isLoading}
-          className="h-[44px] w-full rounded-[10px] border-neon-blue/25 bg-deep-900/70 text-[13px] font-semibold text-gray-200 transition-all hover:border-neon-green/40 hover:bg-white/10"
+          className="h-[44px] w-full rounded-[10px] border-neon-purple/25 bg-deep-900/70 text-[13px] font-semibold text-gray-200 transition-all hover:border-neon-magenta/40 hover:bg-white/10"
         >
           {loadingMode === 'google' ? (
             <Loader2 size={16} className="mr-2 animate-spin" aria-hidden="true" />
@@ -217,7 +217,7 @@ export default function LoginPage() {
               setError(null)
               setNotice(null)
             }}
-            className="font-semibold text-neon-purple transition-colors hover:text-neon-green"
+            className="font-semibold text-neon-purple transition-colors hover:text-neon-magenta"
           >
             {authMode === 'signIn' ? 'Criar conta gratis' : 'Entrar agora'}
           </button>
@@ -259,7 +259,7 @@ function LoginField({
         {label}
       </label>
       <span className="relative block">
-        <span className="absolute left-3 top-1/2 flex -translate-y-1/2 items-center text-neon-blue/65">
+        <span className="absolute left-3 top-1/2 flex -translate-y-1/2 items-center text-neon-purple/65">
           {icon}
         </span>
         <input
@@ -270,7 +270,7 @@ function LoginField({
           placeholder={placeholder}
           autoComplete={autoComplete}
           className={cn(
-            'h-[43px] w-full rounded-[10px] border border-white/10 bg-deep-900/85 px-10 text-sm text-white outline-none transition-[border-color,box-shadow] placeholder:text-gray-700 focus:border-neon-green/60 focus:shadow-[0_0_0_3px_rgba(57,255,20,0.12)]',
+            'h-[43px] w-full rounded-[10px] border border-white/10 bg-deep-900/85 px-10 text-sm text-white outline-none transition-[border-color,box-shadow] placeholder:text-gray-700 focus:border-neon-purple/60 focus:shadow-[0_0_0_3px_rgba(180,77,255,0.14)]',
             action && 'pr-11',
           )}
         />

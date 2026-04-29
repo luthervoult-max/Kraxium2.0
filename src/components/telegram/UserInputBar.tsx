@@ -37,12 +37,12 @@ export function UserInputBar() {
         onChange={(event) => setInputBuffer(event.target.value)}
         disabled={!enabled}
         placeholder={enabled ? 'Digite uma resposta…' : 'Aguardando nó de input…'}
-        className="flex-1 rounded-full border border-white/8 bg-[#1a1f2c] px-4 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-[#2b87f5]/60 disabled:cursor-not-allowed"
+        className="flex-1 rounded-full border border-white/8 bg-[#1a1f2c] px-4 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-neon-purple/60 disabled:cursor-not-allowed"
       />
       <button
         type="submit"
         disabled={!enabled || !inputBuffer.trim()}
-        className="flex h-9 w-9 items-center justify-center rounded-full bg-[#2b87f5] text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+        className="flex h-9 w-9 items-center justify-center rounded-full bg-neon-purple text-white transition-opacity hover:opacity-90 disabled:opacity-40"
         aria-label="Enviar"
       >
         <Send size={16} aria-hidden />
