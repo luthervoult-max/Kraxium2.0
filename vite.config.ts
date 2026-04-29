@@ -10,18 +10,21 @@ export default defineConfig({
     },
   },
   build: {
-    // Aumenta o limite de aviso para evitar falsos positivos
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
-        manualChunks(id) {
-          if (id.includes('node_modules')) {
-            if (id.includes('react')) return 'react';
-            if (id.includes('@tremor')) return 'tremor';
-            return 'vendor';
-          }
+        manualChunks: {
+          xyflow: ['@xyflow/react'],
+          supabase: ['@supabase/supabase-js'],
+          tremor: ['@tremor/react'],
         },
       },
     },
+  },
+  server: {
+    port: 5173,
+  },
+  preview: {
+    port: 5173,
   },
 })

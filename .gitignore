@@ -25,3 +25,5 @@ pnpm-debug.log*
 
 # vitest / coverage
 coverage/
+
+.vercel
