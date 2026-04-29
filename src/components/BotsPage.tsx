@@ -106,16 +106,19 @@ export default function BotsPage({ selectedBotId, onSelectBot }: BotsPageProps) 
               {bots.map((bot) => {
                 const isActive = bot.id === selectedBotId
                 return (
-                  <li key={bot.id}>
+                  <li
+                    key={bot.id}
+                    className={cn(
+                      'group flex w-full items-center gap-2 rounded-xl px-3 py-2.5 transition-colors',
+                      isActive
+                        ? 'bg-neon-purple/12 text-white'
+                        : 'text-gray-300 hover:bg-white/4',
+                    )}
+                  >
                     <button
                       type="button"
                       onClick={() => onSelectBot(bot.id)}
-                      className={cn(
-                        'group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors',
-                        isActive
-                          ? 'bg-neon-purple/12 text-white'
-                          : 'text-gray-300 hover:bg-white/4',
-                      )}
+                      className="flex min-w-0 flex-1 items-center gap-3 text-left"
                     >
                       <div
                         className={cn(
@@ -130,21 +133,18 @@ export default function BotsPage({ selectedBotId, onSelectBot }: BotsPageProps) 
                       <span className="min-w-0 flex-1 truncate text-sm font-medium">
                         {bot.name}
                       </span>
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation()
-                          void handleDelete(bot.id)
-                        }}
-                        className="opacity-0 transition-opacity group-hover:opacity-100"
-                        aria-label={`Excluir ${bot.name}`}
-                      >
-                        <Trash2
-                          size={13}
-                          className="text-gray-500 hover:text-red-400"
-                          aria-hidden
-                        />
-                      </button>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleDelete(bot.id)}
+                      className="shrink-0 rounded-lg p-1 opacity-0 transition-opacity hover:bg-white/5 group-hover:opacity-100"
+                      aria-label={`Excluir ${bot.name}`}
+                    >
+                      <Trash2
+                        size={13}
+                        className="text-gray-500 hover:text-red-400"
+                        aria-hidden
+                      />
                     </button>
                   </li>
                 )

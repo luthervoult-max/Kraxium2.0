@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   addEdge,
   Background,
@@ -60,8 +60,6 @@ type BuilderNode = Node<FlowNodeData, 'flowNode'>
 type BuilderEdge = Edge
 
 const nodeTypes = { flowNode: FlowNode }
-const emptyFlowObject = { nodes: [], edges: [] }
-const emptyFlowJson = JSON.stringify(emptyFlowObject, null, 2)
 const emptyCanvasState = { nodes: [] as BuilderNode[], edges: [] as BuilderEdge[] }
 
 const starterFlowObject = {
@@ -89,12 +87,25 @@ interface FlowIntelProps {
   onRegisterSave?: (handler: (() => Promise<boolean>) | null) => void
 }
 
+interface SaveContext {
+  botId: string | null
+  flow: Flow | null
+  flowName: string
+  nodes: BuilderNode[]
+  edges: BuilderEdge[]
+}
+
+interface RuntimeNodeCacheEntry {
+  source: BuilderNode
+  healthKey: string
+  enhanced: BuilderNode
+}
+
 export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: FlowIntelProps) {
   const [flow, setFlow] = useState<Flow | null>(null)
   const [flowName, setFlowName] = useState('Novo fluxo')
   const [nodes, setNodes, onNodesChange] = useNodesState<BuilderNode>(emptyCanvasState.nodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState<BuilderEdge>(emptyCanvasState.edges)
-  const [flowDraft, setFlowDraft] = useState(emptyFlowJson)
   const [logsText, setLogsText] = useState('[]')
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null)
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
@@ -108,12 +119,15 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
   const [loadingNodeErrors, setLoadingNodeErrors] = useState(false)
   const [loadingFlow, setLoadingFlow] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const saveContextRef = useRef<SaveContext | null>(null)
+  const runtimeNodeCacheRef = useRef<Map<string, RuntimeNodeCacheEntry>>(new Map())
+
+  saveContextRef.current = { botId, flow, flowName, nodes, edges }
 
   const resetCanvasDraft = useCallback((nextFlowName = 'Novo fluxo') => {
     setNodes(emptyCanvasState.nodes)
     setEdges(emptyCanvasState.edges)
     setFlowName(nextFlowName)
-    setFlowDraft(emptyFlowJson)
     setLogsText('[]')
     setAnalysis(null)
     setSelectedNodeId(null)
@@ -161,29 +175,58 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
     }
   }, [botId, resetCanvasDraft])
 
-  const canvasFlowJson = useMemo(
-    () => JSON.stringify(exportCanvasFlow(nodes, edges), null, 2),
-    [nodes, edges],
-  )
   const logsParse = useMemo(() => parseLogsInput(logsText), [logsText])
   const runtimeFlowId = flow?.id ?? botId ?? `draft:${flowName.trim() || 'novo-fluxo'}`
-  const traceNodeRefs = useMemo(() => nodes.map(toTraceNodeRef), [nodes])
-  const nodesWithRuntime = useMemo(
+  const traceNodeSignature = useMemo(
     () =>
-      nodes.map((node) => {
-        const health = nodeHealth[node.id]
+      nodes
+        .map((node) => `${node.id}:${node.data.code}:${node.data.title}:${node.data.category}`)
+        .join('|'),
+    [nodes],
+  )
+  const traceNodeRefs = useMemo(() => nodes.map(toTraceNodeRef), [traceNodeSignature])
+  const nodesWithRuntime = useMemo(
+    () => {
+      const cache = runtimeNodeCacheRef.current
+      const liveNodeIds = new Set<string>()
 
-        return {
+      const enhancedNodes = nodes.map((node) => {
+        const health = nodeHealth[node.id]
+        const runtimeStatus = health?.status ?? 'ok'
+        const errorCount = health?.errorCount ?? 0
+        const lastErrorAt = health?.lastErrorAt ?? null
+        const lastTraceId = health?.lastTraceId ?? null
+        const healthKey = `${runtimeStatus}:${errorCount}:${lastErrorAt ?? ''}:${lastTraceId ?? ''}`
+        const cached = cache.get(node.id)
+
+        liveNodeIds.add(node.id)
+
+        if (cached?.source === node && cached.healthKey === healthKey) {
+          return cached.enhanced
+        }
+
+        const enhanced = {
           ...node,
           data: {
             ...node.data,
-            runtimeStatus: health?.status ?? 'ok',
-            errorCount: health?.errorCount ?? 0,
-            lastErrorAt: health?.lastErrorAt ?? null,
-            lastTraceId: health?.lastTraceId ?? null,
+            runtimeStatus,
+            errorCount,
+            lastErrorAt,
+            lastTraceId,
           },
         }
-      }),
+        cache.set(node.id, { source: node, healthKey, enhanced })
+        return enhanced
+      })
+
+      for (const nodeId of cache.keys()) {
+        if (!liveNodeIds.has(nodeId)) {
+          cache.delete(nodeId)
+        }
+      }
+
+      return enhancedNodes
+    },
     [nodeHealth, nodes],
   )
   const totalErrorCount = useMemo(
@@ -194,10 +237,6 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
     () => Object.values(nodeHealth).filter((health) => health.status === 'error').length,
     [nodeHealth],
   )
-
-  useEffect(() => {
-    setFlowDraft(canvasFlowJson)
-  }, [canvasFlowJson])
 
   useEffect(() => {
     let cancelled = false
@@ -253,22 +292,25 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
       return
     }
 
-    const report = generateFlowIntelReport(canvasFlowJson, logsText).report
+    const flowJson = JSON.stringify(exportCanvasFlow(nodes, edges), null, 2)
+    const report = generateFlowIntelReport(flowJson, logsText).report
     setAnalysis(report?.result ?? null)
   }
 
   const handleSave = useCallback(async () => {
-    if (!botId) {
+    const context = saveContextRef.current
+
+    if (!context?.botId) {
       setLoadError('Selecione um bot na aba Bots antes de salvar o fluxo.')
       return false
     }
 
     setSaveState('saving')
     try {
-      const graph = exportCanvasFlow(nodes, edges)
-      const savedFlow = flow
-        ? await saveFlow(flow.id, flowName.trim() || 'Sem nome', graph)
-        : await upsertFlowByBotId(botId, flowName.trim() || 'Sem nome', graph)
+      const graph = exportCanvasFlow(context.nodes, context.edges)
+      const savedFlow = context.flow
+        ? await saveFlow(context.flow.id, context.flowName.trim() || 'Sem nome', graph)
+        : await upsertFlowByBotId(context.botId, context.flowName.trim() || 'Sem nome', graph)
       setFlow(savedFlow)
       setSaveState('saved')
       setHasUnsavedChanges(false)
@@ -280,7 +322,7 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
       setSaveState('idle')
       return false
     }
-  }, [botId, edges, flow, flowName, nodes])
+  }, [])
 
   useEffect(() => {
     onDirtyChange?.(hasUnsavedChanges)
@@ -344,13 +386,22 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
     ? nodesWithRuntime.find((node) => node.id === selectedNodeId) ?? null
     : null
   const selectedNodeHealth = selectedNode ? nodeHealth[selectedNode.id] : null
+  const selectedTraceNode = useMemo(
+    () => (selectedNode ? toTraceNodeRef(selectedNode) : null),
+    [
+      selectedNode?.id,
+      selectedNode?.data.code,
+      selectedNode?.data.title,
+      selectedNode?.data.category,
+    ],
+  )
   const isFocusMode = isBlockPaletteCollapsed
   const builderPanelHeightClass = 'h-[calc(100vh-260px)] min-h-[620px] xl:h-[calc(100vh-220px)]'
 
   useEffect(() => {
     let cancelled = false
 
-    if (!selectedNode) {
+    if (!selectedTraceNode) {
       setSelectedNodeErrors([])
       setLoadingNodeErrors(false)
       return
@@ -360,7 +411,7 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
     getRecentNodeErrorLogs({
       flowId: runtimeFlowId,
       botId,
-      node: toTraceNodeRef(selectedNode),
+      node: selectedTraceNode,
       limit: 3,
     })
       .then((logs) => {
@@ -377,7 +428,7 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
     return () => {
       cancelled = true
     }
-  }, [botId, runtimeFlowId, selectedNode])
+  }, [botId, runtimeFlowId, selectedTraceNode])
 
   function handleToggleFocusMode() {
     const nextFocusMode = !isFocusMode
@@ -650,6 +701,7 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
                 nodesDraggable
                 nodesConnectable
                 elementsSelectable
+                onlyRenderVisibleElements
                 proOptions={{ hideAttribution: true }}
               >
                 <Background
