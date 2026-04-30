@@ -24,6 +24,7 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 .codex-vite.*.log
+tmp-vite-*.log
 
 # vitest / coverage
 coverage/

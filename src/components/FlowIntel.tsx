@@ -36,7 +36,13 @@ import {
   Smartphone,
   X,
 } from 'lucide-react'
-import { getFlowByBotId, saveFlow, upsertFlowByBotId, type Flow } from '@/lib/api/flows'
+import { listBots, type Bot as TelegramBot } from '@/lib/api/bots'
+import {
+  getActiveFlowByBotId,
+  getFlowById,
+  saveFlowWithBot,
+  type Flow,
+} from '@/lib/api/flows'
 import '@xyflow/react/dist/style.css'
 import { FlowNode, type FlowNodeData } from '@/components/flow/FlowNode'
 import { TelegramSimulator } from '@/components/telegram/TelegramSimulator'
@@ -113,12 +119,16 @@ const demoAnalysis = generateFlowIntelReport(
 
 interface FlowIntelProps {
   botId: string | null
+  flowId?: string | null
   onDirtyChange?: (dirty: boolean) => void
   onRegisterSave?: (handler: (() => Promise<boolean>) | null) => void
+  onDraftCreated?: () => void
+  onSaved?: (flow: Flow) => void
 }
 
 interface SaveContext {
   botId: string | null
+  flowId: string | null
   flow: Flow | null
   flowName: string
   nodes: BuilderNode[]
@@ -144,7 +154,14 @@ const terminalNodeTypes = new Set(['CV', 'EP', 'AG'])
 
 const initialCanvasState = createInitialCanvasState()
 
-export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: FlowIntelProps) {
+export default function FlowIntel({
+  botId,
+  flowId = null,
+  onDirtyChange,
+  onRegisterSave,
+  onDraftCreated,
+  onSaved,
+}: FlowIntelProps) {
   const [flow, setFlow] = useState<Flow | null>(null)
   const [flowName, setFlowName] = useState('Novo fluxo')
   const [nodes, setNodes, onNodesChange] = useNodesState<BuilderNode>(initialCanvasState.nodes)
@@ -163,10 +180,17 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
   const [loadingFlow, setLoadingFlow] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [isTracePanelOpen, setIsTracePanelOpen] = useState(false)
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false)
+  const [saveDialogName, setSaveDialogName] = useState('Novo fluxo')
+  const [saveDialogBotId, setSaveDialogBotId] = useState('')
+  const [saveDialogBots, setSaveDialogBots] = useState<TelegramBot[]>([])
+  const [saveDialogLoadingBots, setSaveDialogLoadingBots] = useState(false)
+  const [saveDialogError, setSaveDialogError] = useState<string | null>(null)
+  const saveDialogResolverRef = useRef<((saved: boolean) => void) | null>(null)
   const saveContextRef = useRef<SaveContext | null>(null)
   const runtimeNodeCacheRef = useRef<Map<string, RuntimeNodeCacheEntry>>(new Map())
 
-  saveContextRef.current = { botId, flow, flowName, nodes, edges }
+  saveContextRef.current = { botId, flowId, flow, flowName, nodes, edges }
 
   const resetCanvasDraft = useCallback((nextFlowName = 'Novo fluxo') => {
     const nextCanvas = createInitialCanvasState()
@@ -252,9 +276,9 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
 
   useEffect(() => {
     resetCanvasDraft()
-    if (!botId) {
+    if (!flowId && !botId) {
       setFlow(null)
-      setLoadError('Canvas iniciado com o bloco Start. Selecione um bot na aba Bots quando quiser salvar o fluxo.')
+      setLoadError('Canvas iniciado com o bloco Start. Monte o fluxo e clique em Salvar fluxo para escolher o bot executor.')
       setLoadingFlow(false)
       return
     }
@@ -262,13 +286,15 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
     let cancelled = false
     setLoadingFlow(true)
     setLoadError(null)
-    getFlowByBotId(botId)
+    const request = flowId ? getFlowById(flowId) : getActiveFlowByBotId(botId!)
+
+    request
       .then((data) => {
         if (cancelled) return
         setFlow(data)
         if (!data) {
           setFlowName('Novo fluxo')
-          setLoadError('Canvas iniciado com o bloco Start. Monte um fluxo e clique em Salvar fluxo para gravar neste bot.')
+          setLoadError('Canvas iniciado com o bloco Start. Monte um fluxo e clique em Salvar fluxo para escolher o bot executor.')
           return
         }
         setFlowName(data.name)
@@ -289,10 +315,11 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
     return () => {
       cancelled = true
     }
-  }, [botId, resetCanvasDraft])
+  }, [botId, flowId, resetCanvasDraft])
 
   const logsParse = useMemo(() => parseLogsInput(logsText), [logsText])
-  const runtimeFlowId = flow?.id ?? botId ?? `draft:${flowName.trim() || 'novo-fluxo'}`
+  const runtimeFlowId = flow?.id ?? flowId ?? botId ?? `draft:${flowName.trim() || 'novo-fluxo'}`
+  const runtimeBotId = flow?.bot_id ?? botId
   const traceNodeSignature = useMemo(
     () =>
       nodes
@@ -422,7 +449,7 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
 
     getNodeRuntimeHealth({
       flowId: runtimeFlowId,
-      botId,
+      botId: runtimeBotId,
       nodes: traceNodeRefs,
     }).then((health) => {
       if (!cancelled) {
@@ -433,7 +460,7 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
     return () => {
       cancelled = true
     }
-  }, [botId, runtimeFlowId, traceNodeRefs])
+  }, [runtimeBotId, runtimeFlowId, traceNodeRefs])
 
   useEffect(() => {
     const selectedStillExists = nodes.some((node) => node.id === selectedNodeId)
@@ -481,32 +508,92 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
     setAnalysis(report?.result ?? null)
   }
 
-  const handleSave = useCallback(async () => {
-    const context = saveContextRef.current
+  const resolveSaveDialog = useCallback((saved: boolean) => {
+    saveDialogResolverRef.current?.(saved)
+    saveDialogResolverRef.current = null
+  }, [])
 
-    if (!context?.botId) {
-      setLoadError('Selecione um bot na aba Bots antes de salvar o fluxo.')
-      return false
+  const loadSaveDialogBots = useCallback(async (preferredBotId: string) => {
+    setSaveDialogLoadingBots(true)
+    setSaveDialogError(null)
+    try {
+      const bots = await listBots()
+      setSaveDialogBots(bots)
+      if (bots.length === 0) {
+        setSaveDialogBotId('')
+        setSaveDialogError('Crie um bot na aba Bots antes de salvar este fluxo.')
+        return
+      }
+      if (!preferredBotId || !bots.some((bot) => bot.id === preferredBotId)) {
+        setSaveDialogBotId(bots[0].id)
+      }
+    } catch (err) {
+      setSaveDialogBots([])
+      setSaveDialogError(err instanceof Error ? err.message : 'Falha ao carregar bots.')
+    } finally {
+      setSaveDialogLoadingBots(false)
+    }
+  }, [])
+
+  const requestSaveWithDialog = useCallback(async () => {
+    const context = saveContextRef.current
+    if (!context) return false
+
+    saveDialogResolverRef.current?.(false)
+    const preferredBotId = context.flow?.bot_id ?? context.botId ?? ''
+
+    setSaveDialogName(context.flowName.trim() || 'Novo fluxo')
+    setSaveDialogBotId(preferredBotId)
+    setSaveDialogError(null)
+    setSaveDialogOpen(true)
+    void loadSaveDialogBots(preferredBotId)
+
+    return new Promise<boolean>((resolve) => {
+      saveDialogResolverRef.current = resolve
+    })
+  }, [loadSaveDialogBots])
+
+  async function handleConfirmSaveDialog() {
+    const context = saveContextRef.current
+    if (!context) return
+
+    const botIdToSave = saveDialogBotId.trim()
+    if (!botIdToSave) {
+      setSaveDialogError('Escolha qual bot vai executar este fluxo.')
+      return
     }
 
     setSaveState('saving')
+    setSaveDialogError(null)
     try {
       const graph = exportCanvasFlow(context.nodes, context.edges)
-      const savedFlow = context.flow
-        ? await saveFlow(context.flow.id, context.flowName.trim() || 'Sem nome', graph)
-        : await upsertFlowByBotId(context.botId, context.flowName.trim() || 'Sem nome', graph)
+      const savedFlow = await saveFlowWithBot({
+        flowId: context.flow?.id ?? null,
+        name: saveDialogName.trim() || context.flowName.trim() || 'Sem nome',
+        graph,
+        botId: botIdToSave,
+      })
       setFlow(savedFlow)
+      setFlowName(savedFlow.name)
       setSaveState('saved')
       setHasUnsavedChanges(false)
       setLoadError(null)
+      setSaveDialogOpen(false)
+      onSaved?.(savedFlow)
+      resolveSaveDialog(true)
       window.setTimeout(() => setSaveState('idle'), 1800)
-      return true
     } catch (err) {
-      setLoadError(err instanceof Error ? err.message : 'Falha ao salvar fluxo.')
+      setSaveDialogError(err instanceof Error ? err.message : 'Falha ao salvar fluxo.')
       setSaveState('idle')
-      return false
     }
-  }, [])
+  }
+
+  function handleCancelSaveDialog() {
+    if (saveState === 'saving') return
+    setSaveDialogOpen(false)
+    setSaveDialogError(null)
+    resolveSaveDialog(false)
+  }
 
   useEffect(() => {
     onDirtyChange?.(hasUnsavedChanges)
@@ -514,12 +601,15 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
   }, [hasUnsavedChanges, onDirtyChange])
 
   useEffect(() => {
-    onRegisterSave?.(botId ? handleSave : null)
+    onRegisterSave?.(requestSaveWithDialog)
     return () => onRegisterSave?.(null)
-  }, [botId, handleSave, onRegisterSave])
+  }, [onRegisterSave, requestSaveWithDialog])
 
   function handleNewFlow() {
-    resetCanvasDraft(flowName.trim() || 'Novo fluxo')
+    setFlow(null)
+    setLoadError(null)
+    resetCanvasDraft('Novo fluxo')
+    onDraftCreated?.()
   }
 
   function handleCanvasDrop(event: React.DragEvent<HTMLDivElement>) {
@@ -579,7 +669,7 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
     setLoadingNodeErrors(true)
     getRecentNodeErrorLogs({
       flowId: runtimeFlowId,
-      botId,
+      botId: runtimeBotId,
       node: selectedTraceNode,
       limit: 3,
     })
@@ -597,7 +687,7 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
     return () => {
       cancelled = true
     }
-  }, [botId, runtimeFlowId, selectedTraceNode])
+  }, [runtimeBotId, runtimeFlowId, selectedTraceNode])
 
   function handleToggleFocusMode() {
     const nextFocusMode = !isFocusMode
@@ -617,7 +707,7 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
 
   return (
     <main className="p-4 lg:p-6">
-      {(!botId || loadError) && (
+      {loadError && (
         <div className="mb-5 rounded-[18px] border border-neon-purple/20 bg-neon-purple/8 px-5 py-4 text-sm leading-6 text-gray-300">
           {loadError ?? 'Modo demo ativo. Selecione um bot na aba Bots quando quiser salvar em um fluxo real.'}
         </div>
@@ -773,9 +863,8 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
                 </Button>
                 <Button
                   type="button"
-                  onClick={() => void handleSave()}
-                  disabled={!botId || saveState === 'saving'}
-                  title={!botId ? 'Selecione um bot para salvar no Supabase.' : undefined}
+                  onClick={() => void requestSaveWithDialog()}
+                  disabled={saveState === 'saving'}
                   className="h-14 rounded-full border border-neon-purple/70 bg-[linear-gradient(90deg,#b44dff,#ff2a9d)] px-6 text-[12px] font-bold uppercase tracking-[0.26em] text-white shadow-[0_0_18px_rgba(180,77,255,0.25)] hover:opacity-95 disabled:opacity-60"
                 >
                   {saveState === 'saving' ? (
@@ -932,7 +1021,139 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
 
         </div>
       </div>
+      {saveDialogOpen && (
+        <SaveFlowDialog
+          name={saveDialogName}
+          botId={saveDialogBotId}
+          bots={saveDialogBots}
+          loadingBots={saveDialogLoadingBots}
+          saving={saveState === 'saving'}
+          error={saveDialogError}
+          onNameChange={setSaveDialogName}
+          onBotChange={setSaveDialogBotId}
+          onCancel={handleCancelSaveDialog}
+          onConfirm={() => void handleConfirmSaveDialog()}
+        />
+      )}
     </main>
+  )
+}
+
+function SaveFlowDialog({
+  name,
+  botId,
+  bots,
+  loadingBots,
+  saving,
+  error,
+  onNameChange,
+  onBotChange,
+  onCancel,
+  onConfirm,
+}: {
+  name: string
+  botId: string
+  bots: TelegramBot[]
+  loadingBots: boolean
+  saving: boolean
+  error: string | null
+  onNameChange: (value: string) => void
+  onBotChange: (value: string) => void
+  onCancel: () => void
+  onConfirm: () => void
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 px-4 backdrop-blur-sm">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="save-flow-dialog-title"
+        className="w-full max-w-xl rounded-[28px] border border-neon-purple/25 bg-[#11141d] p-6 shadow-[0_24px_90px_rgba(0,0,0,0.6)]"
+      >
+        <div className="mb-6 flex items-start gap-4">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-neon-purple/25 bg-neon-purple/10 text-neon-purple">
+            <GitBranch size={22} aria-hidden="true" />
+          </span>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.24em] text-neon-purple">
+              Salvar fluxo
+            </p>
+            <h2 id="save-flow-dialog-title" className="mt-1 text-2xl font-black text-white">
+              Escolha o bot executor
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-gray-400">
+              Esse bot passara a executar este fluxo. Se ele ja tiver outro fluxo ativo, o anterior sera pausado.
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <label className="block">
+            <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.18em] text-gray-500">
+              Nome do fluxo
+            </span>
+            <input
+              value={name}
+              onChange={(event) => onNameChange(event.target.value)}
+              className="h-12 w-full rounded-[14px] border border-white/10 bg-[#0c0f16] px-4 text-sm font-bold text-white outline-none transition-colors focus:border-neon-purple/50"
+              placeholder="Ex: Funil principal"
+            />
+          </label>
+
+          <label className="block">
+            <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.18em] text-gray-500">
+              Bot que vai executar
+            </span>
+            <select
+              value={botId}
+              disabled={loadingBots || saving || bots.length === 0}
+              onChange={(event) => onBotChange(event.target.value)}
+              className="h-12 w-full rounded-[14px] border border-white/10 bg-[#0c0f16] px-4 text-sm font-bold text-white outline-none transition-colors focus:border-neon-purple/50 disabled:opacity-50"
+            >
+              {loadingBots && <option value="">Carregando bots...</option>}
+              {!loadingBots && bots.length === 0 && <option value="">Nenhum bot encontrado</option>}
+              {!loadingBots &&
+                bots.map((bot) => (
+                  <option key={bot.id} value={bot.id} className="bg-[#0c0f16] text-gray-200">
+                    {bot.name}
+                  </option>
+                ))}
+            </select>
+          </label>
+        </div>
+
+        {error && (
+          <div className="mt-4 rounded-2xl border border-neon-orange/30 bg-neon-orange/10 px-4 py-3 text-sm leading-6 text-neon-orange">
+            {error}
+          </div>
+        )}
+
+        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            disabled={saving}
+            className="rounded-full border-white/10 bg-white/5 px-5 text-gray-200 hover:bg-white/10"
+          >
+            Cancelar
+          </Button>
+          <Button
+            type="button"
+            onClick={onConfirm}
+            disabled={saving || loadingBots || bots.length === 0}
+            className="rounded-full border border-neon-purple/70 bg-[linear-gradient(90deg,#b44dff,#ff2a9d)] px-5 font-bold text-white shadow-[0_0_18px_rgba(180,77,255,0.25)] hover:opacity-95 disabled:opacity-60"
+          >
+            {saving ? (
+              <Loader2 size={15} className="mr-2 animate-spin" aria-hidden="true" />
+            ) : (
+              <Check size={15} className="mr-2" aria-hidden="true" />
+            )}
+            {saving ? 'Salvando...' : 'Salvar neste bot'}
+          </Button>
+        </div>
+      </div>
+    </div>
   )
 }
 

@@ -25,12 +25,6 @@ export async function createBot(payload: Omit<BotInsert, 'owner_id'>) {
     .single()
   if (error) throw error
 
-  await supabase.from('flows').insert({
-    bot_id: data.id,
-    owner_id: userData.user.id,
-    name: `Fluxo de ${data.name}`,
-  })
-
   return data
 }
 

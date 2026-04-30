@@ -26,7 +26,7 @@ export interface LeadListItem extends TelegramLead {
 
 export interface LeadFilterOptions {
   bots: Array<{ id: string; name: string }>
-  flows: Array<{ id: string; name: string; bot_id: string }>
+  flows: Array<{ id: string; name: string; bot_id: string | null }>
 }
 
 export interface LeadMetrics {

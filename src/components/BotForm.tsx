@@ -53,7 +53,7 @@ export default function BotForm({ bot, onChanged }: BotFormProps) {
   }
 
   async function handleDelete() {
-    if (!window.confirm(`Excluir o bot "${bot.name}" e seu fluxo?`)) return
+    if (!window.confirm(`Excluir o bot "${bot.name}"? Fluxos vinculados ficarao sem bot executor.`)) return
     try {
       await deleteBot(bot.id)
       await onChanged()

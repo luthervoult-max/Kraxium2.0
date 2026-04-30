@@ -58,34 +58,40 @@ export type Database = {
       }
       flows: {
         Row: {
-          bot_id: string
+          bot_id: string | null
+          created_at: string
           graph: Json
           id: string
           name: string
           owner_id: string
+          status: string
           updated_at: string | null
         }
         Insert: {
-          bot_id: string
+          bot_id?: string | null
+          created_at?: string
           graph?: Json
           id?: string
           name?: string
           owner_id: string
+          status?: string
           updated_at?: string | null
         }
         Update: {
-          bot_id?: string
+          bot_id?: string | null
+          created_at?: string
           graph?: Json
           id?: string
           name?: string
           owner_id?: string
+          status?: string
           updated_at?: string | null
         }
         Relationships: [
           {
             foreignKeyName: 'flows_bot_id_fkey'
             columns: ['bot_id']
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: 'bots'
             referencedColumns: ['id']
           },

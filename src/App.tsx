@@ -8,10 +8,12 @@ import FlowCard from '@/components/FlowCard'
 import RevenueChart from '@/components/RevenueChart'
 import BotsPage from '@/components/BotsPage'
 import FlowIntel from '@/components/FlowIntel'
+import FlowsPage from '@/components/FlowsPage'
 import LoginPage from '@/components/LoginPage'
 import UsersPage from '@/components/UsersPage'
 import { Button } from '@/components/ui/button'
 import { AuthProvider, useAuth } from '@/lib/auth/AuthContext'
+import type { FlowWithBot } from '@/lib/api/flows'
 import { generateRevenueSeries, generateSparkline } from '@/lib/mockData'
 import type { Page } from '@/lib/pages'
 
@@ -50,6 +52,7 @@ const revenueSeries = generateRevenueSeries(90)
 
 const pageConfig: Record<Page, { eyebrow: string; title: string; titleHighlight?: string }> = {
   dashboard: { eyebrow: '', title: 'Pulse da', titleHighlight: 'Operacao' },
+  flows: { eyebrow: 'AUTOMACAO', title: 'Meus', titleHighlight: 'Fluxos' },
   bots: { eyebrow: 'SISTEMA', title: 'Configuracoes' },
   flowIntel: { eyebrow: 'ANALISE', title: 'Flow Intel' },
   users: { eyebrow: 'CRM', title: 'Base de', titleHighlight: 'Clientes' },
@@ -57,17 +60,23 @@ const pageConfig: Record<Page, { eyebrow: string; title: string; titleHighlight?
 
 const mobilePages: Array<{ id: Page; label: string }> = [
   { id: 'dashboard', label: 'Dashboard' },
+  { id: 'flows', label: 'Fluxos' },
   { id: 'flowIntel', label: 'Flow Intel' },
   { id: 'bots', label: 'Bots' },
   { id: 'users', label: 'Users' },
 ]
 
-type PendingLeaveAction = { type: 'page'; page: Page } | { type: 'signOut' }
+type PendingLeaveAction =
+  | { type: 'page'; page: Page }
+  | { type: 'signOut' }
+  | { type: 'createFlow' }
+  | { type: 'editFlow'; flowId: string; botId: string | null }
 
 function Shell() {
   const { user, loading, signOut } = useAuth()
   const [page, setPage] = useState<Page>('dashboard')
   const [selectedBotId, setSelectedBotId] = useState<string | null>(null)
+  const [selectedFlowId, setSelectedFlowId] = useState<string | null>(null)
   const [flowDirty, setFlowDirty] = useState(false)
   const [pendingLeaveAction, setPendingLeaveAction] = useState<PendingLeaveAction | null>(null)
   const [flowSaveHandler, setFlowSaveHandler] = useState<(() => Promise<boolean>) | null>(null)
@@ -105,16 +114,64 @@ function Shell() {
       setPage(action.page)
       return
     }
+    if (action.type === 'createFlow') {
+      setSelectedFlowId(null)
+      setSelectedBotId(null)
+      setPage('flowIntel')
+      return
+    }
+    if (action.type === 'editFlow') {
+      setSelectedFlowId(action.flowId)
+      setSelectedBotId(action.botId)
+      setPage('flowIntel')
+      return
+    }
     await signOut()
+  }
+
+  function requestCreateFlow() {
+    if (page === 'flowIntel' && flowDirty) {
+      setPendingLeaveAction({ type: 'createFlow' })
+      return
+    }
+    setFlowDirty(false)
+    setSelectedFlowId(null)
+    setSelectedBotId(null)
+    setPage('flowIntel')
+  }
+
+  function requestEditFlow(flow: FlowWithBot) {
+    if (page === 'flowIntel' && flowDirty) {
+      setPendingLeaveAction({ type: 'editFlow', flowId: flow.id, botId: flow.bot_id })
+      return
+    }
+    setFlowDirty(false)
+    setSelectedFlowId(flow.id)
+    setSelectedBotId(flow.bot_id)
+    setPage('flowIntel')
+  }
+
+  function handleBotSelection(botId: string | null) {
+    setSelectedBotId(botId)
+    setSelectedFlowId(null)
+  }
+
+  function handleFlowSaved(flow: { id: string; bot_id: string | null }) {
+    setSelectedFlowId(flow.id)
+    setSelectedBotId(flow.bot_id)
   }
 
   async function handleSaveAndLeave() {
     if (!pendingLeaveAction || !flowSaveHandler) return
+    const action = pendingLeaveAction
+    setPendingLeaveAction(null)
     setSavingBeforeLeave(true)
     try {
       const saved = await flowSaveHandler()
       if (saved) {
-        await finishLeave(pendingLeaveAction)
+        await finishLeave(action)
+      } else {
+        setPendingLeaveAction(action)
       }
     } finally {
       setSavingBeforeLeave(false)
@@ -231,12 +288,21 @@ function Shell() {
         {page === 'flowIntel' && (
           <FlowIntel
             botId={selectedBotId}
+            flowId={selectedFlowId}
             onDirtyChange={setFlowDirty}
             onRegisterSave={registerFlowSaveHandler}
+            onDraftCreated={() => {
+              setSelectedFlowId(null)
+              setSelectedBotId(null)
+            }}
+            onSaved={handleFlowSaved}
           />
         )}
+        {page === 'flows' && (
+          <FlowsPage onCreateFlow={requestCreateFlow} onEditFlow={requestEditFlow} />
+        )}
         {page === 'bots' && (
-          <BotsPage selectedBotId={selectedBotId} onSelectBot={setSelectedBotId} />
+          <BotsPage selectedBotId={selectedBotId} onSelectBot={handleBotSelection} />
         )}
         {page === 'users' && <UsersPage />}
       </div>

@@ -54,7 +54,7 @@ export default function BotsPage({ selectedBotId, onSelectBot }: BotsPageProps) 
   }
 
   async function handleDelete(id: string) {
-    if (!window.confirm('Excluir este bot e seu fluxo?')) return
+    if (!window.confirm('Excluir este bot? Fluxos vinculados ficarao sem bot executor.')) return
     try {
       await deleteBot(id)
       await refresh()
