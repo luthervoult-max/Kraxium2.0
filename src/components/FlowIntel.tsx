@@ -72,7 +72,10 @@ interface RemovableEdgeData extends Record<string, unknown> {
 
 const nodeTypes = { flowNode: FlowNode }
 const edgeTypes = { removable: RemovableEdge }
-const emptyCanvasState = { nodes: [] as BuilderNode[], edges: [] as BuilderEdge[] }
+const START_NODE_ID = 'start_node'
+const START_NODE_COLOR = '#22c55e'
+const START_NODE_LABEL = 'Início'
+const START_NODE_TEXT = 'Quando o usuário inicia'
 
 const starterFlowObject = {
   nodes: [
@@ -124,11 +127,13 @@ type FlowHealthStatus = 'ok' | 'warning' | 'error'
 
 const terminalNodeTypes = new Set(['CV', 'EP', 'AG'])
 
+const initialCanvasState = createInitialCanvasState()
+
 export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: FlowIntelProps) {
   const [flow, setFlow] = useState<Flow | null>(null)
   const [flowName, setFlowName] = useState('Novo fluxo')
-  const [nodes, setNodes, onNodesChange] = useNodesState<BuilderNode>(emptyCanvasState.nodes)
-  const [edges, setEdges, onEdgesChange] = useEdgesState<BuilderEdge>(emptyCanvasState.edges)
+  const [nodes, setNodes, onNodesChange] = useNodesState<BuilderNode>(initialCanvasState.nodes)
+  const [edges, setEdges, onEdgesChange] = useEdgesState<BuilderEdge>(initialCanvasState.edges)
   const [logsText, setLogsText] = useState('[]')
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null)
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
@@ -149,8 +154,9 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
   saveContextRef.current = { botId, flow, flowName, nodes, edges }
 
   const resetCanvasDraft = useCallback((nextFlowName = 'Novo fluxo') => {
-    setNodes(emptyCanvasState.nodes)
-    setEdges(emptyCanvasState.edges)
+    const nextCanvas = createInitialCanvasState()
+    setNodes(nextCanvas.nodes)
+    setEdges(nextCanvas.edges)
     setFlowName(nextFlowName)
     setLogsText('[]')
     setAnalysis(null)
@@ -170,6 +176,8 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
   }, [markUnsaved, setEdges])
 
   const handleDeleteNode = useCallback((nodeId: string) => {
+    if (nodeId === START_NODE_ID) return
+
     setNodes((currentNodes) => currentNodes.filter((node) => node.id !== nodeId))
     setEdges((currentEdges) =>
       currentEdges.filter((edge) => edge.source !== nodeId && edge.target !== nodeId),
@@ -188,7 +196,7 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
     resetCanvasDraft()
     if (!botId) {
       setFlow(null)
-      setLoadError('Canvas limpo. Selecione um bot na aba Bots quando quiser salvar o fluxo.')
+      setLoadError('Canvas iniciado com o bloco Start. Selecione um bot na aba Bots quando quiser salvar o fluxo.')
       setLoadingFlow(false)
       return
     }
@@ -202,10 +210,15 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
         setFlow(data)
         if (!data) {
           setFlowName('Novo fluxo')
-          setLoadError('Canvas limpo. Monte um fluxo e clique em Salvar fluxo para gravar neste bot.')
+          setLoadError('Canvas iniciado com o bloco Start. Monte um fluxo e clique em Salvar fluxo para gravar neste bot.')
           return
         }
         setFlowName(data.name)
+        if (data.graph) {
+          const savedCanvas = buildCanvasState(JSON.stringify(data.graph))
+          setNodes(savedCanvas.nodes)
+          setEdges(savedCanvas.edges)
+        }
         setLoadError(null)
       })
       .catch((err) => {
@@ -258,7 +271,7 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
             errorCount,
             lastErrorAt,
             lastTraceId,
-            onDeleteNode: handleDeleteNode,
+            onDeleteNode: node.id === START_NODE_ID ? undefined : handleDeleteNode,
           },
         }
         cache.set(node.id, { source: node, healthKey, enhanced })
@@ -291,6 +304,16 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
     : totalErrorCount > 0 || flowHealthIssues.some((issue) => issue.severity === 'error')
       ? 'error'
       : 'warning'
+  const paletteGroups = useMemo(
+    () =>
+      blocksByCategory
+        .map((group) => ({
+          ...group,
+          blocks: group.blocks.filter((block) => block.code !== 'TR'),
+        }))
+        .filter((group) => group.blocks.length > 0),
+    [],
+  )
   const edgesWithActions = useMemo(
     () =>
       edges.map((edge) => ({
@@ -335,8 +358,16 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
   }, [nodes, selectedNodeId])
 
   const handleNodesChange = (changes: Parameters<typeof onNodesChange>[0]) => {
-    onNodesChange(changes)
-    if (changes.some((change) => change.type !== 'select')) {
+    const allowedChanges = changes.filter(
+      (change) => !(change.type === 'remove' && change.id === START_NODE_ID),
+    )
+
+    if (allowedChanges.length === 0) {
+      return
+    }
+
+    onNodesChange(allowedChanges)
+    if (allowedChanges.some((change) => change.type !== 'select')) {
       markUnsaved()
     }
   }
@@ -349,6 +380,8 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
   }
 
   const onConnect: OnConnect = (connection) => {
+    if (connection.target === START_NODE_ID) return
+
     markUnsaved()
     setEdges((currentEdges) => addEdge(buildEdge(connection, nodes), currentEdges))
   }
@@ -560,53 +593,53 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
 
           {!isBlockPaletteCollapsed && (
             <div className="min-h-0 flex-1 space-y-8 overflow-y-auto px-6 py-6">
-            {blocksByCategory.map((group) => (
-              <section key={group.category} className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <span className="h-px flex-1 bg-white/7" />
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-gray-500">
-                    {formatCategoryLabel(group.meta.label)}
-                  </p>
-                </div>
+              {paletteGroups.map((group) => (
+                <section key={group.category} className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <span className="h-px flex-1 bg-white/7" />
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-gray-500">
+                      {formatCategoryLabel(group.meta.label)}
+                    </p>
+                  </div>
 
-                <div className="space-y-3">
-                  {group.blocks.map((block) => (
-                    <button
-                      key={block.id}
-                      type="button"
-                      draggable
-                      onDragStart={(event) => {
-                        event.dataTransfer.setData('application/kraxium-block', JSON.stringify(block))
-                        event.dataTransfer.effectAllowed = 'move'
-                      }}
-                      onClick={() => addBlockToCanvas(block)}
-                      className="group w-full h-20 rounded-[6px] border border-white/8 bg-[#1c202a] p-3 text-left transition-all hover:border-white/15 hover:bg-[#202531] overflow-hidden"
-                    >
-                      <div className="flex items-start gap-4">
-                        <div
-                          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[20px] border text-lg font-bold font-mono"
-                          style={{
-                            color: group.meta.color,
-                            background: `rgba(${group.meta.rgb}, 0.12)`,
-                            borderColor: `rgba(${group.meta.rgb}, 0.24)`,
-                          }}
-                        >
-                          {block.code}
+                  <div className="space-y-3">
+                    {group.blocks.map((block) => (
+                      <button
+                        key={block.id}
+                        type="button"
+                        draggable
+                        onDragStart={(event) => {
+                          event.dataTransfer.setData('application/kraxium-block', JSON.stringify(block))
+                          event.dataTransfer.effectAllowed = 'move'
+                        }}
+                        onClick={() => addBlockToCanvas(block)}
+                        className="group w-full h-20 rounded-[6px] border border-white/8 bg-[#1c202a] p-3 text-left transition-all hover:border-white/15 hover:bg-[#202531] overflow-hidden"
+                      >
+                        <div className="flex items-start gap-4">
+                          <div
+                            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[20px] border text-lg font-bold font-mono"
+                            style={{
+                              color: group.meta.color,
+                              background: `rgba(${group.meta.rgb}, 0.12)`,
+                              borderColor: `rgba(${group.meta.rgb}, 0.24)`,
+                            }}
+                          >
+                            {block.code}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-[14px] font-bold uppercase tracking-[0.04em] text-white">
+                              {block.title}
+                            </p>
+                            <p className="mt-2 text-[14px] leading-8 text-gray-400">
+                              {normalizeDescription(block.description)}
+                            </p>
+                          </div>
                         </div>
-                        <div className="min-w-0">
-                          <p className="text-[14px] font-bold uppercase tracking-[0.04em] text-white">
-                            {block.title}
-                          </p>
-                          <p className="mt-2 text-[14px] leading-8 text-gray-400">
-                            {normalizeDescription(block.description)}
-                          </p>
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </section>
-            ))}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              ))}
             </div>
           )}
         </aside>
@@ -784,7 +817,8 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
                   zoomable
                   nodeColor={(node) => {
                     const data = node.data as FlowNodeData
-                    return data.runtimeStatus === 'error' ? '#ff3b5f' : categoryMeta[data.category].color
+                    if (data.runtimeStatus === 'error') return '#ff3b5f'
+                    return data.isStartNode ? START_NODE_COLOR : categoryMeta[data.category].color
                   }}
                   maskColor="rgba(8, 10, 16, 0.74)"
                   style={{
@@ -1155,11 +1189,11 @@ function validateFlowStructure(nodes: BuilderNode[], edges: BuilderEdge[]): Flow
     outgoingCount.set(node.id, 0)
   })
 
-  if (!nodes.some((node) => node.data.code === 'TR')) {
+  if (!nodes.some((node) => node.id === START_NODE_ID && node.data.code === 'TR')) {
     issues.push({
       id: 'missing-trigger',
       title: 'Sem bloco inicial',
-      detail: 'Inclua um bloco TR para marcar por onde a jornada comeca.',
+      detail: 'O bloco Início precisa estar no canvas para marcar por onde a jornada começa.',
       severity: 'warning',
     })
   }
@@ -1183,6 +1217,7 @@ function validateFlowStructure(nodes: BuilderNode[], edges: BuilderEdge[]): Flow
   })
 
   nodes.forEach((node) => {
+    const isStartNode = node.id === START_NODE_ID
     const title = String(node.data.title ?? '').trim()
     const content = String(node.data.text ?? node.data.description ?? '').trim()
 
@@ -1198,11 +1233,21 @@ function validateFlowStructure(nodes: BuilderNode[], edges: BuilderEdge[]): Flow
     const incoming = incomingCount.get(node.id) ?? 0
     const outgoing = outgoingCount.get(node.id) ?? 0
 
-    if (nodes.length > 1 && incoming === 0 && outgoing === 0) {
+    if (nodes.length > 1 && !isStartNode && incoming === 0 && outgoing === 0) {
       issues.push({
         id: `isolated-node-${node.id}`,
         title: 'No isolado',
         detail: `${node.data.title} nao esta conectado ao fluxo.`,
+        severity: 'warning',
+      })
+      return
+    }
+
+    if (isStartNode && outgoing === 0) {
+      issues.push({
+        id: 'start-without-output',
+        title: 'Start sem próximo passo',
+        detail: 'Conecte o bloco Início ao primeiro bloco da jornada.',
         severity: 'warning',
       })
       return
@@ -1524,9 +1569,107 @@ function buildCanvasState(flowJson: string): {
   const parsed = parseFlowInput(flowJson)
   const preview = parsed.data && parsed.errors.length === 0 ? buildFlowPreview(parsed.data) : buildFlowPreview(parseFlowInput(starterFlowJson).data!)
 
-  return {
+  return ensureStartNodeInCanvas({
     nodes: preview.nodes as BuilderNode[],
     edges: preview.edges as BuilderEdge[],
+  })
+}
+
+function createInitialCanvasState(): {
+  nodes: BuilderNode[]
+  edges: BuilderEdge[]
+} {
+  return {
+    nodes: [createStartNode()],
+    edges: [],
+  }
+}
+
+function ensureStartNodeInCanvas(canvas: {
+  nodes: BuilderNode[]
+  edges: BuilderEdge[]
+}): {
+  nodes: BuilderNode[]
+  edges: BuilderEdge[]
+} {
+  const existingStartNode = canvas.nodes.find((node) => node.id === START_NODE_ID)
+
+  if (existingStartNode) {
+    return {
+      nodes: canvas.nodes.map((node) => (node.id === START_NODE_ID ? normalizeStartNode(node) : node)),
+      edges: canvas.edges.filter((edge) => edge.target !== START_NODE_ID).map(normalizeStartEdge),
+    }
+  }
+
+  const triggerNode = canvas.nodes.find((node) => node.data.code === 'TR')
+
+  if (triggerNode) {
+    return {
+      nodes: canvas.nodes.map((node) => (node.id === triggerNode.id ? createStartNode(node.position) : node)),
+      edges: canvas.edges
+        .filter((edge) => edge.target !== triggerNode.id)
+        .map((edge) => ({
+          ...edge,
+          source: edge.source === triggerNode.id ? START_NODE_ID : edge.source,
+        }))
+        .map(normalizeStartEdge),
+    }
+  }
+
+  return {
+    nodes: [createStartNode(), ...canvas.nodes],
+    edges: canvas.edges,
+  }
+}
+
+function normalizeStartNode(node: BuilderNode): BuilderNode {
+  const startNode = createStartNode(node.position)
+
+  return {
+    ...node,
+    id: START_NODE_ID,
+    type: 'flowNode',
+    data: {
+      ...node.data,
+      ...startNode.data,
+    },
+  }
+}
+
+function normalizeStartEdge(edge: BuilderEdge): BuilderEdge {
+  if (edge.source !== START_NODE_ID) return edge
+
+  return {
+    ...edge,
+    type: 'removable',
+    markerEnd: {
+      type: 'arrowclosed',
+      color: START_NODE_COLOR,
+    },
+    style: {
+      ...edge.style,
+      stroke: START_NODE_COLOR,
+      strokeWidth: edge.style?.strokeWidth ?? 1.8,
+      opacity: edge.style?.opacity ?? 0.92,
+      strokeDasharray: undefined,
+    },
+  }
+}
+
+function createStartNode(position: { x: number; y: number } = { x: 180, y: 220 }): BuilderNode {
+  return {
+    id: START_NODE_ID,
+    type: 'flowNode',
+    position,
+    data: {
+      code: 'TR',
+      category: 'sistema',
+      title: START_NODE_LABEL,
+      description: START_NODE_TEXT,
+      text: START_NODE_TEXT,
+      options: [],
+      isStartNode: true,
+    },
   }
 }
 
@@ -1594,7 +1737,7 @@ function createNodeFromBlock(
 function buildEdge(connection: Connection, nodes: BuilderNode[]): BuilderEdge {
   const sourceNode = nodes.find((node) => node.id === connection.source)
   const sourceCategory = sourceNode?.data.category ?? 'comunicacao'
-  const color = categoryMeta[sourceCategory].color
+  const color = sourceNode?.id === START_NODE_ID ? START_NODE_COLOR : categoryMeta[sourceCategory].color
 
   return {
     id: connection.source && connection.target ? `${connection.source}_${connection.target}_${Date.now().toString(36)}` : `edge_${Date.now().toString(36)}`,

@@ -1,6 +1,6 @@
 import { memo } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
-import { X } from 'lucide-react'
+import { Play, X } from 'lucide-react'
 import { categoryMeta, type Category } from '@/lib/blocks'
 
 export interface FlowNodeData extends Record<string, unknown> {
@@ -15,14 +15,49 @@ export interface FlowNodeData extends Record<string, unknown> {
   lastErrorAt?: string | null
   lastTraceId?: string | null
   onDeleteNode?: (nodeId: string) => void
+  isStartNode?: boolean
 }
 
 function FlowNodeComponent({ id, data, selected }: NodeProps & { data: FlowNodeData }) {
   const { code, category, title, description } = data
   const meta = categoryMeta[category]
+  const isStartNode = data.isStartNode === true
   const hasRuntimeError = data.runtimeStatus === 'error'
   const nodeColor = hasRuntimeError ? '#ff3b5f' : meta.color
   const nodeRgb = hasRuntimeError ? '255,59,95' : meta.rgb
+
+  if (isStartNode) {
+    return (
+      <div
+        className="relative w-[300px] rounded-[10px] border border-neon-green/20 bg-[#0d0f12]/95 py-5 pl-9 pr-6 shadow-[0_0_20px_rgba(34,197,94,0.08)] backdrop-blur-md transition-all"
+        style={{
+          borderColor: selected ? '#22c55e' : 'rgba(34,197,94,0.22)',
+          boxShadow: selected
+            ? '0 0 0 1px #22c55e, 0 0 26px rgba(34,197,94,0.32)'
+            : '0 0 18px rgba(34,197,94,0.08)',
+        }}
+      >
+        <div className="absolute inset-y-0 left-0 w-2 rounded-l-[10px] bg-neon-green shadow-[0_0_18px_rgba(34,197,94,0.55)]" />
+
+        <div className="flex items-center gap-5">
+          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[13px] border border-neon-green/18 bg-neon-green/10 text-neon-green">
+            <Play size={25} strokeWidth={2.2} aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <p className="font-display text-[22px] font-bold leading-none text-white">{title}</p>
+            <p className="mt-2 text-[15px] leading-none text-gray-400">{description}</p>
+          </div>
+        </div>
+
+        <Handle
+          type="source"
+          position={Position.Bottom}
+          className="!h-3 !w-3 !border-0"
+          style={{ background: '#22c55e', boxShadow: '0 0 10px #22c55e' }}
+        />
+      </div>
+    )
+  }
 
   return (
     <div
