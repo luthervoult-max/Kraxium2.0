@@ -8,6 +8,7 @@ import FlowIntel from '@/components/FlowIntel'
 import FlowsPage from '@/components/FlowsPage'
 import LoginPage from '@/components/LoginPage'
 import UsersPage from '@/components/UsersPage'
+import AnalyticsPage from '@/components/AnalyticsPage'
 import { Button } from '@/components/ui/button'
 import { AuthProvider, useAuth } from '@/lib/auth/AuthContext'
 import { listBots, type Bot as BotRow } from '@/lib/api/bots'
@@ -18,8 +19,9 @@ const pageConfig: Record<Page, { eyebrow: string; title: string; titleHighlight?
   dashboard: { eyebrow: 'Dashboard', title: 'Pulse da', titleHighlight: 'Operação' },
   flows: { eyebrow: 'Automação', title: 'Meus', titleHighlight: 'Fluxos' },
   bots: { eyebrow: 'Sistema', title: 'Configurações' },
-  flowIntel: { eyebrow: 'Análise', title: 'Flow Intel' },
+  flowIntel: { eyebrow: 'Automação', title: 'Flow Builder' },
   users: { eyebrow: 'CRM', title: 'Base de', titleHighlight: 'Clientes' },
+  analytics: { eyebrow: 'Métricas', title: 'Performance' },
 }
 
 type PendingLeaveAction =
@@ -254,6 +256,11 @@ function Shell() {
         {page === 'users' && (
           <div className="flex-1 overflow-y-auto">
             <UsersPage />
+          </div>
+        )}
+        {page === 'analytics' && (
+          <div className="flex-1 overflow-y-auto">
+            <AnalyticsPage />
           </div>
         )}
       </div>

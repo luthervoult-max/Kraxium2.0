@@ -12,38 +12,169 @@ export type Database = {
   }
   public: {
     Tables: {
+      analytics_revenue_events: {
+        Row: {
+          amount_cents: number
+          bot_id: string | null
+          campaign: string | null
+          created_at: string
+          currency: string
+          event_type: string
+          flow_id: string | null
+          gateway: string | null
+          id: string
+          lead_id: string | null
+          metadata: Json
+          occurred_at: string
+          owner_id: string
+          plan_name: string | null
+          sales_code: string | null
+          source: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
+        }
+        Insert: {
+          amount_cents?: number
+          bot_id?: string | null
+          campaign?: string | null
+          created_at?: string
+          currency?: string
+          event_type: string
+          flow_id?: string | null
+          gateway?: string | null
+          id?: string
+          lead_id?: string | null
+          metadata?: Json
+          occurred_at?: string
+          owner_id: string
+          plan_name?: string | null
+          sales_code?: string | null
+          source?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+        }
+        Update: {
+          amount_cents?: number
+          bot_id?: string | null
+          campaign?: string | null
+          created_at?: string
+          currency?: string
+          event_type?: string
+          flow_id?: string | null
+          gateway?: string | null
+          id?: string
+          lead_id?: string | null
+          metadata?: Json
+          occurred_at?: string
+          owner_id?: string
+          plan_name?: string | null
+          sales_code?: string | null
+          source?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'analytics_revenue_events_bot_id_fkey'
+            columns: ['bot_id']
+            isOneToOne: false
+            referencedRelation: 'bots'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'analytics_revenue_events_flow_id_fkey'
+            columns: ['flow_id']
+            isOneToOne: false
+            referencedRelation: 'flows'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'analytics_revenue_events_lead_id_fkey'
+            columns: ['lead_id']
+            isOneToOne: false
+            referencedRelation: 'telegram_leads'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'analytics_revenue_events_owner_id_fkey'
+            columns: ['owner_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       bots: {
         Row: {
+          connected_at: string | null
+          connection_status: string
           created_at: string | null
           id: string
           name: string
           notifications_enabled: boolean | null
           owner_id: string
+          last_update_at: string | null
+          telegram_bot_id: string | null
+          telegram_can_join_groups: boolean | null
+          telegram_can_read_all_group_messages: boolean | null
+          telegram_first_name: string | null
+          telegram_supports_inline_queries: boolean | null
           telegram_token: string | null
+          telegram_username: string | null
           updated_at: string | null
           webhook_enabled: boolean | null
+          webhook_last_error: string | null
           webhook_url: string | null
         }
         Insert: {
+          connected_at?: string | null
+          connection_status?: string
           created_at?: string | null
           id?: string
           name: string
           notifications_enabled?: boolean | null
           owner_id: string
+          last_update_at?: string | null
+          telegram_bot_id?: string | null
+          telegram_can_join_groups?: boolean | null
+          telegram_can_read_all_group_messages?: boolean | null
+          telegram_first_name?: string | null
+          telegram_supports_inline_queries?: boolean | null
           telegram_token?: string | null
+          telegram_username?: string | null
           updated_at?: string | null
           webhook_enabled?: boolean | null
+          webhook_last_error?: string | null
           webhook_url?: string | null
         }
         Update: {
+          connected_at?: string | null
+          connection_status?: string
           created_at?: string | null
           id?: string
           name?: string
           notifications_enabled?: boolean | null
           owner_id?: string
+          last_update_at?: string | null
+          telegram_bot_id?: string | null
+          telegram_can_join_groups?: boolean | null
+          telegram_can_read_all_group_messages?: boolean | null
+          telegram_first_name?: string | null
+          telegram_supports_inline_queries?: boolean | null
           telegram_token?: string | null
+          telegram_username?: string | null
           updated_at?: string | null
           webhook_enabled?: boolean | null
+          webhook_last_error?: string | null
           webhook_url?: string | null
         }
         Relationships: [
@@ -52,6 +183,38 @@ export type Database = {
             columns: ['owner_id']
             isOneToOne: false
             referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      bot_secrets: {
+        Row: {
+          bot_id: string
+          created_at: string
+          telegram_token: string
+          updated_at: string
+          webhook_secret: string
+        }
+        Insert: {
+          bot_id: string
+          created_at?: string
+          telegram_token: string
+          updated_at?: string
+          webhook_secret: string
+        }
+        Update: {
+          bot_id?: string
+          created_at?: string
+          telegram_token?: string
+          updated_at?: string
+          webhook_secret?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'bot_secrets_bot_id_fkey'
+            columns: ['bot_id']
+            isOneToOne: true
+            referencedRelation: 'bots'
             referencedColumns: ['id']
           },
         ]
@@ -214,7 +377,11 @@ export type Database = {
       telegram_leads: {
         Row: {
           bot_id: string
+          campaign: string | null
+          city: string | null
+          country: string | null
           created_at: string
+          device_type: string | null
           display_name: string | null
           email: string | null
           first_name: string | null
@@ -230,17 +397,28 @@ export type Database = {
           owner_id: string
           phone: string | null
           plan_name: string | null
+          region: string | null
           sales_code: string | null
+          source: string | null
           start_count: number
           status: string
           telegram_chat_id: string | null
           telegram_user_id: string
           updated_at: string
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
           username: string | null
         }
         Insert: {
           bot_id: string
+          campaign?: string | null
+          city?: string | null
+          country?: string | null
           created_at?: string
+          device_type?: string | null
           display_name?: string | null
           email?: string | null
           first_name?: string | null
@@ -256,17 +434,28 @@ export type Database = {
           owner_id: string
           phone?: string | null
           plan_name?: string | null
+          region?: string | null
           sales_code?: string | null
+          source?: string | null
           start_count?: number
           status?: string
           telegram_chat_id?: string | null
           telegram_user_id: string
           updated_at?: string
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
           username?: string | null
         }
         Update: {
           bot_id?: string
+          campaign?: string | null
+          city?: string | null
+          country?: string | null
           created_at?: string
+          device_type?: string | null
           display_name?: string | null
           email?: string | null
           first_name?: string | null
@@ -282,12 +471,19 @@ export type Database = {
           owner_id?: string
           phone?: string | null
           plan_name?: string | null
+          region?: string | null
           sales_code?: string | null
+          source?: string | null
           start_count?: number
           status?: string
           telegram_chat_id?: string | null
           telegram_user_id?: string
           updated_at?: string
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
           username?: string | null
         }
         Relationships: [

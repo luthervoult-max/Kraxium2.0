@@ -35,7 +35,7 @@ create table if not exists public.lead_flow_events (
   bot_id uuid not null references public.bots(id) on delete cascade,
   flow_id uuid references public.flows(id) on delete set null,
   event_type text not null check (
-    event_type in ('start', 'node_enter', 'node_success', 'node_error', 'payment', 'blocked', 'message', 'handoff')
+    event_type in ('start', 'node_enter', 'node_success', 'node_error', 'payment', 'payment_generated', 'payment_confirmed', 'blocked', 'message', 'handoff')
   ),
   node_id text,
   node_label text,

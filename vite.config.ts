@@ -7,16 +7,22 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      'react-stately/private/flags/flags': path.resolve(
+        __dirname,
+        './node_modules/react-stately/dist/exports/private/flags/flags.js',
+      ),
     },
   },
   build: {
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
-        manualChunks: {
-          xyflow: ['@xyflow/react'],
-          supabase: ['@supabase/supabase-js'],
-          tremor: ['@tremor/react'],
+        manualChunks(id) {
+          const normalizedId = id.replace(/\\/g, '/')
+          if (normalizedId.includes('/node_modules/@xyflow/react/')) return 'xyflow'
+          if (normalizedId.includes('/node_modules/@supabase/')) return 'supabase'
+          if (normalizedId.includes('/node_modules/@tremor/')) return 'tremor'
+          return undefined
         },
       },
     },

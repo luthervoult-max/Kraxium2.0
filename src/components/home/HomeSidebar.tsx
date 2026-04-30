@@ -48,7 +48,7 @@ const SECTIONS: MenuSection[] = [
     items: [
       { label: 'Dashboard', icon: LayoutGrid, page: 'dashboard' },
       { label: 'Meus Bots', icon: Bot, page: 'bots' },
-      { label: 'Métricas', icon: BarChart3, page: 'flowIntel' },
+      { label: 'Métricas', icon: BarChart3, page: 'analytics' },
       { label: 'Usuários', icon: Users, page: 'users' },
     ],
   },
