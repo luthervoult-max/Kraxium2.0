@@ -61,6 +61,15 @@ import {
   parseLogsInput,
   type AnalysisResult,
 } from '@/lib/flowIntel'
+import {
+  getBlockContent,
+  getBlockOptions,
+  getBlockOutputs,
+  getDefaultConfig,
+  mergeBlockConfig,
+  validateBlockConfig,
+  type BlockConfig,
+} from '@/lib/blockSpecs'
 import { cn } from '@/lib/utils'
 
 type BuilderNode = Node<FlowNodeData, 'flowNode'>
@@ -68,6 +77,12 @@ type BuilderEdge = Edge<RemovableEdgeData>
 
 interface RemovableEdgeData extends Record<string, unknown> {
   onDeleteEdge?: (edgeId: string) => void
+}
+
+interface SavedFlowMeta {
+  nodes: Map<string, { config?: BlockConfig }>
+  edges: Map<string, { sourceHandle?: string; targetHandle?: string; label?: string }>
+  edgeByEndpoints: Map<string, { sourceHandle?: string; targetHandle?: string; label?: string }>
 }
 
 const nodeTypes = { flowNode: FlowNode }
@@ -192,6 +207,49 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
     markUnsaved()
   }, [markUnsaved, setEdges, setNodes])
 
+  const handleUpdateNodeConfig = useCallback((nodeId: string, patch: BlockConfig) => {
+    setNodes((currentNodes) =>
+      currentNodes.map((node) => {
+        if (node.id !== nodeId || node.id === START_NODE_ID) return node
+
+        const config = mergeBlockConfig(node.data.code, {
+          ...(node.data.config ?? {}),
+          ...patch,
+        })
+
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            config,
+            outputs: getBlockOutputs(node.data.code, config),
+            text: getBlockContent(node.data.code, config, node.data.description),
+            options: getBlockOptions(node.data.code, config),
+          },
+        }
+      }),
+    )
+    markUnsaved()
+  }, [markUnsaved, setNodes])
+
+  const handleToggleNodeExpanded = useCallback((nodeId: string) => {
+    if (nodeId === START_NODE_ID) return
+
+    setNodes((currentNodes) =>
+      currentNodes.map((node) =>
+        node.id === nodeId
+          ? {
+              ...node,
+              data: {
+                ...node.data,
+                expanded: !node.data.expanded,
+              },
+            }
+          : node,
+      ),
+    )
+  }, [setNodes])
+
   useEffect(() => {
     resetCanvasDraft()
     if (!botId) {
@@ -243,6 +301,16 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
     [nodes],
   )
   const traceNodeRefs = useMemo(() => nodes.map(toTraceNodeRef), [traceNodeSignature])
+  const availableTargetNodes = useMemo(
+    () =>
+      nodes
+        .filter((node) => node.id !== START_NODE_ID)
+        .map((node) => ({
+          id: node.id,
+          label: `${node.data.code} · ${node.data.title}`,
+        })),
+    [nodes],
+  )
   const nodesWithRuntime = useMemo(
     () => {
       const cache = runtimeNodeCacheRef.current
@@ -254,7 +322,18 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
         const errorCount = health?.errorCount ?? 0
         const lastErrorAt = health?.lastErrorAt ?? null
         const lastTraceId = health?.lastTraceId ?? null
-        const healthKey = `${runtimeStatus}:${errorCount}:${lastErrorAt ?? ''}:${lastTraceId ?? ''}`
+        const config = mergeBlockConfig(node.data.code, node.data.config)
+        const outputs = node.data.isStartNode ? [{ id: 'next', label: 'NEXT' }] : getBlockOutputs(node.data.code, config)
+        const validationIssues = node.data.isStartNode ? [] : validateBlockConfig(node.data.code, config)
+        const healthKey = [
+          runtimeStatus,
+          errorCount,
+          lastErrorAt ?? '',
+          lastTraceId ?? '',
+          node.data.expanded ? 'open' : 'closed',
+          JSON.stringify(config),
+          availableTargetNodes.map((target) => target.id).join(','),
+        ].join(':')
         const cached = cache.get(node.id)
 
         liveNodeIds.add(node.id)
@@ -271,7 +350,13 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
             errorCount,
             lastErrorAt,
             lastTraceId,
+            config,
+            outputs,
+            validationIssues,
+            availableTargetNodes: availableTargetNodes.filter((target) => target.id !== node.id),
+            onConfigChange: handleUpdateNodeConfig,
             onDeleteNode: node.id === START_NODE_ID ? undefined : handleDeleteNode,
+            onToggleExpanded: handleToggleNodeExpanded,
           },
         }
         cache.set(node.id, { source: node, healthKey, enhanced })
@@ -286,7 +371,7 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
 
       return enhancedNodes
     },
-    [handleDeleteNode, nodeHealth, nodes],
+    [availableTargetNodes, handleDeleteNode, handleToggleNodeExpanded, handleUpdateNodeConfig, nodeHealth, nodes],
   )
   const totalErrorCount = useMemo(
     () => Object.values(nodeHealth).reduce((total, health) => total + health.errorCount, 0),
@@ -790,7 +875,10 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
                 onNodesChange={handleNodesChange}
                 onEdgesChange={handleEdgesChange}
                 onConnect={onConnect}
-                onNodeClick={(_, node) => setSelectedNodeId(node.id)}
+                onNodeClick={(_, node) => {
+                  setSelectedNodeId(node.id)
+                  handleToggleNodeExpanded(node.id)
+                }}
                 onPaneClick={() => setSelectedNodeId(null)}
                 fitView
                 fitViewOptions={{ padding: 0.2 }}
@@ -1220,6 +1308,7 @@ function validateFlowStructure(nodes: BuilderNode[], edges: BuilderEdge[]): Flow
     const isStartNode = node.id === START_NODE_ID
     const title = String(node.data.title ?? '').trim()
     const content = String(node.data.text ?? node.data.description ?? '').trim()
+    const configIssues = isStartNode ? [] : validateBlockConfig(node.data.code, mergeBlockConfig(node.data.code, node.data.config))
 
     if (!title || !content) {
       issues.push({
@@ -1229,6 +1318,15 @@ function validateFlowStructure(nodes: BuilderNode[], edges: BuilderEdge[]): Flow
         severity: 'warning',
       })
     }
+
+    configIssues.forEach((issue, index) => {
+      issues.push({
+        id: `config-${node.id}-${index}`,
+        title: 'Configuração pendente',
+        detail: `${node.data.title}: ${issue}`,
+        severity: 'warning',
+      })
+    })
 
     const incoming = incomingCount.get(node.id) ?? 0
     const outgoing = outgoingCount.get(node.id) ?? 0
@@ -1568,11 +1666,78 @@ function buildCanvasState(flowJson: string): {
 } {
   const parsed = parseFlowInput(flowJson)
   const preview = parsed.data && parsed.errors.length === 0 ? buildFlowPreview(parsed.data) : buildFlowPreview(parseFlowInput(starterFlowJson).data!)
+  const savedMeta = readSavedFlowMeta(flowJson)
 
   return ensureStartNodeInCanvas({
-    nodes: preview.nodes as BuilderNode[],
-    edges: preview.edges as BuilderEdge[],
+    nodes: (preview.nodes as BuilderNode[]).map((node) => {
+      const savedNode = savedMeta.nodes.get(node.id)
+      const config = mergeBlockConfig(node.data.code, savedNode?.config)
+
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          config,
+          expanded: false,
+          outputs: getBlockOutputs(node.data.code, config),
+          text: getBlockContent(node.data.code, config, node.data.text || node.data.description),
+          options: getBlockOptions(node.data.code, config),
+        },
+      }
+    }),
+    edges: (preview.edges as BuilderEdge[]).map((edge) => {
+      const savedEdge = savedMeta.edges.get(edge.id) ?? savedMeta.edgeByEndpoints.get(`${edge.source}->${edge.target}`)
+
+      return {
+        ...edge,
+        type: 'removable',
+        sourceHandle: savedEdge?.sourceHandle,
+        targetHandle: savedEdge?.targetHandle,
+        label: savedEdge?.label,
+      }
+    }),
   })
+}
+
+function readSavedFlowMeta(flowJson: string): SavedFlowMeta {
+  const meta: SavedFlowMeta = {
+    nodes: new Map(),
+    edges: new Map(),
+    edgeByEndpoints: new Map(),
+  }
+
+  try {
+    const parsed = JSON.parse(flowJson) as {
+      nodes?: Array<{ id?: string; config?: BlockConfig }>
+      edges?: Array<{ id?: string; source?: string; target?: string; sourceHandle?: string; targetHandle?: string; label?: string }>
+    }
+
+    parsed.nodes?.forEach((node) => {
+      if (node.id) {
+        meta.nodes.set(node.id, { config: node.config })
+      }
+    })
+
+    parsed.edges?.forEach((edge) => {
+      const edgeMeta = {
+        sourceHandle: edge.sourceHandle,
+        targetHandle: edge.targetHandle,
+        label: edge.label,
+      }
+
+      if (edge.id) {
+        meta.edges.set(edge.id, edgeMeta)
+      }
+
+      if (edge.source && edge.target) {
+        meta.edgeByEndpoints.set(`${edge.source}->${edge.target}`, edgeMeta)
+      }
+    })
+  } catch {
+    return meta
+  }
+
+  return meta
 }
 
 function createInitialCanvasState(): {
@@ -1642,6 +1807,8 @@ function normalizeStartEdge(edge: BuilderEdge): BuilderEdge {
   return {
     ...edge,
     type: 'removable',
+    sourceHandle: 'next',
+    label: edge.label ?? 'NEXT',
     markerEnd: {
       type: 'arrowclosed',
       color: START_NODE_COLOR,
@@ -1668,6 +1835,7 @@ function createStartNode(position: { x: number; y: number } = { x: 180, y: 220 }
       description: START_NODE_TEXT,
       text: START_NODE_TEXT,
       options: [],
+      outputs: [{ id: 'next', label: 'NEXT' }],
       isStartNode: true,
     },
   }
@@ -1675,19 +1843,36 @@ function createStartNode(position: { x: number; y: number } = { x: 180, y: 220 }
 
 function exportCanvasFlow(nodes: BuilderNode[], edges: BuilderEdge[]) {
   return {
-    nodes: nodes.map((node) => ({
-      id: node.id,
-      type: node.data.code,
-      label: node.data.title,
-      content: node.data.text ?? node.data.description,
-      options: node.data.options ?? [],
-      position: node.position,
-    })),
-    edges: edges.map((edge) => ({
-      id: edge.id,
-      source: edge.source,
-      target: edge.target,
-    })),
+    nodes: nodes.map((node) => {
+      const config = mergeBlockConfig(node.data.code, node.data.config)
+
+      return {
+        id: node.id,
+        type: node.data.code,
+        label: node.data.title,
+        content: getBlockContent(node.data.code, config, node.data.text ?? node.data.description),
+        options: getBlockOptions(node.data.code, config),
+        config,
+        outputs: node.data.isStartNode ? [{ id: 'next', label: 'NEXT' }] : getBlockOutputs(node.data.code, config),
+        position: node.position,
+      }
+    }),
+    edges: edges.map((edge) => {
+      const sourceNode = nodes.find((node) => node.id === edge.source)
+      const sourceConfig = sourceNode ? mergeBlockConfig(sourceNode.data.code, sourceNode.data.config) : {}
+      const output = sourceNode
+        ? getBlockOutputs(sourceNode.data.code, sourceConfig).find((item) => item.id === edge.sourceHandle)
+        : null
+
+      return {
+        id: edge.id,
+        source: edge.source,
+        target: edge.target,
+        sourceHandle: edge.sourceHandle ?? undefined,
+        targetHandle: edge.targetHandle ?? undefined,
+        label: String(edge.label ?? output?.label ?? ''),
+      }
+    }),
   }
 }
 
@@ -1715,6 +1900,7 @@ function createNodeFromBlock(
           x: 180 + (nodes.length % 3) * 320,
           y: 180 + Math.floor(nodes.length / 3) * 180,
         })
+  const config = getDefaultConfig(block.code)
 
   return {
     id: `${block.code.toLowerCase()}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`,
@@ -1725,11 +1911,11 @@ function createNodeFromBlock(
       category: block.category,
       title: block.title,
       description: normalizeDescription(block.description),
-      text: normalizeDescription(block.description),
-      options:
-        block.code === 'BT'
-          ? ['Quero continuar', 'Ver preco', 'Falar com suporte']
-          : [],
+      text: getBlockContent(block.code, config, normalizeDescription(block.description)),
+      options: getBlockOptions(block.code, config),
+      config,
+      expanded: false,
+      outputs: getBlockOutputs(block.code, config),
     },
   }
 }
@@ -1737,13 +1923,20 @@ function createNodeFromBlock(
 function buildEdge(connection: Connection, nodes: BuilderNode[]): BuilderEdge {
   const sourceNode = nodes.find((node) => node.id === connection.source)
   const sourceCategory = sourceNode?.data.category ?? 'comunicacao'
+  const sourceConfig = sourceNode ? mergeBlockConfig(sourceNode.data.code, sourceNode.data.config) : {}
+  const sourceOutputs = sourceNode?.id === START_NODE_ID ? [{ id: 'next', label: 'NEXT' }] : getBlockOutputs(sourceNode?.data.code ?? '', sourceConfig)
+  const sourceHandle = connection.sourceHandle ?? sourceOutputs[0]?.id
+  const output = sourceOutputs.find((item) => item.id === sourceHandle)
   const color = sourceNode?.id === START_NODE_ID ? START_NODE_COLOR : categoryMeta[sourceCategory].color
 
   return {
     id: connection.source && connection.target ? `${connection.source}_${connection.target}_${Date.now().toString(36)}` : `edge_${Date.now().toString(36)}`,
     source: connection.source ?? '',
     target: connection.target ?? '',
+    sourceHandle,
+    targetHandle: connection.targetHandle ?? undefined,
     type: 'removable',
+    label: output?.label,
     animated: sourceNode?.data.code === 'GO' || sourceCategory === 'comunicacao',
     markerEnd: {
       type: 'arrowclosed',

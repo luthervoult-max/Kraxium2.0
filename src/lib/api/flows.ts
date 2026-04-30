@@ -10,9 +10,18 @@ export interface FlowGraph {
     label: string
     content: string
     options?: string[]
+    config?: Record<string, unknown>
+    outputs?: Array<{ id: string; label: string }>
     position: { x: number; y: number }
   }>
-  edges: Array<{ id: string; source: string; target: string }>
+  edges: Array<{
+    id: string
+    source: string
+    target: string
+    sourceHandle?: string
+    targetHandle?: string
+    label?: string
+  }>
 }
 
 export async function getFlowByBotId(botId: string) {
