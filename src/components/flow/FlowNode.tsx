@@ -1,5 +1,6 @@
 import { memo } from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
+import { X } from 'lucide-react'
 import { categoryMeta, type Category } from '@/lib/blocks'
 
 export interface FlowNodeData extends Record<string, unknown> {
@@ -13,9 +14,10 @@ export interface FlowNodeData extends Record<string, unknown> {
   errorCount?: number
   lastErrorAt?: string | null
   lastTraceId?: string | null
+  onDeleteNode?: (nodeId: string) => void
 }
 
-function FlowNodeComponent({ data, selected }: NodeProps & { data: FlowNodeData }) {
+function FlowNodeComponent({ id, data, selected }: NodeProps & { data: FlowNodeData }) {
   const { code, category, title, description } = data
   const meta = categoryMeta[category]
   const hasRuntimeError = data.runtimeStatus === 'error'
@@ -24,7 +26,7 @@ function FlowNodeComponent({ data, selected }: NodeProps & { data: FlowNodeData 
 
   return (
     <div
-      className="relative w-[260px] rounded-2xl border bg-[#151720]/95 backdrop-blur-md transition-all"
+      className="group/node relative w-[260px] rounded-2xl border bg-[#151720]/95 backdrop-blur-md transition-all"
       style={{
         borderColor: selected || hasRuntimeError ? nodeColor : `rgba(${nodeRgb}, 0.25)`,
         boxShadow: selected
@@ -34,6 +36,28 @@ function FlowNodeComponent({ data, selected }: NodeProps & { data: FlowNodeData 
             : `0 0 12px rgba(${nodeRgb}, 0.12)`,
       }}
     >
+      {data.onDeleteNode && (
+        <button
+          type="button"
+          aria-label={`Excluir bloco ${title}`}
+          title="Excluir bloco"
+          onPointerDown={(event) => {
+            event.stopPropagation()
+          }}
+          onMouseDown={(event) => {
+            event.stopPropagation()
+          }}
+          onClick={(event) => {
+            event.preventDefault()
+            event.stopPropagation()
+            data.onDeleteNode?.(id)
+          }}
+          className="nodrag nopan pointer-events-none absolute right-3 top-3 z-20 flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-[#0f1118]/95 text-gray-300 opacity-0 shadow-[0_10px_28px_rgba(0,0,0,0.36)] backdrop-blur-md transition-all hover:border-[#ff3b5f]/45 hover:text-[#ff6b84] focus:pointer-events-auto focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-neon-purple/60 group-hover/node:pointer-events-auto group-hover/node:opacity-100"
+        >
+          <X size={13} aria-hidden="true" />
+        </button>
+      )}
+
       <div
         className="absolute inset-x-0 top-0 h-[3px] rounded-t-2xl"
         style={{ background: `linear-gradient(90deg, ${nodeColor}, rgba(${nodeRgb}, 0.4))` }}

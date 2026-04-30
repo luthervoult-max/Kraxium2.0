@@ -3,13 +3,17 @@ import {
   addEdge,
   Background,
   BackgroundVariant,
+  BaseEdge,
   Controls,
+  EdgeLabelRenderer,
+  getSmoothStepPath,
   MiniMap,
   ReactFlow,
   useEdgesState,
   useNodesState,
   type Connection,
   type Edge,
+  type EdgeProps,
   type Node,
   type OnConnect,
   type ReactFlowInstance,
@@ -60,9 +64,14 @@ import {
 import { cn } from '@/lib/utils'
 
 type BuilderNode = Node<FlowNodeData, 'flowNode'>
-type BuilderEdge = Edge
+type BuilderEdge = Edge<RemovableEdgeData>
+
+interface RemovableEdgeData extends Record<string, unknown> {
+  onDeleteEdge?: (edgeId: string) => void
+}
 
 const nodeTypes = { flowNode: FlowNode }
+const edgeTypes = { removable: RemovableEdge }
 const emptyCanvasState = { nodes: [] as BuilderNode[], edges: [] as BuilderEdge[] }
 
 const starterFlowObject = {
@@ -155,6 +164,26 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
     setHasUnsavedChanges(true)
   }, [])
 
+  const handleDeleteEdge = useCallback((edgeId: string) => {
+    setEdges((currentEdges) => currentEdges.filter((edge) => edge.id !== edgeId))
+    markUnsaved()
+  }, [markUnsaved, setEdges])
+
+  const handleDeleteNode = useCallback((nodeId: string) => {
+    setNodes((currentNodes) => currentNodes.filter((node) => node.id !== nodeId))
+    setEdges((currentEdges) =>
+      currentEdges.filter((edge) => edge.source !== nodeId && edge.target !== nodeId),
+    )
+    setSelectedNodeId((currentNodeId) => (currentNodeId === nodeId ? null : currentNodeId))
+    setNodeHealth((currentHealth) => {
+      if (!currentHealth[nodeId]) return currentHealth
+      const nextHealth = { ...currentHealth }
+      delete nextHealth[nodeId]
+      return nextHealth
+    })
+    markUnsaved()
+  }, [markUnsaved, setEdges, setNodes])
+
   useEffect(() => {
     resetCanvasDraft()
     if (!botId) {
@@ -229,6 +258,7 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
             errorCount,
             lastErrorAt,
             lastTraceId,
+            onDeleteNode: handleDeleteNode,
           },
         }
         cache.set(node.id, { source: node, healthKey, enhanced })
@@ -243,7 +273,7 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
 
       return enhancedNodes
     },
-    [nodeHealth, nodes],
+    [handleDeleteNode, nodeHealth, nodes],
   )
   const totalErrorCount = useMemo(
     () => Object.values(nodeHealth).reduce((total, health) => total + health.errorCount, 0),
@@ -261,6 +291,18 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
     : totalErrorCount > 0 || flowHealthIssues.some((issue) => issue.severity === 'error')
       ? 'error'
       : 'warning'
+  const edgesWithActions = useMemo(
+    () =>
+      edges.map((edge) => ({
+        ...edge,
+        type: 'removable',
+        data: {
+          ...edge.data,
+          onDeleteEdge: handleDeleteEdge,
+        },
+      })),
+    [edges, handleDeleteEdge],
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -708,8 +750,9 @@ export default function FlowIntel({ botId, onDirtyChange, onRegisterSave }: Flow
 
               <ReactFlow<BuilderNode, BuilderEdge>
                 nodes={nodesWithRuntime}
-                edges={edges}
+                edges={edgesWithActions}
                 nodeTypes={nodeTypes}
+                edgeTypes={edgeTypes}
                 onInit={setReactFlowInstance}
                 onNodesChange={handleNodesChange}
                 onEdgesChange={handleEdgesChange}
@@ -795,6 +838,76 @@ function BuilderPill({
     <Badge variant="outline" className={cn('rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em]', toneClass)}>
       {label}
     </Badge>
+  )
+}
+
+function RemovableEdge({
+  id,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  sourcePosition,
+  targetPosition,
+  markerEnd,
+  style,
+  data,
+}: EdgeProps<BuilderEdge>) {
+  const [isHovered, setIsHovered] = useState(false)
+  const [edgePath, labelX, labelY] = getSmoothStepPath({
+    sourceX,
+    sourceY,
+    sourcePosition,
+    targetX,
+    targetY,
+    targetPosition,
+  })
+  const edgeColor = typeof style?.stroke === 'string' ? style.stroke : '#b44dff'
+
+  return (
+    <>
+      <g onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
+        <BaseEdge
+          id={id}
+          path={edgePath}
+          markerEnd={markerEnd}
+          style={style}
+          interactionWidth={28}
+        />
+      </g>
+      {data?.onDeleteEdge && (
+        <EdgeLabelRenderer>
+          <button
+            type="button"
+            aria-label="Excluir conexao"
+            title="Excluir conexao"
+            onFocus={() => setIsHovered(true)}
+            onBlur={() => setIsHovered(false)}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            onPointerDown={(event) => {
+              event.stopPropagation()
+            }}
+            onClick={(event) => {
+              event.preventDefault()
+              event.stopPropagation()
+              data.onDeleteEdge?.(id)
+            }}
+            className={cn(
+              'nodrag nopan absolute z-30 flex h-7 w-7 items-center justify-center rounded-full border bg-[#11141d]/95 text-white shadow-[0_12px_35px_rgba(0,0,0,0.4)] backdrop-blur-md transition-all duration-150 focus:pointer-events-auto focus:scale-100 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-neon-purple/60',
+              isHovered ? 'pointer-events-auto scale-100 opacity-100' : 'pointer-events-none scale-75 opacity-0',
+            )}
+            style={{
+              borderColor: edgeColor,
+              boxShadow: `0 0 18px ${edgeColor}55`,
+              transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)`,
+            }}
+          >
+            <X size={13} aria-hidden="true" />
+          </button>
+        </EdgeLabelRenderer>
+      )}
+    </>
   )
 }
 
@@ -1487,7 +1600,7 @@ function buildEdge(connection: Connection, nodes: BuilderNode[]): BuilderEdge {
     id: connection.source && connection.target ? `${connection.source}_${connection.target}_${Date.now().toString(36)}` : `edge_${Date.now().toString(36)}`,
     source: connection.source ?? '',
     target: connection.target ?? '',
-    type: 'smoothstep',
+    type: 'removable',
     animated: sourceNode?.data.code === 'GO' || sourceCategory === 'comunicacao',
     markerEnd: {
       type: 'arrowclosed',
