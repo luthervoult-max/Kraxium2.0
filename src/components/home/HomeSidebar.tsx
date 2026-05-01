@@ -69,7 +69,7 @@ const SECTIONS: MenuSection[] = [
     items: [
       { label: 'Webhooks', icon: Link2, disabled: true },
       { label: 'APIs', icon: Code2, disabled: true },
-      { label: 'Pagamentos', icon: CreditCard, disabled: true },
+      { label: 'Pagamentos', icon: CreditCard, page: 'payments' },
     ],
   },
   {

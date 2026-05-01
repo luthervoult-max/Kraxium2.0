@@ -347,6 +347,56 @@ export type Database = {
           },
         ]
       }
+      payment_gateway_connections: {
+        Row: {
+          created_at: string
+          credentials_encrypted: string | null
+          credentials_hint: string | null
+          flow_ids: string[]
+          id: string
+          owner_id: string
+          provider: string
+          public_config: Json
+          scope: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          credentials_encrypted?: string | null
+          credentials_hint?: string | null
+          flow_ids?: string[]
+          id?: string
+          owner_id: string
+          provider: string
+          public_config?: Json
+          scope?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          credentials_encrypted?: string | null
+          credentials_hint?: string | null
+          flow_ids?: string[]
+          id?: string
+          owner_id?: string
+          provider?: string
+          public_config?: Json
+          scope?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'payment_gateway_connections_owner_id_fkey'
+            columns: ['owner_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
