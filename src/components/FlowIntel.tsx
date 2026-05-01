@@ -483,15 +483,29 @@ export default function FlowIntel({
   )
   const edgesWithActions = useMemo(
     () =>
-      edges.map((edge) => ({
-        ...edge,
-        type: 'removable',
-        data: {
-          ...edge.data,
-          onDeleteEdge: handleDeleteEdge,
-        },
-      })),
-    [edges, handleDeleteEdge],
+      edges.map((edge) => {
+        const color = getEdgeColor(edge, nodes) ?? String(edge.style?.stroke ?? '#8b5cf6')
+
+        return {
+          ...edge,
+          type: 'removable',
+          markerEnd: edge.markerEnd && typeof edge.markerEnd === 'object'
+            ? {
+                ...edge.markerEnd,
+                color,
+              }
+            : edge.markerEnd,
+          style: {
+            ...edge.style,
+            stroke: color,
+          },
+          data: {
+            ...edge.data,
+            onDeleteEdge: handleDeleteEdge,
+          },
+        }
+      }),
+    [edges, handleDeleteEdge, nodes],
   )
 
   useEffect(() => {
@@ -2222,7 +2236,7 @@ function buildEdge(connection: Connection, nodes: BuilderNode[]): BuilderEdge {
   const sourceOutputs = sourceNode?.id === START_NODE_ID ? [{ id: 'next', label: 'NEXT' }] : getBlockOutputs(sourceNode?.data.code ?? '', sourceConfig)
   const sourceHandle = connection.sourceHandle ?? sourceOutputs[0]?.id
   const output = sourceOutputs.find((item) => item.id === sourceHandle)
-  const color = sourceNode?.id === START_NODE_ID ? START_NODE_COLOR : categoryMeta[sourceCategory].color
+  const color = getOutputColor(output, sourceNode?.id === START_NODE_ID ? START_NODE_COLOR : categoryMeta[sourceCategory].color)
 
   return {
     id: connection.source && connection.target ? `${connection.source}_${connection.target}_${Date.now().toString(36)}` : `edge_${Date.now().toString(36)}`,
@@ -2244,6 +2258,37 @@ function buildEdge(connection: Connection, nodes: BuilderNode[]): BuilderEdge {
       strokeDasharray: sourceCategory === 'comunicacao' ? '4 6' : undefined,
     },
   }
+}
+
+function getEdgeColor(edge: BuilderEdge, nodes: BuilderNode[]) {
+  const sourceNode = nodes.find((node) => node.id === edge.source)
+  if (!sourceNode) return null
+
+  const sourceCategory = sourceNode.data.category ?? 'comunicacao'
+  const sourceConfig = mergeBlockConfig(sourceNode.data.code, sourceNode.data.config)
+  const sourceOutputs =
+    sourceNode.id === START_NODE_ID
+      ? [{ id: 'next', label: 'NEXT' }]
+      : getBlockOutputs(sourceNode.data.code, sourceConfig)
+  const output = sourceOutputs.find((item) => item.id === edge.sourceHandle)
+  const fallbackColor = sourceNode.id === START_NODE_ID ? START_NODE_COLOR : categoryMeta[sourceCategory].color
+
+  return getOutputColor(output, fallbackColor)
+}
+
+function getOutputColor(
+  output: { id: string; label: string } | undefined,
+  fallbackColor: string,
+) {
+  const id = output?.id?.toLowerCase()
+  const label = output?.label
+    ?.normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+
+  if (id === 'paid' || label === 'pago') return '#22ff3d'
+  if (id === 'unpaid' || label === 'nao pago') return '#ff3b5f'
+  return fallbackColor
 }
 
 function normalizeDescription(description: string) {

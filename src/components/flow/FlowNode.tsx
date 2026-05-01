@@ -155,7 +155,10 @@ function FlowNodeComponent({ id, data, selected }: NodeProps & { data: FlowNodeD
                   <span
                     key={output.id}
                     className="truncate text-center text-[8px] font-bold uppercase tracking-[0.18em]"
-                    style={{ color: nodeColor }}
+                    style={{
+                      color: getOutputVisual(output, nodeColor).color,
+                      textShadow: `0 0 10px ${getOutputVisual(output, nodeColor).color}66`,
+                    }}
                     title={output.label}
                   >
                     {output.label}
@@ -523,13 +526,15 @@ function CompactSourceHandles({ outputs, color }: { outputs: BlockOutput[]; colo
   if (outputs.length === 0) return null
 
   if (outputs.length <= 1) {
+    const outputColor = getOutputVisual(outputs[0], color).color
+
     return (
       <Handle
         id={outputs[0]?.id ?? 'next'}
         type="source"
         position={Position.Right}
         className="!h-3 !w-3 !border-0"
-        style={{ background: color, boxShadow: `0 0 8px ${color}` }}
+        style={{ background: outputColor, boxShadow: `0 0 10px ${outputColor}` }}
       />
     )
   }
@@ -548,16 +553,34 @@ function SourceHandles({ outputs, color }: { outputs: BlockOutput[]; color: stri
           id={output.id}
           type="source"
           position={Position.Bottom}
-          className="!h-2.5 !w-2.5 !border-0"
+          className="!h-3 !w-3 !border-0"
           style={{
             left: `${((index + 1) / (outputs.length + 1)) * 100}%`,
-            background: color,
-            boxShadow: `0 0 8px ${color}`,
+            background: getOutputVisual(output, color).color,
+            boxShadow: `0 0 12px ${getOutputVisual(output, color).color}`,
           }}
         />
       ))}
     </>
   )
+}
+
+function getOutputVisual(output: BlockOutput | undefined, fallbackColor: string) {
+  const id = output?.id?.toLowerCase()
+  const label = output?.label
+    ?.normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+
+  if (id === 'paid' || label === 'pago') {
+    return { color: '#22ff3d', rgb: '34,255,61' }
+  }
+
+  if (id === 'unpaid' || label === 'nao pago') {
+    return { color: '#ff3b5f', rgb: '255,59,95' }
+  }
+
+  return { color: fallbackColor, rgb: '168,85,247' }
 }
 
 export const FlowNode = memo(FlowNodeComponent)
