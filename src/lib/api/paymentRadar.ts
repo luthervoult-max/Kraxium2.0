@@ -73,8 +73,15 @@ export interface PaymentRadarDashboard {
   gateways: PaymentRadarGateway[]
   funnel: PaymentRadarFunnel
   options: PaymentRadarOptions
+  diagnostics: PaymentRadarDiagnostic[]
   rangeLabel: string
   updatedAt: string
+}
+
+export interface PaymentRadarDiagnostic {
+  code: 'pix_table_missing' | 'pix_table_unavailable'
+  title: string
+  message: string
 }
 
 type PixTransaction = Pick<
@@ -186,7 +193,10 @@ export async function getPaymentRadarDashboard(
       .limit(10000),
   ])
 
-  if (pixResult.error) throw new Error(formatRadarError('transacoes Pix', pixResult.error.message))
+  const diagnostics: PaymentRadarDiagnostic[] = []
+  if (pixResult.error) {
+    diagnostics.push(formatPixDiagnostic(pixResult.error.message))
+  }
   if (revenueResult.error) throw new Error(formatRadarError('eventos financeiros', revenueResult.error.message))
   if (connectionsResult.error) throw new Error(formatRadarError('gateways conectados', connectionsResult.error.message))
   if (botsResult.error) throw new Error(formatRadarError('bots', botsResult.error.message))
@@ -195,7 +205,7 @@ export async function getPaymentRadarDashboard(
   if (leadsResult.error) throw new Error(formatRadarError('leads', leadsResult.error.message))
 
   const rows = {
-    pixTransactions: (pixResult.data ?? []) as PixTransaction[],
+    pixTransactions: pixResult.error ? [] : ((pixResult.data ?? []) as PixTransaction[]),
     revenueEvents: (revenueResult.data ?? []) as RevenueEvent[],
     connections: (connectionsResult.data ?? []) as GatewayConnection[],
     leadEvents: (leadEventsResult.data ?? []) as LeadFlowEvent[],
@@ -207,6 +217,7 @@ export async function getPaymentRadarDashboard(
     bots: botsResult.data ?? [],
     flows: flowsResult.data ?? [],
     filters: normalizedFilters,
+    diagnostics,
     rangeLabel: range.label,
   })
 }
@@ -220,6 +231,7 @@ export function buildPaymentRadarDashboard(input: {
   leadEvents: LeadFlowEvent[]
   leads: Lead[]
   filters: Required<PaymentRadarFilters>
+  diagnostics?: PaymentRadarDiagnostic[]
   rangeLabel: string
 }): PaymentRadarDashboard {
   const pixByCommonFilters = input.pixTransactions.filter((transaction) =>
@@ -249,6 +261,7 @@ export function buildPaymentRadarDashboard(input: {
       bots: input.bots,
       flows: input.flows,
     },
+    diagnostics: input.diagnostics ?? [],
     rangeLabel: input.rangeLabel,
     updatedAt: new Date().toISOString(),
   }
@@ -414,7 +427,7 @@ function latestDate(values: Array<string | null | undefined>) {
 
 function formatRadarError(label: string, message: string) {
   if (message.includes('pix_payment_transactions')) {
-    return 'Tabela Pix ainda nao configurada no Supabase. Aplique a migration Pix para ativar o Radar de Pagamentos.'
+    return formatPixDiagnostic(message).message
   }
 
   if (/permission|policy|rls/i.test(message)) {
@@ -422,6 +435,28 @@ function formatRadarError(label: string, message: string) {
   }
 
   return `Falha ao carregar ${label}: ${message}`
+}
+
+function formatPixDiagnostic(message: string): PaymentRadarDiagnostic {
+  const missingTable =
+    message.includes('pix_payment_transactions') &&
+    (/schema cache/i.test(message) || /could not find the table/i.test(message) || /does not exist/i.test(message))
+
+  if (missingTable) {
+    return {
+      code: 'pix_table_missing',
+      title: 'Tabela Pix nao encontrada neste ambiente',
+      message:
+        'Aplique a migration 20260430000500_create_pix_payment_transactions.sql no Supabase usado por este app. Se voce acabou de aplicar, reinicie o dev server ou aguarde o cache do schema atualizar.',
+    }
+  }
+
+  return {
+    code: 'pix_table_unavailable',
+    title: 'Transacoes Pix indisponiveis agora',
+    message:
+      'Nao foi possivel ler a tabela Pix neste momento. O restante do Radar continua carregando com dados disponiveis.',
+  }
 }
 
 export function isGeneratedRevenueEvent(type: string | null) {

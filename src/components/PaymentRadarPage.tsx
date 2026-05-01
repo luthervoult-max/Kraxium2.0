@@ -4,8 +4,6 @@ import {
   ArrowRight,
   Bot,
   CheckCircle2,
-  CircleDollarSign,
-  Clock3,
   Copy,
   CreditCard,
   ExternalLink,
@@ -15,7 +13,6 @@ import {
   Loader2,
   RefreshCcw,
   Smartphone,
-  TrendingUp,
   Webhook,
   Zap,
   type LucideIcon,
@@ -244,7 +241,7 @@ export default function PaymentRadarPage() {
         </div>
       </section>
 
-      {error && (
+      {error && !dashboard && (
         <div className="rounded-[18px] border border-neon-orange/30 bg-neon-orange/10 px-5 py-4 text-sm font-bold leading-6 text-neon-orange">
           {error}
         </div>
@@ -254,50 +251,21 @@ export default function PaymentRadarPage() {
         <LoadingBlock />
       ) : dashboard ? (
         <>
-          <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6">
-            <RadarMetric
-              icon={Zap}
-              label="Leads no Gateway"
-              value={formatNumber(dashboard.overview.gatewayLeads)}
-              detail={dashboard.rangeLabel}
-              tone="purple"
-            />
-            <RadarMetric
-              icon={CheckCircle2}
-              label="Pagos"
-              value={formatNumber(dashboard.overview.paid)}
-              detail={formatCurrency(dashboard.overview.revenueConfirmedCents)}
-              tone="green"
-            />
-            <RadarMetric
-              icon={Clock3}
-              label="Pendentes"
-              value={formatNumber(dashboard.overview.pending)}
-              detail="aguardando PIX"
-              tone="blue"
-            />
-            <RadarMetric
-              icon={AlertTriangle}
-              label="Falhas/Expirados"
-              value={formatNumber(dashboard.overview.failedOrExpired)}
-              detail="gateway ou timeout"
-              tone="orange"
-            />
-            <RadarMetric
-              icon={TrendingUp}
-              label="Conversao Gateway"
-              value={`${dashboard.overview.conversionRate}%`}
-              detail="pago / gerado"
-              tone="magenta"
-            />
-            <RadarMetric
-              icon={CircleDollarSign}
-              label="Receita Confirmada"
-              value={formatCurrency(dashboard.overview.revenueConfirmedCents)}
-              detail="somente pagos"
-              tone="green"
-            />
-          </section>
+          <ConsoleChannelGrid dashboard={dashboard} />
+
+          {dashboard.diagnostics.length > 0 && (
+            <section className="rounded-[18px] border border-neon-orange/30 bg-neon-orange/10 px-5 py-4">
+              {dashboard.diagnostics.map((diagnostic) => (
+                <div key={diagnostic.code} className="flex gap-3 text-sm leading-6 text-neon-orange">
+                  <AlertTriangle size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
+                  <div>
+                    <p className="font-black text-white">{diagnostic.title}</p>
+                    <p className="mt-1 font-bold text-neon-orange">{diagnostic.message}</p>
+                  </div>
+                </div>
+              ))}
+            </section>
+          )}
 
           {!hasTransactions && (
             <section className="flex min-h-[230px] flex-col items-center justify-center rounded-[18px] border border-dashed border-white/12 bg-[#08090b] px-6 text-center">
@@ -312,7 +280,7 @@ export default function PaymentRadarPage() {
             </section>
           )}
 
-          <section className="grid grid-cols-1 gap-4 xl:grid-cols-4">
+          <section id="radar-gateway-ranking" className="grid scroll-mt-6 grid-cols-1 gap-4 xl:grid-cols-4">
             {dashboard.gateways.map((gateway) => (
               <GatewayRadarCard key={gateway.id} gateway={gateway} />
             ))}
@@ -363,37 +331,197 @@ function FilterSelect({
   )
 }
 
-function RadarMetric({
-  icon: Icon,
-  label,
-  value,
-  detail,
-  tone,
-}: {
-  icon: LucideIcon
-  label: string
-  value: string
-  detail: string
-  tone: 'purple' | 'green' | 'blue' | 'orange' | 'magenta'
-}) {
-  const toneClass = getToneClass(tone)
+function ConsoleChannelGrid({ dashboard }: { dashboard: PaymentRadarDashboard }) {
+  const connectedGateways = dashboard.gateways.filter((gateway) => gateway.connected).length
+  const webhookGateways = dashboard.gateways.filter((gateway) => gateway.webhookPath)
+  const activeWebhooks = webhookGateways.filter((gateway) => gateway.lastEventAt).length
+  const totalGateways = dashboard.gateways.length
+  const gatewaySignal = dashboard.gateways.map((gateway) => gateway.transactions + gateway.paid + (gateway.connected ? 1 : 0))
+  const webhookSignal = webhookGateways.map((gateway) => gateway.transactions + (gateway.lastEventAt ? 1 : 0))
+  const conversionSignal = [
+    dashboard.funnel.startToGatewayRate,
+    dashboard.funnel.gatewayToPaidRate,
+    dashboard.funnel.startToPaidRate,
+    dashboard.overview.conversionRate,
+  ]
+  const failureSignal = dashboard.gateways.map((gateway) => gateway.failedOrExpired + gateway.failureRate)
 
   return (
-    <article className="min-h-[150px] rounded-[18px] border border-white/10 bg-[#0c0d10] p-5 shadow-[0_20px_55px_rgba(0,0,0,0.22)]">
-      <div className="flex items-start justify-between gap-3">
-        <span className={cn('flex h-11 w-11 items-center justify-center rounded-[12px] border', toneClass.icon)}>
-          <Icon size={20} aria-hidden="true" />
-        </span>
-        <span className="text-[10px] font-black uppercase tracking-[0.16em] text-gray-600">
-          {detail}
-        </span>
+    <section className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+      <ConsoleChannelCard
+        channel="CH.01"
+        title="GATEWAYS"
+        status={connectedGateways > 0 ? 'OPERACIONAL' : 'INATIVO'}
+        value={padMetric(connectedGateways)}
+        unit="conectados"
+        subtitle={`${connectedGateways}/${totalGateways} gateways prontos`}
+        signal={gatewaySignal}
+        footerCode="TX-GW24"
+        actionLabel="+ VER DETALHES"
+        onAction={() => scrollToSection('radar-gateway-ranking')}
+      />
+      <ConsoleChannelCard
+        channel="CH.02"
+        title="WEBHOOKS"
+        status={activeWebhooks > 0 ? 'OPERACIONAL' : 'INATIVO'}
+        value={padMetric(activeWebhooks)}
+        unit="endpoints"
+        subtitle={`${webhookGateways.length} URLs configuraveis`}
+        signal={webhookSignal}
+        footerCode="TX-WB12"
+        actionLabel="+ GERENCIAR WEBHOOKS"
+        onAction={() => scrollToSection('radar-webhooks')}
+      />
+      <ConsoleChannelCard
+        channel="CH.03"
+        title="CONVERSAO"
+        status={dashboard.overview.gatewayLeads > 0 ? 'OPERACIONAL' : 'INATIVO'}
+        value={`${dashboard.overview.conversionRate.toFixed(1)}%`}
+        unit="pago / gerado"
+        subtitle={`${formatNumber(dashboard.overview.paid)} pagos de ${formatNumber(dashboard.overview.gatewayLeads)}`}
+        signal={conversionSignal}
+        footerCode="TX-CV03"
+        actionLabel="+ VER FUNIL"
+        onAction={() => scrollToSection('radar-funnel')}
+      />
+      <ConsoleChannelCard
+        channel="CH.04"
+        title="FALHAS"
+        status={dashboard.overview.failedOrExpired > 0 ? 'INSTAVEL' : 'OPERACIONAL'}
+        value={padMetric(dashboard.overview.failedOrExpired)}
+        unit="falhas"
+        subtitle={`${formatNumber(dashboard.overview.pending)} pendentes em ${dashboard.rangeLabel}`}
+        signal={failureSignal}
+        footerCode="TX-ER04"
+        actionLabel="+ VER GATEWAYS"
+        onAction={() => scrollToSection('radar-gateway-ranking')}
+      />
+    </section>
+  )
+}
+
+function ConsoleChannelCard({
+  channel,
+  title,
+  status,
+  value,
+  unit,
+  subtitle,
+  signal,
+  footerCode,
+  actionLabel,
+  onAction,
+}: {
+  channel: string
+  title: string
+  status: 'OPERACIONAL' | 'INATIVO' | 'INSTAVEL'
+  value: string
+  unit: string
+  subtitle: string
+  signal: number[]
+  footerCode: string
+  actionLabel: string
+  onAction: () => void
+}) {
+  const statusClass =
+    status === 'OPERACIONAL'
+      ? 'bg-neon-green'
+      : status === 'INSTAVEL'
+        ? 'bg-neon-orange'
+        : 'bg-gray-600'
+
+  return (
+    <article className="group overflow-hidden rounded-none border border-white/10 bg-[#08090b] shadow-[0_22px_70px_rgba(0,0,0,0.24)] transition-colors hover:border-neon-purple/35">
+      <div className="flex min-h-[330px] flex-col p-5">
+        <div className="flex items-center justify-between border-b border-white/[0.08] pb-4 font-mono text-[11px] uppercase tracking-[0.18em]">
+          <span className="text-gray-500">{channel}</span>
+          <span className="text-white">{title}</span>
+        </div>
+
+        <div className="mt-5 flex items-center gap-2 font-mono text-[12px] uppercase tracking-[0.18em] text-gray-500">
+          <span className={cn('h-2.5 w-2.5 rounded-full', statusClass)} />
+          {status}
+        </div>
+
+        <div className="mt-6 font-mono text-[56px] font-black leading-none text-white sm:text-[64px]">
+          {value}
+        </div>
+        <p className="mt-2 font-mono text-[12px] uppercase tracking-[0.16em] text-gray-500">{unit}</p>
+
+        <div className="mt-5">
+          <SparkLine values={signal} />
+        </div>
+
+        <div className="mt-6 flex items-center justify-between gap-4 text-sm">
+          <span className="min-w-0 truncate font-bold text-white">{subtitle}</span>
+          <span className="shrink-0 font-mono text-xs text-gray-500">{status === 'INATIVO' ? 'sem entradas' : 'ao vivo'}</span>
+        </div>
+
+        <button
+          type="button"
+          onClick={onAction}
+          className="mt-auto flex h-11 w-full items-center justify-center rounded-[6px] border border-neon-purple/35 bg-neon-purple/5 font-mono text-[12px] font-black uppercase tracking-[0.16em] text-neon-purple transition-colors hover:bg-neon-purple/15"
+        >
+          {actionLabel}
+        </button>
       </div>
-      <p className="mt-5 text-[11px] font-black uppercase tracking-[0.14em] text-gray-500">
-        {label}
-      </p>
-      <p className="mt-2 text-3xl font-black text-white">{value}</p>
+
+      <div className="border-t border-white/[0.08] px-5 py-4 font-mono text-[11px] uppercase tracking-[0.18em] text-gray-600">
+        {footerCode}
+      </div>
     </article>
   )
+}
+
+function SparkLine({ values }: { values: number[] }) {
+  const normalized = normalizeSparkValues(values)
+  const points = normalized
+    .map((value, index) => {
+      const x = normalized.length === 1 ? 0 : (index / (normalized.length - 1)) * 100
+      const y = 44 - value * 34
+      return `${x.toFixed(1)},${y.toFixed(1)}`
+    })
+    .join(' ')
+
+  return (
+    <svg viewBox="0 0 100 48" role="img" aria-label="Linha de atividade" className="h-16 w-full">
+      <defs>
+        <linearGradient id="radar-spark" x1="0%" x2="100%" y1="0%" y2="0%">
+          <stop offset="0%" stopColor="#b44dff" />
+          <stop offset="100%" stopColor="#39ff14" />
+        </linearGradient>
+      </defs>
+      <polyline
+        points={points}
+        fill="none"
+        stroke="url(#radar-spark)"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2.6"
+      />
+    </svg>
+  )
+}
+
+function normalizeSparkValues(values: number[]) {
+  const clean = values.map((value) => (Number.isFinite(value) ? Math.max(0, value) : 0))
+  const source = clean.length > 1 ? clean : [0, clean[0] ?? 0, 0]
+  const max = Math.max(...source, 1)
+  const normalized = source.map((value) => value / max)
+
+  if (normalized.every((value) => value === 0)) {
+    return [0.35, 0.35, 0.35, 0.35, 0.35]
+  }
+
+  return normalized
+}
+
+function padMetric(value: number) {
+  return value < 10 ? `0${value}` : formatNumber(value)
+}
+
+function scrollToSection(id: string) {
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
 function GatewayRadarCard({ gateway }: { gateway: PaymentRadarGateway }) {
@@ -460,7 +588,7 @@ function FunnelPanel({ dashboard }: { dashboard: PaymentRadarDashboard }) {
   const { funnel } = dashboard
 
   return (
-    <section className="rounded-[18px] border border-white/10 bg-[#0c0d10] p-5">
+    <section id="radar-funnel" className="scroll-mt-6 rounded-[18px] border border-white/10 bg-[#0c0d10] p-5">
       <div className="flex items-center justify-between gap-4">
         <div>
           <h3 className="text-2xl font-black text-white">Funil de Perda</h3>
@@ -551,7 +679,7 @@ function WebhookPanel({
   const webhookGateways = gateways.filter((gateway) => gateway.webhookPath)
 
   return (
-    <section className="rounded-[18px] border border-white/10 bg-[#0c0d10] p-5">
+    <section id="radar-webhooks" className="scroll-mt-6 rounded-[18px] border border-white/10 bg-[#0c0d10] p-5">
       <div className="flex items-center justify-between gap-4">
         <div>
           <h3 className="text-2xl font-black text-white">Webhooks dos Gateways</h3>
@@ -652,18 +780,6 @@ function getHealthMeta(health: PaymentRadarHealth) {
   }
 
   return map[health]
-}
-
-function getToneClass(tone: 'purple' | 'green' | 'blue' | 'orange' | 'magenta') {
-  const map = {
-    purple: { icon: 'border-neon-purple/30 bg-neon-purple/10 text-neon-purple' },
-    green: { icon: 'border-neon-green/30 bg-neon-green/10 text-neon-green' },
-    blue: { icon: 'border-neon-blue/30 bg-neon-blue/10 text-neon-blue' },
-    orange: { icon: 'border-neon-orange/30 bg-neon-orange/10 text-neon-orange' },
-    magenta: { icon: 'border-neon-magenta/30 bg-neon-magenta/10 text-neon-magenta' },
-  }
-
-  return map[tone]
 }
 
 function buildWebhookUrl(path: string) {
