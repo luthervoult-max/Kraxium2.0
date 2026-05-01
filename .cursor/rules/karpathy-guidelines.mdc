@@ -1,0 +1,45 @@
+---
+description: Behavioral guidelines to reduce common LLM coding mistakes in the Kraxium project.
+alwaysApply: true
+---
+
+# Karpathy Guidelines Para Kraxium
+
+Use estas regras ao escrever, revisar ou refatorar codigo neste projeto.
+
+## 1. Pense Antes De Codar
+
+- Declare suposicoes quando houver incerteza.
+- Se houver multiplas interpretacoes, apresente-as antes de implementar.
+- Se uma solucao mais simples resolver, prefira a simples.
+- Se algo estiver confuso, pare e pergunte.
+
+## 2. Simplicidade Primeiro
+
+- Implemente somente o que foi pedido.
+- Nao crie abstracoes para uso unico.
+- Nao adicione flexibilidade especulativa.
+- Se uma solucao ficou grande demais, simplifique antes de concluir.
+
+## 3. Mudancas Cirurgicas
+
+- Toque apenas nos arquivos e linhas necessarios.
+- Nao refatore codigo adjacente sem pedido explicito.
+- Preserve estilo local.
+- Remova apenas imports, variaveis ou funcoes que sua propria mudanca tornou inutil.
+
+## 4. Execucao Orientada Por Objetivo
+
+- Defina criterio de sucesso verificavel para cada tarefa.
+- Para bug, tente reproduzir antes de corrigir.
+- Para refatoracao, garanta que os checks passam antes/depois quando aplicavel.
+- Em tarefas multi-step, use passos pequenos com verificacao clara.
+
+## Regras Especificas Do Kraxium
+
+- Stack: React 18 + Vite + TypeScript strict + Tailwind + Supabase + Vitest.
+- Use `@/*` para imports de `src/*`.
+- Evite novos `any`; use tipos gerados do Supabase quando possivel.
+- Prefira componentes e tokens de design existentes antes de criar novos estilos.
+- `src/components/FlowIntel.tsx` tem 2.100+ linhas; edite de forma isolada.
+- Para mudancas nao triviais, rode `npm test`, `npm run typecheck:api` e `npm run build` quando fizer sentido.
