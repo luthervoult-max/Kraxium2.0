@@ -126,7 +126,7 @@ export default function PaymentRadarPage() {
             Radar de Pagamentos
           </h2>
           <p className="mt-2 max-w-3xl border-l border-white/10 pl-4 text-base leading-6 text-gray-500">
-            Saude dos seus gateways, conversao PIX e pontos de perda do fluxo.
+            Saúde dos seus gateways, conversão PIX e pontos de perda do fluxo.
           </p>
         </div>
 
@@ -271,7 +271,7 @@ export default function PaymentRadarPage() {
             <section className="flex min-h-[230px] flex-col items-center justify-center rounded-[18px] border border-dashed border-white/12 bg-[#08090b] px-6 text-center">
               <Zap size={44} className="text-gray-500" aria-hidden="true" />
               <h3 className="mt-5 text-2xl font-black text-white">
-                Nenhuma transacao nas {dashboard.rangeLabel}
+                Nenhuma transação nas {dashboard.rangeLabel}
               </h3>
               <p className="mt-2 max-w-xl text-sm leading-6 text-gray-500">
                 Quando seus bots gerarem PIX, os leads que chegaram ao gateway, pagamentos pagos e
@@ -280,7 +280,10 @@ export default function PaymentRadarPage() {
             </section>
           )}
 
-          <section id="radar-gateway-ranking" className="grid scroll-mt-6 grid-cols-1 gap-4 xl:grid-cols-4">
+          <section
+            id="radar-gateway-ranking"
+            className="grid scroll-mt-6 grid-cols-1 items-stretch gap-4 xl:grid-cols-4"
+          >
             {dashboard.gateways.map((gateway) => (
               <GatewayRadarCard key={gateway.id} gateway={gateway} />
             ))}
@@ -366,7 +369,7 @@ function ConsoleChannelGrid({ dashboard }: { dashboard: PaymentRadarDashboard })
         status={activeWebhooks > 0 ? 'OPERACIONAL' : 'INATIVO'}
         value={padMetric(activeWebhooks)}
         unit="endpoints"
-        subtitle={`${webhookGateways.length} URLs configuraveis`}
+        subtitle={`${webhookGateways.length} URLs configuráveis`}
         signal={webhookSignal}
         footerCode="TX-WB12"
         actionLabel="+ GERENCIAR WEBHOOKS"
@@ -374,7 +377,7 @@ function ConsoleChannelGrid({ dashboard }: { dashboard: PaymentRadarDashboard })
       />
       <ConsoleChannelCard
         channel="CH.03"
-        title="CONVERSAO"
+        title="CONVERSÃO"
         status={dashboard.overview.gatewayLeads > 0 ? 'OPERACIONAL' : 'INATIVO'}
         value={`${dashboard.overview.conversionRate.toFixed(1)}%`}
         unit="pago / gerado"
@@ -387,7 +390,7 @@ function ConsoleChannelGrid({ dashboard }: { dashboard: PaymentRadarDashboard })
       <ConsoleChannelCard
         channel="CH.04"
         title="FALHAS"
-        status={dashboard.overview.failedOrExpired > 0 ? 'INSTAVEL' : 'OPERACIONAL'}
+        status={dashboard.overview.failedOrExpired > 0 ? 'INSTÁVEL' : 'OPERACIONAL'}
         value={padMetric(dashboard.overview.failedOrExpired)}
         unit="falhas"
         subtitle={`${formatNumber(dashboard.overview.pending)} pendentes em ${dashboard.rangeLabel}`}
@@ -414,7 +417,7 @@ function ConsoleChannelCard({
 }: {
   channel: string
   title: string
-  status: 'OPERACIONAL' | 'INATIVO' | 'INSTAVEL'
+  status: 'OPERACIONAL' | 'INATIVO' | 'INSTÁVEL'
   value: string
   unit: string
   subtitle: string
@@ -426,7 +429,7 @@ function ConsoleChannelCard({
   const statusClass =
     status === 'OPERACIONAL'
       ? 'bg-neon-green'
-      : status === 'INSTAVEL'
+      : status === 'INSTÁVEL'
         ? 'bg-neon-orange'
         : 'bg-gray-600'
 
@@ -530,32 +533,32 @@ function GatewayRadarCard({ gateway }: { gateway: PaymentRadarGateway }) {
   const MethodIcon = methodIcon
 
   return (
-    <article className="rounded-[18px] border border-white/10 bg-[#0c0d10] p-5">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-start gap-3">
+    <article className="flex h-full min-w-0 flex-col rounded-[18px] border border-white/10 bg-[#0c0d10] p-5">
+      <div className="flex min-h-[132px] items-start justify-between gap-4">
+        <div className="flex min-w-0 items-start gap-3">
           <span className="flex h-12 w-12 items-center justify-center rounded-[14px] border border-neon-purple/30 bg-neon-purple/10 text-neon-purple">
             <MethodIcon size={21} aria-hidden="true" />
           </span>
-          <div>
+          <div className="min-w-0">
             <h3 className="text-lg font-black text-white">{gateway.name}</h3>
-            <p className="mt-1 text-xs leading-5 text-gray-500">{gateway.description}</p>
+            <p className="mt-2 text-xs leading-5 text-gray-500">{gateway.description}</p>
           </div>
         </div>
-        <span className={cn('rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em]', health.badge)}>
+        <span className={cn('shrink-0 rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.12em]', health.badge)}>
           {health.label}
         </span>
       </div>
 
-      <div className="mt-5 grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         <MiniStat label="Gerados" value={formatNumber(gateway.transactions)} />
         <MiniStat label="Pagos" value={formatNumber(gateway.paid)} />
         <MiniStat label="Falhas" value={formatNumber(gateway.failedOrExpired)} />
-        <MiniStat label="Conversao" value={`${gateway.conversionRate}%`} />
+        <MiniStat label="Conversão" value={`${gateway.conversionRate}%`} />
       </div>
 
       <div className="mt-5">
         <div className="mb-2 flex items-center justify-between text-[11px] font-bold text-gray-500">
-          <span>Saude do gateway</span>
+          <span>Saúde do gateway</span>
           <span>{gateway.failureRate}% falhas</span>
         </div>
         <div className="h-2 overflow-hidden rounded-full bg-white/[0.08]">
@@ -566,7 +569,7 @@ function GatewayRadarCard({ gateway }: { gateway: PaymentRadarGateway }) {
         </div>
       </div>
 
-      <div className="mt-5 rounded-[14px] border border-white/10 bg-[#08090b] p-4">
+      <div className="mt-auto rounded-[14px] border border-white/10 bg-[#08090b] p-4">
         <div className="flex items-center justify-between gap-3">
           <span className="text-[10px] font-black uppercase tracking-[0.16em] text-gray-600">
             Receita
@@ -576,7 +579,7 @@ function GatewayRadarCard({ gateway }: { gateway: PaymentRadarGateway }) {
           </span>
         </div>
         <div className="mt-3 flex items-center justify-between gap-3 text-xs text-gray-500">
-          <span>Ultimo evento</span>
+          <span>Último evento</span>
           <span className="font-bold text-gray-400">{formatDateTime(gateway.lastEventAt)}</span>
         </div>
       </div>
@@ -626,7 +629,7 @@ function FunnelPanel({ dashboard }: { dashboard: PaymentRadarDashboard }) {
 
       <div className="mt-5 rounded-[16px] border border-white/10 bg-[#08090b] p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <span className="text-sm font-bold text-gray-400">Conversao start ate venda</span>
+          <span className="text-sm font-bold text-gray-400">Conversão start até venda</span>
           <span className="text-2xl font-black text-white">{funnel.startToPaidRate}%</span>
         </div>
         <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/[0.08]">
@@ -772,7 +775,7 @@ function getHealthMeta(health: PaymentRadarHealth) {
       bar: 'bg-neon-green',
     },
     unstable: {
-      label: 'instavel',
+      label: 'instável',
       badge: 'border-neon-orange/30 bg-neon-orange/10 text-neon-orange',
       bar: 'bg-neon-orange',
     },
