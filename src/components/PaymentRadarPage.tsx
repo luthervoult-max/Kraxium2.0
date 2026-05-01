@@ -286,7 +286,7 @@ export default function PaymentRadarPage() {
             ))}
           </section>
 
-          <section className="grid grid-cols-1 gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+          <section className="grid grid-cols-1 gap-4 2xl:grid-cols-[minmax(560px,0.95fr)_minmax(0,1.05fr)]">
             <FunnelPanel dashboard={dashboard} />
             <WebhookPanel
               gateways={dashboard.gateways}
@@ -588,7 +588,10 @@ function FunnelPanel({ dashboard }: { dashboard: PaymentRadarDashboard }) {
   const { funnel } = dashboard
 
   return (
-    <section id="radar-funnel" className="scroll-mt-6 rounded-[18px] border border-white/10 bg-[#0c0d10] p-5">
+    <section
+      id="radar-funnel"
+      className="min-w-0 scroll-mt-6 rounded-[18px] border border-white/10 bg-[#0c0d10] p-5"
+    >
       <div className="flex items-center justify-between gap-4">
         <div>
           <h3 className="text-2xl font-black text-white">Funil de Perda</h3>
@@ -651,17 +654,17 @@ function FunnelStep({
   detail: string
 }) {
   return (
-    <article className="rounded-[16px] border border-white/10 bg-[#08090b] p-4">
+    <article className="min-w-0 rounded-[16px] border border-white/10 bg-[#08090b] p-4">
       <span className="flex h-10 w-10 items-center justify-center rounded-[12px] border border-neon-purple/25 bg-neon-purple/10 text-neon-purple">
         <Icon size={18} aria-hidden="true" />
       </span>
-      <p className="mt-4 text-[11px] font-black uppercase tracking-[0.14em] text-gray-500">
+      <p className="mt-4 break-words text-[11px] font-black uppercase tracking-[0.14em] text-gray-500">
         {label}
       </p>
       <p className="mt-2 text-3xl font-black text-white">{formatNumber(value)}</p>
       <div className="mt-3 flex items-center justify-between gap-3 text-xs font-bold text-gray-500">
-        <span>{detail}</span>
-        <span>{rate}%</span>
+        <span className="min-w-0 break-words">{detail}</span>
+        <span className="shrink-0">{rate}%</span>
       </div>
     </article>
   )
@@ -679,7 +682,10 @@ function WebhookPanel({
   const webhookGateways = gateways.filter((gateway) => gateway.webhookPath)
 
   return (
-    <section id="radar-webhooks" className="scroll-mt-6 rounded-[18px] border border-white/10 bg-[#0c0d10] p-5">
+    <section
+      id="radar-webhooks"
+      className="min-w-0 scroll-mt-6 rounded-[18px] border border-white/10 bg-[#0c0d10] p-5"
+    >
       <div className="flex items-center justify-between gap-4">
         <div>
           <h3 className="text-2xl font-black text-white">Webhooks dos Gateways</h3>
@@ -694,7 +700,10 @@ function WebhookPanel({
           const path = gateway.webhookPath as string
 
           return (
-            <article key={gateway.id} className="rounded-[16px] border border-white/10 bg-[#08090b] p-4">
+            <article
+              key={gateway.id}
+              className="min-w-0 rounded-[16px] border border-white/10 bg-[#08090b] p-4"
+            >
               <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h4 className="text-sm font-black text-white">{gateway.name}</h4>
@@ -714,7 +723,7 @@ function WebhookPanel({
                 </span>
               </div>
               <div className="flex min-w-0 items-center gap-2 rounded-[12px] border border-white/10 bg-black/30 px-3 py-2">
-                <code className="min-w-0 flex-1 truncate text-xs text-gray-400">
+                <code className="block min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap text-xs text-gray-400">
                   {buildWebhookUrl(path)}
                 </code>
                 <button
