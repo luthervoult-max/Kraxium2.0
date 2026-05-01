@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   BarChart3,
+  Bell,
   Bot,
   ChevronDown,
   Code2,
@@ -50,6 +51,7 @@ const SECTIONS: MenuSection[] = [
       { label: 'Meus Bots', icon: Bot, page: 'bots' },
       { label: 'Métricas', icon: BarChart3, page: 'analytics' },
       { label: 'Usuários', icon: Users, page: 'users' },
+      { label: 'Alertas Importantes', icon: Bell, page: 'alerts' },
     ],
   },
   {
@@ -93,6 +95,7 @@ interface HomeSidebarProps {
   isMobile: boolean
   open: boolean
   onClose: () => void
+  alertCount?: number
 }
 
 export default function HomeSidebar({
@@ -104,6 +107,7 @@ export default function HomeSidebar({
   isMobile,
   open,
   onClose,
+  alertCount = 0,
 }: HomeSidebarProps) {
   const [expanded, setExpanded] = useState<Record<MenuSection['id'], boolean>>({
     menu: true,
@@ -315,7 +319,18 @@ export default function HomeSidebar({
                         >
                           <ItemIcon size={14} aria-hidden color={baseColor} />
                           <span className="flex-1 truncate">{item.label}</span>
-                          {isActive && (
+                          {item.page === 'alerts' && alertCount > 0 && (
+                            <span
+                              className="flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-bold text-white"
+                              style={{
+                                background: '#ff9d2a',
+                                boxShadow: '0 0 8px rgba(255,157,42,0.5)',
+                              }}
+                            >
+                              {alertCount > 99 ? '99+' : alertCount}
+                            </span>
+                          )}
+                          {isActive && !(item.page === 'alerts' && alertCount > 0) && (
                             <span
                               className="h-[5px] w-[5px] rounded-full"
                               style={{

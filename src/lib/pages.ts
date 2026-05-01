@@ -7,3 +7,4 @@ export type Page =
   | 'analytics'
   | 'payments'
   | 'remarketing'
+  | 'alerts'

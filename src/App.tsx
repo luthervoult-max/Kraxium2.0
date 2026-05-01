@@ -3,6 +3,7 @@ import { Loader2 } from 'lucide-react'
 import HomeSidebar from '@/components/home/HomeSidebar'
 import HomeTopbar from '@/components/home/HomeTopbar'
 import DashboardHome from '@/components/home/DashboardHome'
+import AlertsPage from '@/components/AlertsPage'
 import BotsPage from '@/components/BotsPage'
 import FlowIntel from '@/components/FlowIntel'
 import FlowsPage from '@/components/FlowsPage'
@@ -14,6 +15,7 @@ import RemarketingPage from '@/components/RemarketingPage'
 import { Button } from '@/components/ui/button'
 import { AuthProvider, useAuth } from '@/lib/auth/AuthContext'
 import { listBots, type Bot as BotRow } from '@/lib/api/bots'
+import { getAlertCount } from '@/lib/api/alerts'
 import type { FlowWithBot, ImportedFlowDraft } from '@/lib/api/flows'
 import type { Page } from '@/lib/pages'
 
@@ -26,6 +28,7 @@ const pageConfig: Record<Page, { eyebrow: string; title: string; titleHighlight?
   analytics: { eyebrow: 'Métricas', title: 'Performance' },
   payments: { eyebrow: 'Integrações', title: 'Pagamentos' },
   remarketing: { eyebrow: 'Automação', title: 'Remarketing' },
+  alerts: { eyebrow: 'Sistema', title: 'Alertas', titleHighlight: 'Importantes' },
 }
 
 type PendingLeaveAction =
@@ -60,6 +63,7 @@ function Shell() {
   const [savingBeforeLeave, setSavingBeforeLeave] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [bots, setBots] = useState<BotRow[]>([])
+  const [alertCount, setAlertCount] = useState(0)
 
   useEffect(() => {
     if (!user) return
@@ -73,6 +77,26 @@ function Shell() {
       })
     return () => {
       active = false
+    }
+  }, [user])
+
+  useEffect(() => {
+    if (!user) return
+    let active = true
+    const fetchCount = () => {
+      getAlertCount()
+        .then((count) => {
+          if (active) setAlertCount(count)
+        })
+        .catch(() => {
+          if (active) setAlertCount(0)
+        })
+    }
+    fetchCount()
+    const interval = setInterval(fetchCount, 5 * 60 * 1000)
+    return () => {
+      active = false
+      clearInterval(interval)
     }
   }, [user])
 
@@ -239,6 +263,7 @@ function Shell() {
         isMobile={isMobile}
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        alertCount={alertCount}
       />
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
@@ -308,6 +333,11 @@ function Shell() {
         {page === 'remarketing' && (
           <div className="flex-1 overflow-y-auto">
             <RemarketingPage />
+          </div>
+        )}
+        {page === 'alerts' && (
+          <div className="flex-1 overflow-y-auto">
+            <AlertsPage onNavigate={requestNavigate} />
           </div>
         )}
       </div>
