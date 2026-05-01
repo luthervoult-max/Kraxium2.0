@@ -42,6 +42,7 @@ import {
   getFlowById,
   saveFlowWithBot,
   type Flow,
+  type ImportedFlowDraft,
 } from '@/lib/api/flows'
 import '@xyflow/react/dist/style.css'
 import { FlowNode, type FlowNodeData } from '@/components/flow/FlowNode'
@@ -120,6 +121,7 @@ const demoAnalysis = generateFlowIntelReport(
 interface FlowIntelProps {
   botId: string | null
   flowId?: string | null
+  importedDraft?: ImportedFlowDraft | null
   onDirtyChange?: (dirty: boolean) => void
   onRegisterSave?: (handler: (() => Promise<boolean>) | null) => void
   onDraftCreated?: () => void
@@ -157,6 +159,7 @@ const initialCanvasState = createInitialCanvasState()
 export default function FlowIntel({
   botId,
   flowId = null,
+  importedDraft = null,
   onDirtyChange,
   onRegisterSave,
   onDraftCreated,
@@ -276,6 +279,21 @@ export default function FlowIntel({
 
   useEffect(() => {
     resetCanvasDraft()
+    if (importedDraft) {
+      const importedCanvas = buildCanvasState(JSON.stringify(importedDraft.graph))
+      setFlow(null)
+      setFlowName(importedDraft.name.trim() || 'Fluxo importado')
+      setNodes(importedCanvas.nodes)
+      setEdges(importedCanvas.edges)
+      setSelectedNodeId(null)
+      setIsTracePanelOpen(false)
+      setLoadError('Fluxo importado como rascunho. Revise o canvas e clique em Salvar para escolher o bot executor.')
+      setHasUnsavedChanges(true)
+      setSaveState('idle')
+      setLoadingFlow(false)
+      return
+    }
+
     if (!flowId && !botId) {
       setFlow(null)
       setLoadError('Canvas iniciado com o bloco Start. Monte o fluxo e clique em Salvar fluxo para escolher o bot executor.')
@@ -315,7 +333,7 @@ export default function FlowIntel({
     return () => {
       cancelled = true
     }
-  }, [botId, flowId, resetCanvasDraft])
+  }, [botId, flowId, importedDraft, resetCanvasDraft, setEdges, setNodes])
 
   const logsParse = useMemo(() => parseLogsInput(logsText), [logsText])
   const runtimeFlowId = flow?.id ?? flowId ?? botId ?? `draft:${flowName.trim() || 'novo-fluxo'}`

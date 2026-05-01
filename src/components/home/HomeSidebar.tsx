@@ -57,7 +57,7 @@ const SECTIONS: MenuSection[] = [
     label: 'Automações',
     icon: Zap,
     items: [
-      { label: 'Flow Builder', icon: GitBranch, page: 'flowIntel' },
+      { label: 'Flow Builder', icon: GitBranch, page: 'flows' },
       { label: 'Sequências', icon: ListChecks, disabled: true },
       { label: 'Gatilhos', icon: Target, disabled: true },
     ],

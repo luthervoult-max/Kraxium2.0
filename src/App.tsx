@@ -12,7 +12,7 @@ import AnalyticsPage from '@/components/AnalyticsPage'
 import { Button } from '@/components/ui/button'
 import { AuthProvider, useAuth } from '@/lib/auth/AuthContext'
 import { listBots, type Bot as BotRow } from '@/lib/api/bots'
-import type { FlowWithBot } from '@/lib/api/flows'
+import type { FlowWithBot, ImportedFlowDraft } from '@/lib/api/flows'
 import type { Page } from '@/lib/pages'
 
 const pageConfig: Record<Page, { eyebrow: string; title: string; titleHighlight?: string }> = {
@@ -29,6 +29,7 @@ type PendingLeaveAction =
   | { type: 'signOut' }
   | { type: 'createFlow' }
   | { type: 'editFlow'; flowId: string; botId: string | null }
+  | { type: 'importFlow'; draft: ImportedFlowDraft }
 
 function useIsMobile(breakpoint = 900) {
   const [isMobile, setIsMobile] = useState(() =>
@@ -48,6 +49,7 @@ function Shell() {
   const [page, setPage] = useState<Page>('dashboard')
   const [selectedBotId, setSelectedBotId] = useState<string | null>(null)
   const [selectedFlowId, setSelectedFlowId] = useState<string | null>(null)
+  const [importedFlowDraft, setImportedFlowDraft] = useState<ImportedFlowDraft | null>(null)
   const [flowDirty, setFlowDirty] = useState(false)
   const [pendingLeaveAction, setPendingLeaveAction] = useState<PendingLeaveAction | null>(null)
   const [flowSaveHandler, setFlowSaveHandler] = useState<(() => Promise<boolean>) | null>(null)
@@ -105,12 +107,21 @@ function Shell() {
     if (action.type === 'createFlow') {
       setSelectedFlowId(null)
       setSelectedBotId(null)
+      setImportedFlowDraft(null)
       setPage('flowIntel')
       return
     }
     if (action.type === 'editFlow') {
       setSelectedFlowId(action.flowId)
       setSelectedBotId(action.botId)
+      setImportedFlowDraft(null)
+      setPage('flowIntel')
+      return
+    }
+    if (action.type === 'importFlow') {
+      setSelectedFlowId(null)
+      setSelectedBotId(null)
+      setImportedFlowDraft(action.draft)
       setPage('flowIntel')
       return
     }
@@ -125,6 +136,7 @@ function Shell() {
     setFlowDirty(false)
     setSelectedFlowId(null)
     setSelectedBotId(null)
+    setImportedFlowDraft(null)
     setPage('flowIntel')
   }
 
@@ -136,17 +148,32 @@ function Shell() {
     setFlowDirty(false)
     setSelectedFlowId(flow.id)
     setSelectedBotId(flow.bot_id)
+    setImportedFlowDraft(null)
+    setPage('flowIntel')
+  }
+
+  function requestImportFlow(draft: ImportedFlowDraft) {
+    if (page === 'flowIntel' && flowDirty) {
+      setPendingLeaveAction({ type: 'importFlow', draft })
+      return
+    }
+    setFlowDirty(false)
+    setSelectedFlowId(null)
+    setSelectedBotId(null)
+    setImportedFlowDraft(draft)
     setPage('flowIntel')
   }
 
   function handleBotSelection(botId: string | null) {
     setSelectedBotId(botId)
     setSelectedFlowId(null)
+    setImportedFlowDraft(null)
   }
 
   function handleFlowSaved(flow: { id: string; bot_id: string | null }) {
     setSelectedFlowId(flow.id)
     setSelectedBotId(flow.bot_id)
+    setImportedFlowDraft(null)
   }
 
   async function handleSaveAndLeave() {
@@ -233,11 +260,13 @@ function Shell() {
             <FlowIntel
               botId={selectedBotId}
               flowId={selectedFlowId}
+              importedDraft={importedFlowDraft}
               onDirtyChange={setFlowDirty}
               onRegisterSave={registerFlowSaveHandler}
               onDraftCreated={() => {
                 setSelectedFlowId(null)
                 setSelectedBotId(null)
+                setImportedFlowDraft(null)
               }}
               onSaved={handleFlowSaved}
             />
@@ -245,7 +274,11 @@ function Shell() {
         )}
         {page === 'flows' && (
           <div className="flex-1 overflow-y-auto">
-            <FlowsPage onCreateFlow={requestCreateFlow} onEditFlow={requestEditFlow} />
+            <FlowsPage
+              onCreateFlow={requestCreateFlow}
+              onEditFlow={requestEditFlow}
+              onImportFlow={requestImportFlow}
+            />
           </div>
         )}
         {page === 'bots' && (

@@ -25,6 +25,12 @@ export interface FlowGraph {
   }>
 }
 
+export interface ImportedFlowDraft {
+  id: string
+  name: string
+  graph: FlowGraph
+}
+
 export interface FlowWithBot extends Flow {
   bot: { id: string; name: string } | null
   metrics: {
