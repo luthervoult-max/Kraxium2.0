@@ -10,3 +10,4 @@ export type Page =
   | 'paymentRadar'
   | 'remarketing'
   | 'alerts'
+  | 'account'

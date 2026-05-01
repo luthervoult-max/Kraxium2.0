@@ -82,7 +82,7 @@ const SECTIONS: MenuSection[] = [
     label: 'Configurações',
     icon: Settings,
     items: [
-      { label: 'Conta', icon: User, disabled: true },
+      { label: 'Conta', icon: User, page: 'account' },
       { label: 'Planos', icon: Package, disabled: true },
       { label: 'Segurança', icon: Shield, disabled: true },
     ],

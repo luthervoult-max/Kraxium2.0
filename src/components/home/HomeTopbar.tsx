@@ -1,4 +1,5 @@
 import { Bell, Menu, Search } from 'lucide-react'
+import type { AccountProfile } from '@/lib/api/profile'
 
 interface HomeTopbarProps {
   eyebrow?: string
@@ -7,6 +8,8 @@ interface HomeTopbarProps {
   isMobile: boolean
   onMenuClick: () => void
   userEmail?: string | null
+  profile?: AccountProfile | null
+  onAccountClick: () => void
 }
 
 export default function HomeTopbar({
@@ -16,8 +19,11 @@ export default function HomeTopbar({
   isMobile,
   onMenuClick,
   userEmail,
+  profile,
+  onAccountClick,
 }: HomeTopbarProps) {
-  const initial = userEmail ? userEmail.charAt(0).toUpperCase() : 'K'
+  const displayName = profile?.nickname || profile?.fullName || userEmail || 'Conta'
+  const initial = displayName.charAt(0).toUpperCase()
   const fullTitle = titleHighlight ? `${title} ${titleHighlight}` : title
 
   return (
@@ -94,13 +100,20 @@ export default function HomeTopbar({
         />
       </button>
 
-      <div
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[13px] font-bold text-white"
+      <button
+        type="button"
+        onClick={onAccountClick}
+        aria-label="Abrir conta"
+        className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full text-[13px] font-bold text-white transition-transform hover:scale-105"
         style={{ background: 'linear-gradient(135deg,#8b5cf6,#ec4899)' }}
-        title={userEmail ?? undefined}
+        title={displayName}
       >
-        {initial}
-      </div>
+        {profile?.avatarUrl ? (
+          <img src={profile.avatarUrl} alt="" className="h-full w-full object-cover" />
+        ) : (
+          initial
+        )}
+      </button>
     </div>
   )
 }

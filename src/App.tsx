@@ -14,10 +14,12 @@ import PaymentsPage from '@/components/PaymentsPage'
 import PaymentRadarPage from '@/components/PaymentRadarPage'
 import RemarketingPage from '@/components/RemarketingPage'
 import WebhooksPage from '@/components/WebhooksPage'
+import AccountPage from '@/components/AccountPage'
 import { Button } from '@/components/ui/button'
 import { AuthProvider, useAuth } from '@/lib/auth/AuthContext'
 import { listBots, type Bot as BotRow } from '@/lib/api/bots'
 import { getAlertCount } from '@/lib/api/alerts'
+import { getCurrentProfile, type AccountProfile } from '@/lib/api/profile'
 import type { FlowWithBot, ImportedFlowDraft } from '@/lib/api/flows'
 import type { Page } from '@/lib/pages'
 
@@ -33,6 +35,7 @@ const pageConfig: Record<Page, { eyebrow: string; title: string; titleHighlight?
   paymentRadar: { eyebrow: 'Integrações', title: 'Radar de', titleHighlight: 'Pagamentos' },
   remarketing: { eyebrow: 'Automação', title: 'Remarketing' },
   alerts: { eyebrow: 'Sistema', title: 'Alertas', titleHighlight: 'Importantes' },
+  account: { eyebrow: 'Configurações', title: 'Minha', titleHighlight: 'Conta' },
 }
 
 type PendingLeaveAction =
@@ -68,6 +71,23 @@ function Shell() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [bots, setBots] = useState<BotRow[]>([])
   const [alertCount, setAlertCount] = useState(0)
+  const [accountProfile, setAccountProfile] = useState<AccountProfile | null>(null)
+
+  useEffect(() => {
+    if (!user) return
+    let active = true
+    setAccountProfile(null)
+    getCurrentProfile()
+      .then((profile) => {
+        if (active) setAccountProfile(profile)
+      })
+      .catch(() => {
+        if (active) setAccountProfile(null)
+      })
+    return () => {
+      active = false
+    }
+  }, [user])
 
   useEffect(() => {
     if (!user) return
@@ -278,6 +298,8 @@ function Shell() {
           isMobile={isMobile}
           onMenuClick={() => setSidebarOpen(true)}
           userEmail={user.email}
+          profile={accountProfile}
+          onAccountClick={() => requestNavigate('account')}
         />
 
         {page === 'dashboard' && (
@@ -352,6 +374,16 @@ function Shell() {
         {page === 'alerts' && (
           <div className="flex-1 overflow-y-auto">
             <AlertsPage onNavigate={requestNavigate} />
+          </div>
+        )}
+        {page === 'account' && (
+          <div className="flex-1 overflow-y-auto">
+            <AccountPage
+              profile={accountProfile}
+              userEmail={user.email}
+              lastSignInAt={user.last_sign_in_at}
+              onProfileChange={setAccountProfile}
+            />
           </div>
         )}
       </div>

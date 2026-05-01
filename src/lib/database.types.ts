@@ -514,7 +514,12 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          nickname: string | null
+          phone: string | null
+          ranking_visible: boolean
+          referral_code: string | null
           role: string | null
+          updated_at: string
         }
         Insert: {
           avatar_url?: string | null
@@ -522,7 +527,12 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id: string
+          nickname?: string | null
+          phone?: string | null
+          ranking_visible?: boolean
+          referral_code?: string | null
           role?: string | null
+          updated_at?: string
         }
         Update: {
           avatar_url?: string | null
@@ -530,7 +540,12 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          nickname?: string | null
+          phone?: string | null
+          ranking_visible?: boolean
+          referral_code?: string | null
           role?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
