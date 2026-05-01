@@ -6,5 +6,6 @@ export type Page =
   | 'users'
   | 'analytics'
   | 'payments'
+  | 'paymentRadar'
   | 'remarketing'
   | 'alerts'

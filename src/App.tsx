@@ -11,6 +11,7 @@ import LoginPage from '@/components/LoginPage'
 import UsersPage from '@/components/UsersPage'
 import AnalyticsPage from '@/components/AnalyticsPage'
 import PaymentsPage from '@/components/PaymentsPage'
+import PaymentRadarPage from '@/components/PaymentRadarPage'
 import RemarketingPage from '@/components/RemarketingPage'
 import { Button } from '@/components/ui/button'
 import { AuthProvider, useAuth } from '@/lib/auth/AuthContext'
@@ -27,6 +28,7 @@ const pageConfig: Record<Page, { eyebrow: string; title: string; titleHighlight?
   users: { eyebrow: 'CRM', title: 'Base de', titleHighlight: 'Clientes' },
   analytics: { eyebrow: 'Métricas', title: 'Performance' },
   payments: { eyebrow: 'Integrações', title: 'Pagamentos' },
+  paymentRadar: { eyebrow: 'Integrações', title: 'Radar de', titleHighlight: 'Pagamentos' },
   remarketing: { eyebrow: 'Automação', title: 'Remarketing' },
   alerts: { eyebrow: 'Sistema', title: 'Alertas', titleHighlight: 'Importantes' },
 }
@@ -328,6 +330,11 @@ function Shell() {
         {page === 'payments' && (
           <div className="flex-1 overflow-y-auto">
             <PaymentsPage />
+          </div>
+        )}
+        {page === 'paymentRadar' && (
+          <div className="flex-1 overflow-y-auto">
+            <PaymentRadarPage />
           </div>
         )}
         {page === 'remarketing' && (
