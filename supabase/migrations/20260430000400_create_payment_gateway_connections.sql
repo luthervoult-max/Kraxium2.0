@@ -18,6 +18,16 @@ create table if not exists public.payment_gateway_connections (
 create index if not exists payment_gateway_connections_owner_idx
   on public.payment_gateway_connections(owner_id);
 
+create or replace function public.set_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
 drop trigger if exists payment_gateway_connections_set_updated_at
   on public.payment_gateway_connections;
 create trigger payment_gateway_connections_set_updated_at
@@ -33,5 +43,8 @@ on public.payment_gateway_connections
 for select
 to authenticated
 using (owner_id = auth.uid());
+
+grant select on public.payment_gateway_connections to authenticated;
+grant select, insert, update, delete on public.payment_gateway_connections to service_role;
 
 -- Writes are intentionally server-side only through Supabase service role.
