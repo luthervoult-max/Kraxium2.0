@@ -79,21 +79,40 @@ export default function LoginPage() {
   const isLoading = loadingMode !== null
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-deep-900 px-5 py-8 text-white">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle,rgba(180,77,255,0.16)_1px,transparent_1px)] bg-[length:32px_32px] opacity-45" />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(180,77,255,0.16),transparent_34%,rgba(255,42,157,0.08)_100%)]" />
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-neon-purple/70 to-neon-magenta/60" />
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#08090b] px-5 py-8 text-white">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle,rgba(139,92,246,0.14)_1px,transparent_1px)] bg-[length:34px_34px] opacity-40" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(139,92,246,0.20),transparent_34%),linear-gradient(135deg,rgba(196,181,253,0.08),transparent_38%,rgba(236,72,153,0.08)_100%)]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#c4b5fd]/70 to-[#ec4899]/55" />
 
-      <section className="relative z-10 w-full max-w-[420px] animate-in fade-in slide-in-from-bottom-4 duration-500 rounded-[20px] border border-neon-purple/35 bg-deep-800/90 px-9 pb-8 pt-9 shadow-[0_0_0_1px_rgba(180,77,255,0.16),0_24px_80px_rgba(0,0,0,0.72),0_0_42px_rgba(180,77,255,0.14)] backdrop-blur-2xl max-[480px]:px-6 max-[480px]:py-7">
+      <section className="relative z-10 w-full max-w-[420px] animate-in fade-in slide-in-from-bottom-4 duration-500 rounded-[20px] border border-white/10 bg-[#0d0d1a]/92 px-9 pb-8 pt-9 shadow-[0_0_0_1px_rgba(139,92,246,0.20),0_24px_80px_rgba(0,0,0,0.78),0_0_44px_rgba(139,92,246,0.16)] backdrop-blur-2xl max-[480px]:px-6 max-[480px]:py-7">
         <div className="mb-7 flex flex-col items-center">
           <img
             src={loginLogoUrl}
-            alt="KRAXIUM BOT"
+            alt="KRAXIUM"
             className="mb-[-6px] h-[260px] w-[260px] object-contain drop-shadow-[0_0_34px_rgba(180,77,255,0.68)] max-[480px]:h-[154px] max-[480px]:w-[154px]"
           />
-          <p className="font-mono text-[11px] font-medium uppercase tracking-[0.24em] text-neon-purple/80">
-            KRAXIUM BOT
-          </p>
+          <div className="text-center">
+            <p
+              className="font-display text-[18px] font-black uppercase tracking-[0.22em]"
+              style={{
+                background: 'linear-gradient(135deg,#ffffff,#c4b5fd,#8b5cf6,#ec4899)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                textShadow: '0 0 16px rgba(139,92,246,0.48)',
+              }}
+            >
+              KRAXIUM
+            </p>
+            <p
+              className="mt-1 font-mono text-[9px] font-medium uppercase tracking-[0.28em]"
+              style={{
+                color: 'rgba(196,181,253,0.62)',
+                textShadow: '0 0 10px rgba(139,92,246,0.26)',
+              }}
+            >
+              BOT PLATFORM
+            </p>
+          </div>
         </div>
 
         <div className="mb-7 text-center">
@@ -101,11 +120,11 @@ export default function LoginPage() {
             {authMode === 'signIn' ? 'Bem-vindo de volta' : 'Crie sua conta'}
           </h1>
           <p className="mt-1 text-[13px] text-gray-400">
-            {authMode === 'signIn' ? 'Acesse sua conta KRAXIUM BOT' : 'Comece a usar o KRAXIUM BOT'}
+            {authMode === 'signIn' ? 'Acesse sua conta KRAXIUM' : 'Comece a usar o KRAXIUM'}
           </p>
         </div>
 
-        <div className="mb-7 h-px bg-gradient-to-r from-transparent via-neon-purple/35 to-transparent" />
+        <div className="mb-7 h-px bg-gradient-to-r from-transparent via-[#c4b5fd]/35 to-transparent" />
 
         <form onSubmit={handlePasswordSignIn} className="space-y-4">
           <LoginField
@@ -132,7 +151,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => setShowPassword((value) => !value)}
-                className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center text-gray-500 transition-colors hover:text-neon-magenta"
+                className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center text-gray-500 transition-colors hover:text-[#c4b5fd]"
                 aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
               >
                 {showPassword ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
@@ -146,14 +165,14 @@ export default function LoginPage() {
                 type="checkbox"
                 checked={remember}
                 onChange={(event) => setRemember(event.target.checked)}
-                className="h-3.5 w-3.5 accent-[#b44dff]"
+                className="h-3.5 w-3.5 accent-[#8b5cf6]"
               />
               Lembrar-me
             </label>
             <button
               type="button"
               onClick={() => void handleResetPassword()}
-              className="text-xs font-medium text-neon-purple transition-colors hover:text-neon-magenta"
+              className="text-xs font-medium text-[#c4b5fd] transition-colors hover:text-white"
             >
               Esqueci a senha
             </button>
@@ -162,7 +181,7 @@ export default function LoginPage() {
           <Button
             type="submit"
             disabled={isLoading}
-            className="relative h-[46px] w-full overflow-hidden rounded-[10px] border-0 bg-[linear-gradient(135deg,#ff2a9d_0%,#b44dff_55%,#7c3aed_100%)] text-sm font-black tracking-[0.08em] text-white shadow-[0_4px_24px_rgba(180,77,255,0.4),0_0_24px_rgba(255,42,157,0.14)] transition-all hover:-translate-y-px hover:shadow-[0_4px_30px_rgba(180,77,255,0.6),0_0_30px_rgba(255,42,157,0.22)] disabled:translate-y-0 disabled:opacity-70"
+            className="relative h-[46px] w-full overflow-hidden rounded-[10px] border-0 bg-[linear-gradient(135deg,#6d28d9_0%,#8b5cf6_42%,#c4b5fd_72%,#ec4899_100%)] text-sm font-black tracking-[0.08em] text-white shadow-[0_4px_24px_rgba(139,92,246,0.42),0_0_24px_rgba(196,181,253,0.16)] transition-all hover:-translate-y-px hover:shadow-[0_4px_30px_rgba(139,92,246,0.62),0_0_30px_rgba(236,72,153,0.20)] disabled:translate-y-0 disabled:opacity-70"
           >
             {loadingMode === 'password' ? (
               <>
@@ -175,10 +194,10 @@ export default function LoginPage() {
           </Button>
         </form>
 
-        <div className="my-4 flex items-center gap-3 text-[11px] text-gray-600">
-          <span className="h-px flex-1 bg-neon-purple/15" />
+        <div className="my-4 flex items-center gap-3 text-[11px] text-slate-600">
+          <span className="h-px flex-1 bg-[#c4b5fd]/15" />
           ou continue com
-          <span className="h-px flex-1 bg-neon-magenta/15" />
+          <span className="h-px flex-1 bg-[#ec4899]/15" />
         </div>
 
         <Button
@@ -186,7 +205,7 @@ export default function LoginPage() {
           variant="outline"
           onClick={() => void handleGoogleSignIn()}
           disabled={isLoading}
-          className="h-[44px] w-full rounded-[10px] border-neon-purple/25 bg-deep-900/70 text-[13px] font-semibold text-gray-200 transition-all hover:border-neon-magenta/40 hover:bg-white/10"
+          className="h-[44px] w-full rounded-[10px] border-white/10 bg-[#08090b]/70 text-[13px] font-semibold text-gray-200 transition-all hover:border-[#c4b5fd]/40 hover:bg-white/10"
         >
           {loadingMode === 'google' ? (
             <Loader2 size={16} className="mr-2 animate-spin" aria-hidden="true" />
@@ -208,7 +227,7 @@ export default function LoginPage() {
           </div>
         )}
 
-        <div className="mt-5 border-t border-neon-purple/15 pt-4 text-center text-xs text-gray-500">
+        <div className="mt-5 border-t border-[#c4b5fd]/15 pt-4 text-center text-xs text-gray-500">
           {authMode === 'signIn' ? 'Nao tem conta?' : 'Ja tem conta?'}{' '}
           <button
             type="button"
@@ -217,7 +236,7 @@ export default function LoginPage() {
               setError(null)
               setNotice(null)
             }}
-            className="font-semibold text-neon-purple transition-colors hover:text-neon-magenta"
+            className="font-semibold text-[#c4b5fd] transition-colors hover:text-white"
           >
             {authMode === 'signIn' ? 'Criar conta gratis' : 'Entrar agora'}
           </button>
@@ -254,12 +273,12 @@ function LoginField({
     <div className="block">
       <label
         htmlFor={id}
-        className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-neon-purple"
+        className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-[#c4b5fd]"
       >
         {label}
       </label>
       <span className="relative block">
-        <span className="absolute left-3 top-1/2 flex -translate-y-1/2 items-center text-neon-purple/65">
+        <span className="absolute left-3 top-1/2 flex -translate-y-1/2 items-center text-[#c4b5fd]/70">
           {icon}
         </span>
         <input
@@ -270,7 +289,7 @@ function LoginField({
           placeholder={placeholder}
           autoComplete={autoComplete}
           className={cn(
-            'h-[43px] w-full rounded-[10px] border border-white/10 bg-deep-900/85 px-10 text-sm text-white outline-none transition-[border-color,box-shadow] placeholder:text-gray-700 focus:border-neon-purple/60 focus:shadow-[0_0_0_3px_rgba(180,77,255,0.14)]',
+            'h-[43px] w-full rounded-[10px] border border-white/10 bg-[#08090b]/85 px-10 text-sm text-white outline-none transition-[border-color,box-shadow] placeholder:text-slate-700 focus:border-[#c4b5fd]/60 focus:shadow-[0_0_0_3px_rgba(139,92,246,0.16)]',
             action && 'pr-11',
           )}
         />
