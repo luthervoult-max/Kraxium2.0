@@ -75,24 +75,24 @@ export async function listRemarketingDashboard() {
 }
 
 export async function previewRemarketingAudience(filters: RemarketingFilters) {
-  return remarketingFetch<RemarketingPreview>('/api/remarketing/preview', {
+  return remarketingFetch<RemarketingPreview>('/api/remarketing', {
     method: 'POST',
-    body: JSON.stringify({ filters }),
+    body: JSON.stringify({ action: 'preview', filters }),
   })
 }
 
 export async function saveRemarketingCampaign(input: SaveRemarketingCampaignInput) {
-  const data = await remarketingFetch<{ campaign: RemarketingCampaign }>('/api/remarketing/save', {
+  const data = await remarketingFetch<{ campaign: RemarketingCampaign }>('/api/remarketing', {
     method: 'POST',
-    body: JSON.stringify(input),
+    body: JSON.stringify({ action: 'save', ...input }),
   })
   return data.campaign
 }
 
 export async function sendRemarketingCampaign(campaignId: string, confirm: boolean) {
-  const data = await remarketingFetch<{ campaign: RemarketingCampaign }>('/api/remarketing/send', {
+  const data = await remarketingFetch<{ campaign: RemarketingCampaign }>('/api/remarketing', {
     method: 'POST',
-    body: JSON.stringify({ campaignId, confirm }),
+    body: JSON.stringify({ action: 'send', campaignId, confirm }),
   })
   return data.campaign
 }
