@@ -195,7 +195,7 @@ export default function HomeSidebar({
         >
           <div
             className="flex shrink-0 items-center justify-between border-b border-white/[0.05] pb-4 pt-5"
-            style={{ paddingLeft: railMode ? 16 : 18, paddingRight: railMode ? 16 : 18 }}
+            style={{ paddingLeft: railMode ? 12 : 18, paddingRight: railMode ? 12 : 18 }}
           >
             <div className="flex min-w-0 items-center gap-2.5">
               <img
@@ -203,9 +203,9 @@ export default function HomeSidebar({
                 alt="Kraxium"
                 className="object-contain"
                 style={{
-                  width: railMode ? 44 : 50,
-                  height: railMode ? 44 : 50,
-                  filter: 'drop-shadow(0 0 12px rgba(139,92,246,0.58))',
+                  width: railMode ? 52 : 64,
+                  height: railMode ? 52 : 64,
+                  filter: 'drop-shadow(0 0 16px rgba(139,92,246,0.68))',
                 }}
               />
               {sidebarExpanded && (
