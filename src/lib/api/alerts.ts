@@ -19,6 +19,9 @@ export interface AlertsReport {
 }
 
 const SEVERITY_ORDER: Record<AlertSeverity, number> = { critical: 0, high: 1, medium: 2 }
+const BOT_STATUS_ACTIVE = 'active'
+const BOT_STATUS_INACTIVE = 'inactive'
+const BOT_STATUS_ERROR = 'error'
 
 export async function getAlertsReport(): Promise<AlertsReport> {
   const alerts: Alert[] = []
@@ -50,40 +53,64 @@ export async function getAlertsReport(): Promise<AlertsReport> {
 
   if (bots.length > 0) {
     for (const bot of bots) {
-      if (bot.connection_status !== 'connected') {
+      const connectionStatus = String(bot.connection_status ?? BOT_STATUS_INACTIVE)
+      const isWebhookEnabled = bot.webhook_enabled === true
+
+      if (connectionStatus === BOT_STATUS_ERROR) {
         alerts.push({
-          id: `bot-disconnected-${bot.id}`,
+          id: `bot-connection-error-${bot.id}`,
           severity: 'critical',
-          title: 'Bot desconectado',
-          description: `O bot "${bot.name}" não está conectado ao Telegram.`,
+          title: 'Bot com erro de conexão',
+          description: `O bot "${bot.name}" retornou erro ao conectar com o Telegram.`,
+          createdAt: bot.updated_at ?? new Date().toISOString(),
+          page: 'bots',
+          pageLabel: 'Bots',
+        })
+      } else if (connectionStatus === BOT_STATUS_INACTIVE) {
+        alerts.push({
+          id: `bot-inactive-${bot.id}`,
+          severity: 'high',
+          title: 'Bot inativo',
+          description: `O bot "${bot.name}" ainda não está ativo para receber mensagens pelo webhook.`,
+          createdAt: bot.updated_at ?? new Date().toISOString(),
+          page: 'bots',
+          pageLabel: 'Bots',
+        })
+      } else if (connectionStatus !== BOT_STATUS_ACTIVE) {
+        alerts.push({
+          id: `bot-status-unknown-${bot.id}`,
+          severity: 'medium',
+          title: 'Status do bot não reconhecido',
+          description: `O bot "${bot.name}" está com status "${connectionStatus}". Verifique a conexão com o Telegram.`,
           createdAt: bot.updated_at ?? new Date().toISOString(),
           page: 'bots',
           pageLabel: 'Bots',
         })
       }
-      if (bot.connection_status === 'connected' && !bot.webhook_enabled) {
+
+      if (connectionStatus === BOT_STATUS_ACTIVE && !isWebhookEnabled) {
         alerts.push({
           id: `bot-webhook-disabled-${bot.id}`,
-          severity: 'medium',
+          severity: 'high',
           title: 'Webhook do bot desativado',
-          description: `O bot "${bot.name}" está conectado, mas o webhook está desativado.`,
+          description: `O bot "${bot.name}" está ativo, mas o webhook está desativado. Ele pode parar de responder mensagens.`,
           createdAt: bot.updated_at ?? new Date().toISOString(),
           page: 'bots',
           pageLabel: 'Bots',
         })
       }
-      if (bot.webhook_last_error) {
+      if (connectionStatus !== BOT_STATUS_ERROR && bot.webhook_last_error) {
         alerts.push({
           id: `bot-webhook-error-${bot.id}`,
-          severity: 'critical',
-          title: 'Erro no webhook do bot',
-          description: `Webhook de "${bot.name}": ${String(bot.webhook_last_error).slice(0, 90)}`,
+          severity: 'high',
+          title: 'Último erro no webhook',
+          description: `O webhook de "${bot.name}" registrou: ${String(bot.webhook_last_error).slice(0, 90)}`,
           createdAt: bot.updated_at ?? new Date().toISOString(),
           page: 'bots',
           pageLabel: 'Bots',
         })
       }
-      if (bot.webhook_enabled && !bot.webhook_url) {
+      if (isWebhookEnabled && !bot.webhook_url) {
         alerts.push({
           id: `bot-no-webhook-url-${bot.id}`,
           severity: 'high',
@@ -220,16 +247,35 @@ function getQueryData<T extends { [key: string]: unknown }>(
   errors: string[],
 ): T[] {
   if (result.status === 'rejected') {
-    errors.push(`${label}: ${normalizeQueryError(result.reason)}`)
+    errors.push(formatQueryError(label, result.reason))
     return []
   }
 
   if (result.value.error) {
-    errors.push(`${label}: ${normalizeQueryError(result.value.error)}`)
+    errors.push(formatQueryError(label, result.value.error))
     return []
   }
 
   return result.value.data ?? []
+}
+
+function formatQueryError(label: string, error: unknown) {
+  const message = normalizeQueryError(error)
+
+  if (label === 'pagamentos Pix' && isMissingPixTableError(message)) {
+    return 'pagamentos Pix: Tabela Pix ainda não configurada no Supabase. Aplique a migration Pix para ativar alertas e cobranças reais.'
+  }
+
+  return `${label}: ${message}`
+}
+
+function isMissingPixTableError(message: string) {
+  return (
+    message.includes('pix_payment_transactions') &&
+    (/could not find the table/i.test(message) ||
+      /schema cache/i.test(message) ||
+      /does not exist/i.test(message))
+  )
 }
 
 function normalizeQueryError(error: unknown) {
