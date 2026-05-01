@@ -214,14 +214,21 @@ export default function HomeSidebar({
                     className="font-display text-base font-black"
                     style={{
                       letterSpacing: 2,
-                      background: 'linear-gradient(135deg,#a78bfa,#8b5cf6,#00ff88)',
+                      background: 'linear-gradient(135deg,#ffffff,#c4b5fd,#8b5cf6,#ec4899)',
                       WebkitBackgroundClip: 'text',
                       WebkitTextFillColor: 'transparent',
+                      textShadow: '0 0 14px rgba(139,92,246,0.45)',
                     }}
                   >
                     KRAXIUM
                   </div>
-                  <div className="text-[9px] uppercase tracking-[0.15em] text-slate-700">
+                  <div
+                    className="text-[9px] uppercase tracking-[0.15em]"
+                    style={{
+                      color: 'rgba(196,181,253,0.62)',
+                      textShadow: '0 0 10px rgba(139,92,246,0.26)',
+                    }}
+                  >
                     BOT PLATFORM
                   </div>
                 </div>
