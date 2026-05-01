@@ -141,8 +141,8 @@ export default function FlowsPage({ onCreateFlow, onEditFlow, onImportFlow }: Fl
       )}
 
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <FlowSummaryCard icon={Link2} label="Vinculados" value={stats.linked} tone="blue" />
-        <FlowSummaryCard icon={Zap} label="Basicos" value={stats.basic} tone="blue" />
+        <FlowSummaryCard icon={Link2} label="Vinculados" value={stats.linked} tone="purple" />
+        <FlowSummaryCard icon={Zap} label="Basicos" value={stats.basic} tone="purple" />
         <FlowSummaryCard icon={GitBranch} label="Fluxos N8N" value={stats.n8n} tone="purple" />
       </section>
 
@@ -210,10 +210,9 @@ function FlowSummaryCard({
   icon: typeof GitBranch
   label: string
   value: number
-  tone: 'blue' | 'purple'
+  tone: 'purple'
 }) {
   const toneClass = {
-    blue: 'border-[#2f80ff]/25 bg-[#2f80ff]/10 text-[#2f80ff]',
     purple: 'border-neon-purple/25 bg-neon-purple/12 text-neon-purple',
   }[tone]
 
@@ -251,9 +250,7 @@ function SavedFlowCard({
           <span
             className={cn(
               'flex h-12 w-12 shrink-0 items-center justify-center rounded-[10px] border',
-              kind === 'n8n'
-                ? 'border-neon-purple/25 bg-neon-purple/12 text-neon-purple'
-                : 'border-[#2f80ff]/25 bg-[#2f80ff]/10 text-[#2f80ff]',
+              'border-neon-purple/25 bg-neon-purple/12 text-neon-purple',
             )}
           >
             {kind === 'n8n' ? <GitBranch size={22} aria-hidden="true" /> : <Zap size={22} aria-hidden="true" />}
@@ -266,9 +263,7 @@ function SavedFlowCard({
           <Badge
             className={cn(
               'border px-2.5 py-1 text-[10px] font-black uppercase',
-              kind === 'n8n'
-                ? 'border-neon-purple/25 bg-neon-purple/12 text-neon-purple'
-                : 'border-[#2f80ff]/25 bg-[#2f80ff]/10 text-[#2f80ff]',
+              'border-neon-purple/25 bg-neon-purple/12 text-neon-purple',
             )}
           >
             {kind === 'n8n' ? 'N8N' : 'Basico'}
