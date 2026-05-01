@@ -656,6 +656,11 @@ export default function FlowIntel({
   )
   const isFocusMode = isBlockPaletteCollapsed
   const builderPanelHeightClass = 'h-[calc(100vh-260px)] min-h-[620px] xl:h-[calc(100vh-220px)]'
+  const toolbarButtonClass =
+    'h-10 shrink-0 rounded-full px-3.5 text-[11px] font-black uppercase tracking-[0.12em] lg:px-4'
+  const toolbarGhostButtonClass = 'border-white/10 bg-white/[0.045] text-white hover:bg-white/10'
+  const toolbarActiveButtonClass =
+    'border-neon-purple/45 bg-neon-purple/15 text-neon-purple hover:bg-neon-purple/20'
 
   useEffect(() => {
     let cancelled = false
@@ -715,7 +720,7 @@ export default function FlowIntel({
 
       <div
         className={cn(
-          'grid gap-6',
+          'grid gap-5',
           isBlockPaletteCollapsed
             ? 'xl:grid-cols-[72px_minmax(0,1fr)]'
             : 'xl:grid-cols-[260px_minmax(0,1fr)]',
@@ -723,22 +728,22 @@ export default function FlowIntel({
       >
         <aside
           className={cn(
-            'flex flex-col overflow-hidden border border-white/6 bg-[#171923] shadow-[0_24px_80px_rgba(0,0,0,0.32)] transition-all',
+            'flex flex-col overflow-hidden border border-white/10 bg-[#0c0d10] shadow-[0_18px_55px_rgba(0,0,0,0.36)] transition-all',
             builderPanelHeightClass,
             isBlockPaletteCollapsed
-              ? 'w-full rounded-[24px] xl:min-h-[640px] xl:w-[72px]'
-              : 'w-full rounded-l-[34px] xl:max-h-full xl:max-w-[260px]',
+              ? 'w-full rounded-[18px] xl:min-h-[640px] xl:w-[72px]'
+              : 'w-full rounded-l-[22px] xl:max-h-full xl:max-w-[260px]',
           )}
         >
           <div
             className={cn(
-              'flex items-center justify-between gap-3 border-b border-white/6',
-              isBlockPaletteCollapsed ? 'px-4 py-4 xl:flex-col xl:px-3 xl:py-5' : 'px-6 py-6',
+              'flex items-center justify-between gap-3 border-b border-white/10 bg-[#08090b]',
+              isBlockPaletteCollapsed ? 'px-4 py-4 xl:flex-col xl:px-3 xl:py-5' : 'px-5 py-4',
             )}
           >
             {isBlockPaletteCollapsed ? (
               <div className="flex items-center gap-3 xl:flex-col">
-                <span className="flex h-10 w-10 items-center justify-center rounded-[6px] border border-neon-purple/25 bg-neon-purple/12 text-neon-purple">
+                <span className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-neon-purple/25 bg-neon-purple/12 text-neon-purple">
                   <GitBranch size={17} aria-hidden="true" />
                 </span>
                 <span className="text-xs font-bold uppercase tracking-[0.2em] text-neon-purple xl:[writing-mode:vertical-rl] xl:rotate-180">
@@ -746,7 +751,7 @@ export default function FlowIntel({
                 </span>
               </div>
             ) : (
-              <h2 className="text-lg font-bold uppercase tracking-wider text-neon-purple">
+              <h2 className="text-base font-black uppercase tracking-[0.16em] text-neon-purple">
                 Blocos disponiveis
               </h2>
             )}
@@ -754,7 +759,7 @@ export default function FlowIntel({
             <button
               type="button"
               onClick={() => setIsBlockPaletteCollapsed((value) => !value)}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[6px] border border-white/10 bg-white/5 text-gray-300 transition-colors hover:border-neon-purple/30 hover:text-neon-purple"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border border-white/10 bg-white/5 text-gray-300 transition-colors hover:border-neon-purple/30 hover:text-neon-purple"
               aria-label={isBlockPaletteCollapsed ? 'Expandir blocos' : 'Minimizar blocos'}
               title={isBlockPaletteCollapsed ? 'Expandir blocos' : 'Minimizar blocos'}
             >
@@ -767,7 +772,7 @@ export default function FlowIntel({
           </div>
 
           {!isBlockPaletteCollapsed && (
-            <div className="min-h-0 flex-1 space-y-8 overflow-y-auto px-6 py-6">
+            <div className="min-h-0 flex-1 space-y-7 overflow-y-auto px-5 py-5">
               {paletteGroups.map((group) => (
                 <section key={group.category} className="space-y-4">
                   <div className="flex items-center gap-3">
@@ -788,11 +793,11 @@ export default function FlowIntel({
                           event.dataTransfer.effectAllowed = 'move'
                         }}
                         onClick={() => addBlockToCanvas(block)}
-                        className="group w-full h-20 rounded-[6px] border border-white/8 bg-[#1c202a] p-3 text-left transition-all hover:border-white/15 hover:bg-[#202531] overflow-hidden"
+                        className="group h-20 w-full overflow-hidden rounded-[8px] border border-white/10 bg-[#111318] p-3 text-left transition-all hover:border-neon-purple/30 hover:bg-[#151821]"
                       >
                         <div className="flex items-start gap-4">
                           <div
-                            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[20px] border text-lg font-bold font-mono"
+                            className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[16px] border font-mono text-lg font-bold"
                             style={{
                               color: group.meta.color,
                               background: `rgba(${group.meta.rgb}, 0.12)`,
@@ -820,100 +825,114 @@ export default function FlowIntel({
         </aside>
 
         <div className="min-w-0">
-          <section className={cn('flex flex-col overflow-hidden rounded-[34px] border border-white/6 bg-[#171923] shadow-[0_24px_80px_rgba(0,0,0,0.32)]', builderPanelHeightClass)}>
-            <div className="flex flex-col gap-4 border-b border-white/6 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex min-w-0 flex-1 items-center gap-3">
+          <section
+            className={cn(
+              'flex flex-col overflow-hidden rounded-[22px] border border-white/10 bg-[#0c0d10] shadow-[0_18px_55px_rgba(0,0,0,0.36)]',
+              builderPanelHeightClass,
+            )}
+          >
+            <div className="flex flex-col gap-3 border-b border-white/10 bg-[#08090b] px-4 py-3 lg:flex-row lg:items-center">
+              <div className="flex min-w-0 items-center gap-3 lg:w-[260px] xl:w-[320px]">
                 <input
                   value={flowName}
                   onChange={(event) => {
                     setFlowName(event.target.value)
                     markUnsaved()
                   }}
-                  className="h-14 w-full rounded-full border border-white/10 bg-[#11131a] px-6 text-lg text-white outline-none transition-colors focus:border-neon-purple/50"
+                  className="h-10 w-full rounded-full border border-white/10 bg-[#0c0d10] px-4 text-sm font-bold text-white outline-none transition-colors placeholder:text-gray-600 focus:border-neon-purple/50"
                   placeholder="Nome do fluxo"
                 />
               </div>
 
-              <div className="flex flex-wrap justify-end gap-3">
+              <div className="flex min-w-0 flex-1 flex-nowrap gap-2 overflow-x-auto pb-1 lg:justify-end lg:overflow-visible lg:pb-0">
                 <Button
                   type="button"
                   onClick={handleAnalyze}
-                  className="h-14 rounded-full border border-white/10 bg-white/5 px-6 text-[12px] font-bold uppercase tracking-[0.26em] text-white hover:bg-white/10"
+                  aria-label="Gerar fluxo com IA"
+                  title="Gerar fluxo com IA"
+                  className={cn(toolbarButtonClass, toolbarGhostButtonClass)}
                 >
-                  <Wand2 size={15} className="mr-2" aria-hidden="true" />
-                  Gerar com IA
+                  <Wand2 size={13} className="mr-1.5" aria-hidden="true" />
+                  Gerar IA
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
                   onClick={handleToggleFocusMode}
+                  aria-label={isFocusMode ? 'Sair do modo foco' : 'Entrar no modo foco'}
+                  title={isFocusMode ? 'Sair do modo foco' : 'Entrar no modo foco'}
                   className={cn(
-                    'h-14 rounded-full px-6 text-[12px] font-bold uppercase tracking-[0.26em]',
-                    isFocusMode
-                      ? 'border-neon-purple/45 bg-neon-purple/15 text-neon-purple hover:bg-neon-purple/20'
-                      : 'border-white/10 bg-white/5 text-white hover:bg-white/10',
+                    toolbarButtonClass,
+                    isFocusMode ? toolbarActiveButtonClass : toolbarGhostButtonClass,
                   )}
                 >
                   {isFocusMode ? (
-                    <Minimize2 size={15} className="mr-2" aria-hidden="true" />
+                    <Minimize2 size={13} className="mr-1.5" aria-hidden="true" />
                   ) : (
-                    <Maximize2 size={15} className="mr-2" aria-hidden="true" />
+                    <Maximize2 size={13} className="mr-1.5" aria-hidden="true" />
                   )}
-                  {isFocusMode ? 'Sair do foco' : 'Modo foco'}
+                  {isFocusMode ? 'Sair' : 'Foco'}
                 </Button>
                 <Button
                   type="button"
                   onClick={() => void requestSaveWithDialog()}
                   disabled={saveState === 'saving'}
-                  className="h-14 rounded-full border border-neon-purple/70 bg-[linear-gradient(90deg,#b44dff,#ff2a9d)] px-6 text-[12px] font-bold uppercase tracking-[0.26em] text-white shadow-[0_0_18px_rgba(180,77,255,0.25)] hover:opacity-95 disabled:opacity-60"
+                  aria-label="Salvar fluxo"
+                  title="Salvar fluxo"
+                  className={cn(
+                    toolbarButtonClass,
+                    'border border-neon-purple/70 bg-[linear-gradient(90deg,#b44dff,#ff2a9d)] text-white shadow-[0_0_16px_rgba(180,77,255,0.22)] hover:opacity-95 disabled:opacity-60',
+                  )}
                 >
                   {saveState === 'saving' ? (
-                    <Loader2 size={15} className="mr-2 animate-spin" aria-hidden="true" />
+                    <Loader2 size={13} className="mr-1.5 animate-spin" aria-hidden="true" />
                   ) : saveState === 'saved' ? (
-                    <Check size={15} className="mr-2" aria-hidden="true" />
+                    <Check size={13} className="mr-1.5" aria-hidden="true" />
                   ) : (
-                    <Save size={15} className="mr-2" aria-hidden="true" />
+                    <Save size={13} className="mr-1.5" aria-hidden="true" />
                   )}
                   {saveState === 'saving'
                     ? 'Salvando…'
                     : saveState === 'saved'
-                    ? 'Fluxo salvo'
-                    : 'Salvar fluxo'}
+                    ? 'Salvo'
+                    : 'Salvar'}
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
                   onClick={handleNewFlow}
-                  className="h-14 rounded-full border-white/10 bg-white/5 px-6 text-[12px] font-bold uppercase tracking-[0.26em] text-white hover:bg-white/10"
+                  aria-label="Criar novo fluxo"
+                  title="Criar novo fluxo"
+                  className={cn(toolbarButtonClass, toolbarGhostButtonClass)}
                 >
-                  <Plus size={15} className="mr-2" aria-hidden="true" />
-                  Novo fluxo
+                  <Plus size={13} className="mr-1.5" aria-hidden="true" />
+                  Novo
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => setShowSimulator((value) => !value)}
+                  aria-label={showSimulator ? 'Ocultar simulador' : 'Mostrar simulador'}
+                  title={showSimulator ? 'Ocultar simulador' : 'Mostrar simulador'}
                   className={cn(
-                    'h-14 rounded-full px-6 text-[12px] font-bold uppercase tracking-[0.26em]',
-                    showSimulator
-                      ? 'border-neon-purple/45 bg-neon-purple/15 text-neon-purple hover:bg-neon-purple/20'
-                      : 'border-white/10 bg-white/5 text-white hover:bg-white/10',
+                    toolbarButtonClass,
+                    showSimulator ? toolbarActiveButtonClass : toolbarGhostButtonClass,
                   )}
                 >
-                  <Smartphone size={15} className="mr-2" aria-hidden="true" />
-                  Simulador
+                  <Smartphone size={13} className="mr-1.5" aria-hidden="true" />
+                  Simular
                 </Button>
               </div>
             </div>
 
             <div
               className={cn(
-                'grid min-h-0 flex-1 bg-[#12141b]',
+                'grid min-h-0 flex-1 bg-[#08090b]',
                 showSimulator ? 'grid-cols-1 xl:grid-cols-[minmax(0,1fr)_400px]' : 'grid-cols-1',
               )}
             >
             <div
-              className="relative h-full min-h-[520px] bg-[#12141b]"
+              className="relative h-full min-h-[520px] bg-[#08090b]"
               onDrop={handleCanvasDrop}
               onDragOver={(event) => {
                 event.preventDefault()
@@ -981,13 +1000,13 @@ export default function FlowIntel({
               >
                 <Background
                   variant={BackgroundVariant.Dots}
-                  color="rgba(255,255,255,0.08)"
+                  color="rgba(255,255,255,0.075)"
                   gap={22}
                   size={1}
                 />
                 <Controls
                   showInteractive={false}
-                  className="[&>button]:!h-10 [&>button]:!w-10 [&>button]:!border-white/10 [&>button]:!bg-[#12141b] [&>button]:!text-white"
+                  className="[&>button]:!h-9 [&>button]:!w-9 [&>button]:!border-white/10 [&>button]:!bg-[#0c0d10] [&>button]:!text-white"
                 />
                 <MiniMap
                   pannable
@@ -999,15 +1018,15 @@ export default function FlowIntel({
                   }}
                   maskColor="rgba(8, 10, 16, 0.74)"
                   style={{
-                    background: '#0f1118',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    borderRadius: 28,
+                    background: '#0c0d10',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: 18,
                   }}
                 />
               </ReactFlow>
             </div>
               {showSimulator && (
-                <div className="border-l border-white/6 bg-[#0a0d14] p-4 overflow-y-auto">
+                <div className="overflow-y-auto border-l border-white/10 bg-[#08090b] p-4">
                   <TelegramSimulator
                     flowId={flowName || 'default-flow'}
                     flowName={flowName}
