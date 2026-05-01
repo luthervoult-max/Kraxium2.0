@@ -1,4 +1,4 @@
-import { createCipheriv, createHash, randomBytes } from 'node:crypto'
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto'
 import { HttpError } from './http.js'
 
 export type PaymentGatewayProvider = 'mercado_pago' | 'stripe' | 'pushinpay' | 'syncpay'
@@ -126,6 +126,45 @@ export function encryptCredentials(credentials: Record<string, string>) {
   const authTag = cipher.getAuthTag()
 
   return [iv, authTag, encrypted].map((part) => part.toString('base64url')).join('.')
+}
+
+export function decryptCredentials(encrypted: string | null) {
+  if (!encrypted) return {}
+
+  const secret = process.env.PAYMENT_CREDENTIAL_ENCRYPTION_KEY?.trim()
+  if (!secret) {
+    throw new HttpError(
+      500,
+      'PAYMENT_CREDENTIAL_ENCRYPTION_KEY nao configurada para usar credenciais de pagamento.',
+    )
+  }
+
+  const [ivValue, authTagValue, encryptedValue] = encrypted.split('.')
+  if (!ivValue || !authTagValue || !encryptedValue) {
+    throw new HttpError(500, 'Credenciais de pagamento invalidas. Reconecte o gateway.')
+  }
+
+  try {
+    const key = createHash('sha256').update(secret).digest()
+    const decipher = createDecipheriv('aes-256-gcm', key, Buffer.from(ivValue, 'base64url'))
+    decipher.setAuthTag(Buffer.from(authTagValue, 'base64url'))
+
+    const decrypted = Buffer.concat([
+      decipher.update(Buffer.from(encryptedValue, 'base64url')),
+      decipher.final(),
+    ]).toString('utf8')
+
+    const parsed = JSON.parse(decrypted) as unknown
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw new Error('Invalid credentials payload')
+    }
+
+    return Object.fromEntries(
+      Object.entries(parsed as Record<string, unknown>).filter(([, value]) => typeof value === 'string'),
+    ) as Record<string, string>
+  } catch {
+    throw new HttpError(500, 'Nao foi possivel descriptografar o gateway. Reconecte as credenciais.')
+  }
 }
 
 export function buildCredentialsHint(credentials: Record<string, string>) {

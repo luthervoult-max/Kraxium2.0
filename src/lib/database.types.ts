@@ -397,6 +397,116 @@ export type Database = {
           },
         ]
       }
+      pix_payment_transactions: {
+        Row: {
+          amount_cents: number
+          bot_id: string | null
+          created_at: string
+          currency: string
+          external_reference: string
+          expires_at: string | null
+          flow_id: string | null
+          id: string
+          lead_id: string | null
+          node_id: string
+          node_type: string
+          owner_id: string
+          paid_at: string | null
+          pix_code: string | null
+          plan_name: string | null
+          provider: string
+          provider_payment_id: string | null
+          provider_status: string | null
+          qr_code_base64: string | null
+          raw_response: Json
+          status: string
+          telegram_chat_id: string | null
+          ticket_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount_cents: number
+          bot_id?: string | null
+          created_at?: string
+          currency?: string
+          external_reference: string
+          expires_at?: string | null
+          flow_id?: string | null
+          id?: string
+          lead_id?: string | null
+          node_id: string
+          node_type?: string
+          owner_id: string
+          paid_at?: string | null
+          pix_code?: string | null
+          plan_name?: string | null
+          provider: string
+          provider_payment_id?: string | null
+          provider_status?: string | null
+          qr_code_base64?: string | null
+          raw_response?: Json
+          status?: string
+          telegram_chat_id?: string | null
+          ticket_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          bot_id?: string | null
+          created_at?: string
+          currency?: string
+          external_reference?: string
+          expires_at?: string | null
+          flow_id?: string | null
+          id?: string
+          lead_id?: string | null
+          node_id?: string
+          node_type?: string
+          owner_id?: string
+          paid_at?: string | null
+          pix_code?: string | null
+          plan_name?: string | null
+          provider?: string
+          provider_payment_id?: string | null
+          provider_status?: string | null
+          qr_code_base64?: string | null
+          raw_response?: Json
+          status?: string
+          telegram_chat_id?: string | null
+          ticket_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'pix_payment_transactions_bot_id_fkey'
+            columns: ['bot_id']
+            isOneToOne: false
+            referencedRelation: 'bots'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'pix_payment_transactions_flow_id_fkey'
+            columns: ['flow_id']
+            isOneToOne: false
+            referencedRelation: 'flows'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'pix_payment_transactions_lead_id_fkey'
+            columns: ['lead_id']
+            isOneToOne: false
+            referencedRelation: 'telegram_leads'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'pix_payment_transactions_owner_id_fkey'
+            columns: ['owner_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null

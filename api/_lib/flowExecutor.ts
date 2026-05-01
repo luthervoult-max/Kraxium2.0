@@ -1,5 +1,6 @@
 import { answerCallbackQuery, sendChatAction, sendMessage } from './telegram.js'
 import { serviceSupabase } from './supabase.js'
+import { createPixCharge, loadPixTransaction, verifyPixTransaction, type PixTransactionRow } from './pixPayments.js'
 
 type JsonRecord = Record<string, unknown>
 
@@ -67,6 +68,13 @@ interface TelegramUser {
 interface LeadRecord {
   id: string
   start_count: number
+  first_name?: string | null
+  last_name?: string | null
+  display_name?: string | null
+  email?: string | null
+  phone?: string | null
+  telegram_chat_id?: string | null
+  metadata?: JsonRecord | null
   last_node_id?: string | null
   last_node_type?: string | null
   source?: string | null
@@ -97,6 +105,8 @@ const START_NODE_ID = 'start_node'
 const MAX_STEPS = 24
 const MAX_INLINE_DELAY_MS = 10_000
 const WAITING_TEXT_NODE_TYPES = new Set(['IN'])
+const LEAD_SELECT =
+  'id,start_count,first_name,last_name,display_name,email,phone,telegram_chat_id,metadata,last_node_id,last_node_type,source,campaign,utm_source,utm_medium,utm_campaign,utm_content,utm_term,device_type,country,region,city'
 
 export async function handleTelegramWebhook(botId: string, token: string, update: TelegramUpdate) {
   const { bot, flow } = await loadBotAndActiveFlow(botId)
@@ -140,6 +150,20 @@ export async function handleTelegramWebhook(botId: string, token: string, update
   }
 
   if (update.callback_query) {
+    const paymentCallback = parsePaymentCallbackData(update.callback_query.data)
+    if (paymentCallback) {
+      await handlePaymentVerification({
+        bot,
+        flow,
+        token,
+        chatId,
+        lead,
+        transactionId: paymentCallback.transactionId,
+        callbackQueryId: update.callback_query.id,
+      })
+      return { ok: true, paymentCallback: true }
+    }
+
     await answerCallbackQuery(token, update.callback_query.id).catch(() => undefined)
     const callback = parseCallbackData(update.callback_query.data)
     if (!callback) {
@@ -242,7 +266,7 @@ async function upsertLead({
 
   const { data: existing, error: existingError } = await serviceSupabase
     .from('telegram_leads')
-    .select('id,start_count,last_node_id,last_node_type,source,campaign,utm_source,utm_medium,utm_campaign,utm_content,utm_term,device_type,country,region,city')
+    .select(LEAD_SELECT)
     .eq('owner_id', bot.owner_id)
     .eq('bot_id', bot.id)
     .eq('telegram_user_id', telegramUserId)
@@ -265,7 +289,7 @@ async function upsertLead({
         ...attributionPatch,
       })
       .eq('id', existing.id)
-      .select('id,start_count,last_node_id,last_node_type,source,campaign,utm_source,utm_medium,utm_campaign,utm_content,utm_term,device_type,country,region,city')
+      .select(LEAD_SELECT)
       .single()
 
     if (error) throw error
@@ -290,7 +314,7 @@ async function upsertLead({
       status: 'novo',
       ...attributionPatch,
     })
-    .select('id,start_count,last_node_id,last_node_type,source,campaign,utm_source,utm_medium,utm_campaign,utm_content,utm_term,device_type,country,region,city')
+    .select(LEAD_SELECT)
     .single()
 
   if (error) throw error
@@ -407,6 +431,7 @@ async function executeNode(context: ExecutionContext, graph: Required<FlowGraph>
     }
     case 'PX':
     case 'PG':
+      return executePixNode(context, graph, node)
     case 'OB':
     case 'UP':
     case 'DS': {
@@ -444,13 +469,107 @@ async function maybeDelay(context: ExecutionContext, config: JsonRecord) {
   }
 }
 
-async function recordPaymentGenerated(context: ExecutionContext, node: FlowGraphNode) {
+async function executePixNode(
+  context: ExecutionContext,
+  graph: Required<FlowGraph>,
+  node: FlowGraphNode,
+) {
   const config = node.config ?? {}
+  const paymentMethod = stringConfig(config.paymentMethod) || stringConfig(config.method) || 'pix'
+
+  if (paymentMethod && paymentMethod.toLowerCase() !== 'pix') {
+    throw new Error('Cartao e recorrencia real ficam para uma etapa posterior. Use PIX neste bloco.')
+  }
+
+  const recurrence = stringConfig(config.recurrence)
+  if (node.type === 'PG' && recurrence && !['unico', 'single', 'unique'].includes(recurrence.toLowerCase())) {
+    throw new Error('Recorrencia real ainda nao esta ativa. Use recorrencia Unico para gerar PIX agora.')
+  }
+
   const amountCents = amountToCents(config.value ?? config.price ?? config.amount)
-  const planName = stringConfig(config.offerName) || stringConfig(config.planName) || stringConfig(config.productName) || node.label || node.type
+  const planName =
+    stringConfig(config.offerName) ||
+    stringConfig(config.planName) ||
+    stringConfig(config.productName) ||
+    node.label ||
+    'Oferta'
+  const preferredProvider =
+    stringConfig(config.gatewayProvider) ||
+    stringConfig(config.preferredGateway) ||
+    normalizePreferredGateway(stringConfig(config.gateway))
+  const expiresInMinutes = Math.max(1, Number(config.expiresIn ?? config.timeout ?? 30))
+  const transaction = await createPixCharge({
+    ownerId: context.bot.owner_id,
+    botId: context.bot.id,
+    flowId: context.flow.id,
+    leadId: context.lead.id,
+    nodeId: node.id,
+    nodeType: node.type === 'PG' ? 'PG' : 'PX',
+    telegramChatId: context.chatId,
+    amountCents,
+    currency: stringConfig(config.currency) || 'BRL',
+    planName,
+    description: stringConfig(config.description) || stringConfig(config.message) || null,
+    expiresInMinutes,
+    preferredProvider,
+    lead: context.lead,
+  })
+
+  await recordPaymentGenerated(context, node, {
+    amountCents,
+    planName,
+    gateway: transaction.provider,
+    currency: transaction.currency,
+    metadata: {
+      pixTransactionId: transaction.id,
+      providerPaymentId: transaction.provider_payment_id,
+      externalReference: transaction.external_reference,
+      expiresAt: transaction.expires_at,
+    },
+  })
+
+  await sendMessage(
+    context.token,
+    context.chatId,
+    buildPixPaymentMessage(node, config, transaction),
+    [
+      [
+        {
+          text: stringConfig(config.verifyButtonText) || 'Verificar Pagamento',
+          callback_data: `kxpay:${transaction.id}`,
+        },
+      ],
+    ],
+    { parseMode: 'HTML' },
+  )
+
+  return { nextNodeId: findNextNodeId(graph, node), waiting: true }
+}
+
+async function recordPaymentGenerated(
+  context: ExecutionContext,
+  node: FlowGraphNode,
+  overrides: {
+    amountCents?: number
+    planName?: string
+    gateway?: string
+    currency?: string
+    metadata?: JsonRecord
+  } = {},
+) {
+  const config = node.config ?? {}
+  const amountCents = overrides.amountCents ?? amountToCents(config.value ?? config.price ?? config.amount)
+  const planName =
+    overrides.planName ??
+    (stringConfig(config.offerName) ||
+      stringConfig(config.planName) ||
+      stringConfig(config.productName) ||
+      node.label ||
+      node.type)
   const salesCode = stringConfig(config.salesCode)
   const eventType = revenueEventTypeForNode(node.type)
-  const gateway = stringConfig(config.gateway) || (node.type === 'PX' ? 'pix' : 'telegram_flow')
+  const gateway =
+    overrides.gateway ?? (stringConfig(config.gateway) || (node.type === 'PX' ? 'pix' : 'telegram_flow'))
   const now = new Date().toISOString()
 
   await serviceSupabase
@@ -470,7 +589,7 @@ async function recordPaymentGenerated(context: ExecutionContext, node: FlowGraph
     lead_id: context.lead.id,
     event_type: eventType,
     amount_cents: amountCents,
-    currency: stringConfig(config.currency) || 'BRL',
+    currency: overrides.currency ?? (stringConfig(config.currency) || 'BRL'),
     gateway,
     plan_name: planName,
     sales_code: salesCode || null,
@@ -486,6 +605,7 @@ async function recordPaymentGenerated(context: ExecutionContext, node: FlowGraph
       nodeType: node.type,
       nodeLabel: node.label ?? null,
       config,
+      ...overrides.metadata,
     },
   })
 
@@ -501,7 +621,7 @@ async function recordPaymentGenerated(context: ExecutionContext, node: FlowGraph
     node,
     status: 'pending',
     message: `${planName} gerado no fluxo.`,
-    metadata: { amountCents, gateway, revenueEventType: eventType },
+    metadata: { amountCents, gateway, revenueEventType: eventType, ...overrides.metadata },
   })
 }
 
@@ -515,6 +635,49 @@ function buildPaymentMessage(node: FlowGraphNode, config: JsonRecord, fallback: 
   }).format(amountCents / 100)
 
   return [planName, amountCents > 0 ? `Valor: ${valueText}` : '', description].filter(Boolean).join('\n\n')
+}
+
+function buildPixPaymentMessage(
+  node: FlowGraphNode,
+  config: JsonRecord,
+  transaction: PixTransactionRow,
+) {
+  const before = stringConfig(config.messageBeforePix) || stringConfig(config.beforeMessage)
+  const after =
+    stringConfig(config.messageAfterPix) ||
+    stringConfig(config.afterMessage) ||
+    'Depois de pagar, toque em Verificar Pagamento para liberar o proximo passo.'
+  const description = stringConfig(config.description)
+  const valueText = new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: transaction.currency || 'BRL',
+  }).format(transaction.amount_cents / 100)
+
+  return [
+    escapeTelegramHtml(before),
+    `Oferta: ${escapeTelegramHtml(transaction.plan_name || node.label || 'Oferta')}`,
+    `Valor: ${escapeTelegramHtml(valueText)}`,
+    escapeTelegramHtml(description),
+    'PIX copia e cola:',
+    transaction.pix_code
+      ? `<code>${escapeTelegramHtml(transaction.pix_code)}</code>`
+      : 'Codigo PIX indisponivel. Tente verificar em instantes.',
+    escapeTelegramHtml(after),
+  ]
+    .filter(Boolean)
+    .join('\n\n')
+}
+
+function normalizePreferredGateway(value: string) {
+  if (!value || value === 'pix' || value === 'auto') return null
+  return value
+}
+
+function escapeTelegramHtml(value: string | null | undefined) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
 }
 
 function revenueEventTypeForNode(nodeType: string) {
@@ -551,6 +714,10 @@ function validateInputAnswer(answer: string, config: JsonRecord) {
     return 'Envie um telefone valido para continuar.'
   }
 
+  if (expectedType === 'cpf' && answer.replace(/\D/g, '').length < 11) {
+    return 'Envie um CPF valido para continuar.'
+  }
+
   if (expectedType === 'numero' && parseComparableNumber(answer) === null) {
     return 'Envie um numero valido para continuar.'
   }
@@ -566,16 +733,27 @@ async function recordInputAnswer(
 ) {
   const variable = stringConfig(config.variable) || `input_${node.id}`
   const expectedType = stringConfig(config.expectedType)
+  const metadata: JsonRecord = {
+    ...(context.lead.metadata ?? {}),
+    [variable]: answer,
+  }
   const patch: JsonRecord = {
     last_seen_at: new Date().toISOString(),
+    metadata,
   }
 
   if (expectedType === 'email' || /email/i.test(variable)) {
     patch.email = answer
+    metadata.email = answer
   }
 
   if (expectedType === 'telefone' || /phone|telefone|celular|whatsapp/i.test(variable)) {
     patch.phone = answer
+    metadata.phone = answer
+  }
+
+  if (expectedType === 'cpf' || /cpf|documento|document/i.test(variable)) {
+    metadata.cpf = answer.replace(/\D/g, '') || answer
   }
 
   const { error } = await serviceSupabase
@@ -587,6 +765,10 @@ async function recordInputAnswer(
     console.error('Falha ao salvar resposta do lead', error)
   }
 
+  context.lead.metadata = metadata
+  if (typeof patch.email === 'string') context.lead.email = patch.email
+  if (typeof patch.phone === 'string') context.lead.phone = patch.phone
+
   await recordEvent({
     bot: context.bot,
     lead: context.lead,
@@ -596,6 +778,264 @@ async function recordInputAnswer(
     status: 'success',
     message: `Resposta capturada em ${variable}.`,
     metadata: { variable, expectedType: expectedType || null, value: answer },
+  })
+}
+
+async function handlePaymentVerification({
+  bot,
+  flow,
+  token,
+  chatId,
+  lead,
+  transactionId,
+  callbackQueryId,
+}: {
+  bot: BotRecord
+  flow: FlowRecord
+  token: string
+  chatId: string
+  lead: LeadRecord
+  transactionId: string
+  callbackQueryId: string
+}) {
+  try {
+    const result = await verifyPixTransaction(transactionId)
+    const transaction = result.transaction
+
+    if (transaction.bot_id !== bot.id || transaction.lead_id !== lead.id) {
+      await answerCallbackQuery(token, callbackQueryId, {
+        text: 'Este pagamento nao pertence a esta conversa.',
+        showAlert: true,
+      }).catch(() => undefined)
+      return
+    }
+
+    if (transaction.status === 'paid') {
+      if (result.changed) {
+        await answerCallbackQuery(token, callbackQueryId, { text: 'Pagamento confirmado!' }).catch(
+          () => undefined,
+        )
+        await routePixTransaction({ bot, flow, token, chatId, lead }, normalizeGraph(flow.graph), transaction, 'paid')
+        return
+      }
+
+      await answerCallbackQuery(token, callbackQueryId, { text: 'Pagamento ja confirmado.' }).catch(
+        () => undefined,
+      )
+      return
+    }
+
+    if (transaction.status === 'expired' || transaction.status === 'canceled' || transaction.status === 'failed') {
+      if (result.changed) {
+        await routePixTransaction(
+          { bot, flow, token, chatId, lead },
+          normalizeGraph(flow.graph),
+          transaction,
+          'unpaid',
+        )
+      }
+
+      await answerCallbackQuery(token, callbackQueryId, {
+        text: 'Pagamento nao confirmado. O prazo expirou ou a cobranca falhou.',
+        showAlert: true,
+      }).catch(() => undefined)
+      return
+    }
+
+    await answerCallbackQuery(token, callbackQueryId, {
+      text: 'Pagamento ainda pendente. Tente novamente depois de concluir o PIX.',
+    }).catch(() => undefined)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Nao foi possivel verificar o pagamento.'
+    await answerCallbackQuery(token, callbackQueryId, { text: message, showAlert: true }).catch(() => undefined)
+    await recordEvent({
+      bot,
+      lead,
+      flowId: flow.id,
+      eventType: 'payment_verify_error',
+      status: 'error',
+      message,
+      metadata: { transactionId },
+    })
+  }
+}
+
+export async function continuePixTransactionById(
+  transactionId: string,
+  routeStatus: 'paid' | 'unpaid',
+) {
+  const transaction = await loadPixTransaction(transactionId)
+  if (!transaction.bot_id || !transaction.flow_id || !transaction.lead_id || !transaction.telegram_chat_id) {
+    return { ok: true, skipped: true, reason: 'Transacao incompleta para continuar fluxo.' }
+  }
+
+  const [{ data: bot, error: botError }, { data: flow, error: flowError }, { data: secret, error: secretError }, { data: lead, error: leadError }] =
+    await Promise.all([
+      serviceSupabase.from('bots').select('id,owner_id,name').eq('id', transaction.bot_id).maybeSingle(),
+      serviceSupabase
+        .from('flows')
+        .select('id,bot_id,owner_id,graph')
+        .eq('id', transaction.flow_id)
+        .maybeSingle(),
+      serviceSupabase.from('bot_secrets').select('telegram_token').eq('bot_id', transaction.bot_id).maybeSingle(),
+      serviceSupabase.from('telegram_leads').select(LEAD_SELECT).eq('id', transaction.lead_id).maybeSingle(),
+    ])
+
+  if (botError) throw botError
+  if (flowError) throw flowError
+  if (secretError) throw secretError
+  if (leadError) throw leadError
+
+  if (!bot || !flow || !secret || !lead) {
+    return { ok: true, skipped: true, reason: 'Contexto do fluxo nao encontrado.' }
+  }
+
+  const context: ExecutionContext = {
+    bot: bot as BotRecord,
+    flow: flow as FlowRecord,
+    token: secret.telegram_token,
+    chatId: transaction.telegram_chat_id,
+    lead: lead as LeadRecord,
+  }
+
+  await routePixTransaction(context, normalizeGraph(context.flow.graph), transaction, routeStatus)
+  return { ok: true, routed: true, status: routeStatus }
+}
+
+async function routePixTransaction(
+  context: ExecutionContext,
+  graph: Required<FlowGraph>,
+  transaction: PixTransactionRow,
+  routeStatus: 'paid' | 'unpaid',
+) {
+  const node = graph.nodes.find((candidate) => candidate.id === transaction.node_id)
+  if (!node) {
+    await recordEvent({
+      bot: context.bot,
+      lead: context.lead,
+      flowId: context.flow.id,
+      eventType: 'payment_route_error',
+      status: 'error',
+      message: 'Bloco de pagamento nao encontrado para continuar fluxo.',
+      metadata: { transactionId: transaction.id, routeStatus },
+    })
+    return
+  }
+
+  if (routeStatus === 'paid') {
+    await recordPaymentConfirmed(context, node, transaction)
+  } else {
+    await recordPaymentNotPaid(context, node, transaction)
+  }
+
+  const nextNodeId = findNextNodeId(
+    graph,
+    node,
+    routeStatus === 'paid' ? 'paid' : 'unpaid',
+    routeStatus === 'paid' ? 'PAGO' : 'NAO PAGO',
+  )
+
+  if (nextNodeId) {
+    await runFlow(context, nextNodeId)
+    return
+  }
+
+  await sendMessage(
+    context.token,
+    context.chatId,
+    routeStatus === 'paid'
+      ? 'Pagamento confirmado.'
+      : 'Pagamento nao confirmado. O fluxo nao tem caminho NAO PAGO configurado.',
+  ).catch(() => undefined)
+}
+
+async function recordPaymentConfirmed(
+  context: ExecutionContext,
+  node: FlowGraphNode,
+  transaction: PixTransactionRow,
+) {
+  const now = new Date().toISOString()
+  await serviceSupabase
+    .from('telegram_leads')
+    .update({
+      status: 'pago',
+      plan_name: transaction.plan_name,
+      last_seen_at: now,
+    })
+    .eq('id', context.lead.id)
+
+  const { error } = await serviceSupabase.from('analytics_revenue_events').insert({
+    owner_id: context.bot.owner_id,
+    bot_id: context.bot.id,
+    flow_id: context.flow.id,
+    lead_id: context.lead.id,
+    event_type: 'payment_confirmed',
+    amount_cents: transaction.amount_cents,
+    currency: transaction.currency,
+    gateway: transaction.provider,
+    plan_name: transaction.plan_name,
+    source: context.lead.source ?? null,
+    campaign: context.lead.campaign ?? null,
+    utm_source: context.lead.utm_source ?? null,
+    utm_medium: context.lead.utm_medium ?? null,
+    utm_campaign: context.lead.utm_campaign ?? null,
+    utm_content: context.lead.utm_content ?? null,
+    utm_term: context.lead.utm_term ?? null,
+    metadata: {
+      nodeId: node.id,
+      nodeType: node.type,
+      pixTransactionId: transaction.id,
+      providerPaymentId: transaction.provider_payment_id,
+      externalReference: transaction.external_reference,
+    },
+  })
+
+  if (error) {
+    console.error('Falha ao gravar pagamento confirmado', error)
+  }
+
+  await recordEvent({
+    bot: context.bot,
+    lead: context.lead,
+    flowId: context.flow.id,
+    eventType: 'payment_confirmed',
+    node,
+    status: 'success',
+    message: `${transaction.plan_name || 'Pagamento'} confirmado.`,
+    metadata: {
+      pixTransactionId: transaction.id,
+      amountCents: transaction.amount_cents,
+      gateway: transaction.provider,
+    },
+  })
+}
+
+async function recordPaymentNotPaid(
+  context: ExecutionContext,
+  node: FlowGraphNode,
+  transaction: PixTransactionRow,
+) {
+  await serviceSupabase
+    .from('telegram_leads')
+    .update({
+      status: 'bloqueado',
+      last_seen_at: new Date().toISOString(),
+    })
+    .eq('id', context.lead.id)
+
+  await recordEvent({
+    bot: context.bot,
+    lead: context.lead,
+    flowId: context.flow.id,
+    eventType: 'payment_not_confirmed',
+    node,
+    status: 'pending',
+    message: 'PIX nao confirmado no prazo configurado.',
+    metadata: {
+      pixTransactionId: transaction.id,
+      status: transaction.status,
+      gateway: transaction.provider,
+    },
   })
 }
 
@@ -659,6 +1099,13 @@ function parseCallbackData(data?: string) {
     outputIndex: Number(match[2]),
     id: data ?? '',
   }
+}
+
+function parsePaymentCallbackData(data?: string) {
+  const match = /^kxpay:([0-9a-f-]{36})$/i.exec(data ?? '')
+  if (!match) return null
+
+  return { transactionId: match[1] }
 }
 
 function isStartCommand(text?: string) {

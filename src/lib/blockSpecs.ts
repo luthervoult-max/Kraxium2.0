@@ -46,6 +46,13 @@ const unitOptions = [
   { label: 'dias', value: 'dias' },
 ]
 
+const pixGatewayOptions = [
+  { label: 'Automatico', value: 'auto' },
+  { label: 'Mercado Pago', value: 'mercado_pago' },
+  { label: 'PushinPay', value: 'pushinpay' },
+  { label: 'SyncPay', value: 'syncpay' },
+]
+
 const paymentOutputs = [
   { id: 'paid', label: 'PAGO' },
   { id: 'unpaid', label: 'NAO PAGO' },
@@ -140,6 +147,7 @@ const specs: Record<string, BlockSpec> = {
           { label: 'Numero', value: 'numero' },
           { label: 'Email', value: 'email' },
           { label: 'Telefone', value: 'telefone' },
+          { label: 'CPF', value: 'cpf' },
         ],
       },
       { key: 'fallback', label: 'Mensagem de fallback', kind: 'textarea', placeholder: 'Se a resposta vier invalida...' },
@@ -256,11 +264,23 @@ const specs: Record<string, BlockSpec> = {
     title: 'Gerar Pagamento',
     category: 'pagamento',
     summary: 'Cria uma oferta de pagamento com recorrencia opcional.',
-    defaultConfig: { offerName: '', value: 0, currency: 'BRL', recurrence: 'unico', timeout: 30, priceVariation: false },
+    defaultConfig: {
+      offerName: '',
+      value: 0,
+      currency: 'BRL',
+      paymentMethod: 'pix',
+      recurrence: 'unico',
+      timeout: 30,
+      priceVariation: false,
+      gatewayProvider: 'auto',
+      verifyButtonText: 'Verificar Pagamento',
+    },
     fields: [
       { key: 'offerName', label: 'Nome do plano/produto', kind: 'text', required: true, placeholder: 'Ex: Acesso Premium' },
-      { key: 'value', label: 'Valor', kind: 'number', required: true, min: 0, suffix: 'R$' },
-      { key: 'currency', label: 'Moeda', kind: 'select', options: [{ label: 'BRL', value: 'BRL' }, { label: 'USD', value: 'USD' }] },
+      { key: 'value', label: 'Valor', kind: 'number', required: true, min: 0.01, suffix: 'R$' },
+      { key: 'paymentMethod', label: 'Metodo', kind: 'select', options: [{ label: 'PIX', value: 'pix' }] },
+      { key: 'gatewayProvider', label: 'Gateway PIX', kind: 'select', options: pixGatewayOptions },
+      { key: 'currency', label: 'Moeda', kind: 'select', options: [{ label: 'BRL', value: 'BRL' }] },
       {
         key: 'recurrence',
         label: 'Recorrencia',
@@ -273,6 +293,9 @@ const specs: Record<string, BlockSpec> = {
       },
       { key: 'timeout', label: 'Timeout', kind: 'number', min: 1, suffix: 'min' },
       { key: 'priceVariation', label: 'Variacao de preco', kind: 'switch' },
+      { key: 'messageBeforePix', label: 'Mensagem antes do codigo', kind: 'textarea', placeholder: 'Ex: Copie o codigo abaixo:' },
+      { key: 'messageAfterPix', label: 'Mensagem depois do codigo', kind: 'textarea', placeholder: 'Ex: Apos pagar, clique no botao abaixo.' },
+      { key: 'verifyButtonText', label: 'Texto do botao verificar', kind: 'text', placeholder: 'Verificar Pagamento' },
     ],
     outputs: paymentOutputs,
   },
@@ -329,12 +352,25 @@ function paymentSpec(code: string, title: string, summary: string): BlockSpec {
     title,
     category: 'pagamento',
     summary,
-    defaultConfig: { offerName: '', value: 0, description: '', expiresIn: 30 },
+    defaultConfig: {
+      offerName: '',
+      value: 0,
+      description: '',
+      expiresIn: 30,
+      gatewayProvider: 'auto',
+      messageBeforePix: '',
+      messageAfterPix: 'Depois de pagar, toque em Verificar Pagamento para liberar o proximo passo.',
+      verifyButtonText: 'Verificar Pagamento',
+    },
     fields: [
       { key: 'offerName', label: 'Nome da oferta', kind: 'text', required: true, placeholder: 'Ex: Acesso Premium' },
-      { key: 'value', label: 'Valor', kind: 'number', required: true, min: 0, suffix: 'R$' },
+      { key: 'value', label: 'Valor', kind: 'number', required: true, min: 0.01, suffix: 'R$' },
       { key: 'description', label: 'Descricao', kind: 'textarea', placeholder: 'Detalhes da cobranca...' },
       { key: 'expiresIn', label: 'Expira em', kind: 'number', min: 1, suffix: 'min' },
+      { key: 'gatewayProvider', label: 'Gateway PIX', kind: 'select', options: pixGatewayOptions },
+      { key: 'messageBeforePix', label: 'Mensagem antes do codigo', kind: 'textarea', placeholder: 'Ex: Copie o codigo abaixo:' },
+      { key: 'messageAfterPix', label: 'Mensagem depois do codigo', kind: 'textarea', placeholder: 'Ex: Apos pagar, clique no botao abaixo.' },
+      { key: 'verifyButtonText', label: 'Texto do botao verificar', kind: 'text', placeholder: 'Verificar Pagamento' },
     ],
     outputs: paymentOutputs,
   }
@@ -447,6 +483,11 @@ export function validateBlockConfig(code: string, config: BlockConfig): string[]
 
     if (field.kind === 'number' && !Number.isFinite(Number(value))) {
       issues.push(`${field.label} precisa ser um numero.`)
+      return
+    }
+
+    if (field.kind === 'number' && typeof field.min === 'number' && Number(value) < field.min) {
+      issues.push(`${field.label} precisa ser maior ou igual a ${field.min}.`)
       return
     }
 

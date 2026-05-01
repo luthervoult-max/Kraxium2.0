@@ -44,6 +44,7 @@ import {
   type Flow,
   type ImportedFlowDraft,
 } from '@/lib/api/flows'
+import { listPaymentGatewayConnections } from '@/lib/api/paymentGateways'
 import '@xyflow/react/dist/style.css'
 import { FlowNode, type FlowNodeData } from '@/components/flow/FlowNode'
 import { TelegramSimulator } from '@/components/telegram/TelegramSimulator'
@@ -189,6 +190,7 @@ export default function FlowIntel({
   const [saveDialogBots, setSaveDialogBots] = useState<TelegramBot[]>([])
   const [saveDialogLoadingBots, setSaveDialogLoadingBots] = useState(false)
   const [saveDialogError, setSaveDialogError] = useState<string | null>(null)
+  const [hasPixGatewayConnected, setHasPixGatewayConnected] = useState(true)
   const saveDialogResolverRef = useRef<((saved: boolean) => void) | null>(null)
   const saveContextRef = useRef<SaveContext | null>(null)
   const runtimeNodeCacheRef = useRef<Map<string, RuntimeNodeCacheEntry>>(new Map())
@@ -258,6 +260,29 @@ export default function FlowIntel({
     )
     markUnsaved()
   }, [markUnsaved, setNodes])
+
+  useEffect(() => {
+    let cancelled = false
+
+    listPaymentGatewayConnections()
+      .then((connections) => {
+        if (cancelled) return
+        setHasPixGatewayConnected(
+          connections.some(
+            (connection) =>
+              connection.status === 'connected' &&
+              ['mercado_pago', 'pushinpay', 'syncpay'].includes(connection.provider),
+          ),
+        )
+      })
+      .catch(() => {
+        if (!cancelled) setHasPixGatewayConnected(true)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const handleToggleNodeExpanded = useCallback((nodeId: string) => {
     if (nodeId === START_NODE_ID) return
@@ -370,12 +395,16 @@ export default function FlowIntel({
         const config = mergeBlockConfig(node.data.code, node.data.config)
         const outputs = node.data.isStartNode ? [{ id: 'next', label: 'NEXT' }] : getBlockOutputs(node.data.code, config)
         const validationIssues = node.data.isStartNode ? [] : validateBlockConfig(node.data.code, config)
+        if (!node.data.isStartNode && ['PX', 'PG'].includes(node.data.code) && !hasPixGatewayConnected) {
+          validationIssues.push('Nenhum gateway PIX conectado para gerar cobranca real.')
+        }
         const healthKey = [
           runtimeStatus,
           errorCount,
           lastErrorAt ?? '',
           lastTraceId ?? '',
           node.data.expanded ? 'open' : 'closed',
+          hasPixGatewayConnected ? 'pix-on' : 'pix-off',
           JSON.stringify(config),
           availableTargetNodes.map((target) => target.id).join(','),
         ].join(':')
@@ -416,7 +445,15 @@ export default function FlowIntel({
 
       return enhancedNodes
     },
-    [availableTargetNodes, handleDeleteNode, handleToggleNodeExpanded, handleUpdateNodeConfig, nodeHealth, nodes],
+    [
+      availableTargetNodes,
+      handleDeleteNode,
+      handleToggleNodeExpanded,
+      handleUpdateNodeConfig,
+      hasPixGatewayConnected,
+      nodeHealth,
+      nodes,
+    ],
   )
   const totalErrorCount = useMemo(
     () => Object.values(nodeHealth).reduce((total, health) => total + health.errorCount, 0),

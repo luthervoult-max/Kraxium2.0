@@ -80,11 +80,13 @@ export async function sendMessage(
   chatId: string,
   text: string,
   keyboard?: InlineKeyboardButton[][],
+  options: { parseMode?: 'HTML' | 'Markdown' | 'MarkdownV2' } = {},
 ) {
   return telegramRequest(token, 'sendMessage', {
     chat_id: chatId,
     text,
     disable_web_page_preview: true,
+    ...(options.parseMode ? { parse_mode: options.parseMode } : {}),
     ...(keyboard ? { reply_markup: { inline_keyboard: keyboard } } : {}),
   })
 }
@@ -96,8 +98,14 @@ export async function sendChatAction(token: string, chatId: string, action: stri
   })
 }
 
-export async function answerCallbackQuery(token: string, callbackQueryId: string) {
+export async function answerCallbackQuery(
+  token: string,
+  callbackQueryId: string,
+  options: { text?: string; showAlert?: boolean } = {},
+) {
   return telegramRequest(token, 'answerCallbackQuery', {
     callback_query_id: callbackQueryId,
+    ...(options.text ? { text: options.text } : {}),
+    ...(options.showAlert ? { show_alert: true } : {}),
   })
 }
