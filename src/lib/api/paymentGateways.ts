@@ -35,10 +35,10 @@ export async function listPaymentGatewayConnections() {
 
 export async function connectPaymentGateway(input: ConnectPaymentGatewayInput) {
   const data = await paymentGatewayFetch<{ connection: PaymentGatewayConnection }>(
-    '/api/payment-gateways/connect',
+    '/api/payment-gateways',
     {
       method: 'POST',
-      body: JSON.stringify(input),
+      body: JSON.stringify({ action: 'connect', ...input }),
     },
   )
 
@@ -46,9 +46,9 @@ export async function connectPaymentGateway(input: ConnectPaymentGatewayInput) {
 }
 
 export async function disconnectPaymentGateway(provider: PaymentGatewayProvider) {
-  await paymentGatewayFetch<{ ok: true }>('/api/payment-gateways/disconnect', {
+  await paymentGatewayFetch<{ ok: true }>('/api/payment-gateways', {
     method: 'POST',
-    body: JSON.stringify({ provider }),
+    body: JSON.stringify({ action: 'disconnect', provider }),
   })
 }
 
