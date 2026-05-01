@@ -1,6 +1,11 @@
-import { useEffect, useState } from 'react'
-import { Bot as BotIcon, CreditCard, GitBranch, Users } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Bot as BotIcon, CreditCard, GitBranch, Loader2, Users } from 'lucide-react'
 import { listBots, type Bot as BotRow } from '@/lib/api/bots'
+import {
+  getAnalyticsDashboard,
+  type AnalyticsDashboard,
+  type AnalyticsOverview,
+} from '@/lib/api/analytics'
 import type { Page } from '@/lib/pages'
 
 type Accent = 'purple' | 'green' | 'pink' | 'gold'
@@ -11,97 +16,154 @@ interface KpiCardData {
   sub: string
   pct: number
   accent: Accent
+  loading?: boolean
 }
 
-const KPIS: KpiCardData[] = [
-  { label: 'Receita Total', value: 'R$12.4K', sub: 'meta: R$17.2K · 30 dias', pct: 72, accent: 'purple' },
-  { label: 'PAGOS 7D', value: '847', sub: 'meta: 1.2K · confirmados', pct: 70, accent: 'green' },
-  { label: 'VISITAS 7D', value: '3.2K', sub: 'meta: 8K · acessos', pct: 40, accent: 'pink' },
-  { label: 'Conversão', value: '26.4%', sub: 'visits → pagamentos', pct: 26, accent: 'gold' },
-]
+interface BotMetricSummary {
+  interactions: number
+  starts: number
+  confirmedPayments: number
+  revenueConfirmedCents: number
+  topFlowLabel: string | null
+}
+
+const emptyOverview: AnalyticsOverview = {
+  interactions: 0,
+  starts: 0,
+  revenueGeneratedCents: 0,
+  revenueConfirmedCents: 0,
+  averageTicketCents: 0,
+  startRate: 0,
+  leadSaleRate: 0,
+  approvalRate: 0,
+  generatedPayments: 0,
+  confirmedPayments: 0,
+}
 
 const ACCENT_PALETTE: Record<
   Accent,
   { c: string; label: string; border: string; track: string; glow?: string }
 > = {
   purple: {
-    c: '#8b5cf6',
-    label: '#a78bfa',
-    border: 'rgba(139,92,246,0.3)',
-    track: 'rgba(139,92,246,0.12)',
+    c: '#a855f7',
+    label: '#c084fc',
+    border: 'rgba(168,85,247,0.34)',
+    track: 'rgba(168,85,247,0.14)',
+    glow: '0 0 12px rgba(168,85,247,0.45)',
   },
   green: {
-    c: '#00ff88',
-    label: '#00ff88',
-    border: 'rgba(0,255,136,0.2)',
-    track: 'rgba(0,255,136,0.1)',
-    glow: '0 0 8px rgba(0,255,136,0.3)',
+    c: '#39ff14',
+    label: '#39ff14',
+    border: 'rgba(57,255,20,0.22)',
+    track: 'rgba(57,255,20,0.1)',
+    glow: '0 0 12px rgba(57,255,20,0.34)',
   },
   pink: {
-    c: '#ec4899',
+    c: '#ff2a9d',
     label: '#f472b6',
-    border: 'rgba(236,72,153,0.2)',
-    track: 'rgba(236,72,153,0.1)',
+    border: 'rgba(255,42,157,0.24)',
+    track: 'rgba(255,42,157,0.1)',
+    glow: '0 0 12px rgba(255,42,157,0.3)',
   },
   gold: {
     c: '#f59e0b',
-    label: '#f59e0b',
-    border: 'rgba(245,158,11,0.2)',
+    label: '#fbbf24',
+    border: 'rgba(245,158,11,0.25)',
     track: 'rgba(245,158,11,0.1)',
   },
 }
 
 function formatNumber(n: number): string {
-  return n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n)
+  return new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 }).format(Number(n) || 0)
 }
 
-function KpiCard({ label, value, sub, pct, accent }: KpiCardData) {
+function formatCompactNumber(n: number): string {
+  return new Intl.NumberFormat('pt-BR', {
+    notation: 'compact',
+    maximumFractionDigits: 1,
+  }).format(Number(n) || 0)
+}
+
+function formatCurrency(cents: number): string {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    maximumFractionDigits: 2,
+  }).format((Number(cents) || 0) / 100)
+}
+
+function clampPercent(value: number) {
+  if (!Number.isFinite(value)) return 0
+  return Math.max(0, Math.min(100, Math.round(value)))
+}
+
+function percent(numerator: number, denominator: number) {
+  if (denominator <= 0) return numerator > 0 ? 100 : 0
+  return clampPercent((numerator / denominator) * 100)
+}
+
+function toBotMetricSummary(dashboard: AnalyticsDashboard): BotMetricSummary {
+  return {
+    interactions: dashboard.overview.interactions,
+    starts: dashboard.overview.starts,
+    confirmedPayments: dashboard.overview.confirmedPayments,
+    revenueConfirmedCents: dashboard.overview.revenueConfirmedCents,
+    topFlowLabel: dashboard.rankings.topFlows[0]?.label ?? null,
+  }
+}
+
+function KpiCard({ label, value, sub, pct, accent, loading }: KpiCardData) {
   const a = ACCENT_PALETTE[accent]
-  const radius = 27
+  const radius = 33
   const circ = 2 * Math.PI * radius
-  const dash = (pct / 100) * circ
+  const dash = (clampPercent(pct) / 100) * circ
+
   return (
     <div
-      className="flex flex-col gap-2.5 rounded-[14px] p-4"
-      style={{ background: '#16213e', border: `1px solid ${a.border}` }}
+      className="flex min-h-[176px] flex-col justify-between rounded-[18px] p-5 transition-colors"
+      style={{
+        background: 'linear-gradient(180deg,#0c0d10 0%,#08090b 100%)',
+        border: `1px solid ${a.border}`,
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
+      }}
     >
       <div
-        className="text-[9px] font-semibold uppercase"
-        style={{ letterSpacing: '0.15em', color: a.label }}
+        className="text-[12px] font-black uppercase text-slate-400"
+        style={{ letterSpacing: '0.12em' }}
       >
         {label}
       </div>
-      <div className="flex items-center gap-3">
-        <div className="relative h-16 w-16 shrink-0">
-          <svg width="64" height="64" viewBox="0 0 72 72" style={{ transform: 'rotate(-90deg)' }}>
-            <circle cx="36" cy="36" r={radius} fill="none" stroke={a.track} strokeWidth="7" />
+      <div className="mt-4 flex items-center gap-4">
+        <div className="relative h-20 w-20 shrink-0">
+          <svg width="80" height="80" viewBox="0 0 80 80" style={{ transform: 'rotate(-90deg)' }}>
+            <circle cx="40" cy="40" r={radius} fill="none" stroke={a.track} strokeWidth="8" />
             <circle
-              cx="36"
-              cy="36"
+              cx="40"
+              cy="40"
               r={radius}
               fill="none"
               stroke={a.c}
-              strokeWidth="7"
+              strokeWidth="8"
               strokeDasharray={`${dash} ${circ}`}
               strokeLinecap="round"
-              style={{ filter: a.glow ? `drop-shadow(0 0 3px ${a.c})` : 'none' }}
+              style={{ filter: a.glow ? `drop-shadow(${a.glow})` : 'none' }}
             />
           </svg>
           <div
-            className="font-display absolute inset-0 flex items-center justify-center text-xs font-bold"
+            className="font-display absolute inset-0 flex items-center justify-center text-sm font-black"
             style={{ color: a.c }}
           >
-            {pct}%
+            {loading ? '...' : `${clampPercent(pct)}%`}
           </div>
         </div>
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           <div
-            className="font-display text-[22px] font-bold leading-tight text-white"
-            style={{ lineHeight: 1.1 }}
+            className="font-display break-words text-[clamp(1.75rem,2.5vw,2.55rem)] font-black leading-none text-white"
+            style={{ textShadow: `0 0 18px ${a.c}44` }}
           >
-            {value}
+            {loading ? 'Carregando' : value}
           </div>
-          <div className="mt-1 text-[10px] text-slate-500">{sub}</div>
+          <div className="mt-3 text-[13px] font-semibold leading-5 text-slate-400">{sub}</div>
         </div>
       </div>
     </div>
@@ -110,32 +172,33 @@ function KpiCard({ label, value, sub, pct, accent }: KpiCardData) {
 
 interface BotCardProps {
   bot: BotRow
+  metrics: BotMetricSummary | null
+  loadingMetrics: boolean
   onManage: () => void
 }
 
-function BotCard({ bot, onManage }: BotCardProps) {
-  const isActive = Boolean(bot.telegram_token)
-  const statusColor = isActive ? '#00ff88' : '#f59e0b'
+function BotCard({ bot, metrics, loadingMetrics, onManage }: BotCardProps) {
+  const isActive = Boolean(bot.telegram_bot_id || bot.webhook_enabled)
+  const statusColor = isActive ? '#39ff14' : '#f59e0b'
   const statusText = isActive ? 'Ativo' : 'Pausado'
-  const handle = bot.telegram_token ? `@${bot.name.toLowerCase().replace(/\s+/g, '_')}` : 'sem token'
-  const usersCount = 0
-  const msgsCount = 0
-  const flowName = bot.webhook_enabled ? 'Webhook ativo' : 'Sem fluxo conectado'
+  const handle = bot.telegram_username ? `@${bot.telegram_username}` : bot.telegram_bot_id ? `ID ${bot.telegram_bot_id}` : 'sem telegram'
+  const flowName = metrics?.topFlowLabel ?? (bot.webhook_enabled ? 'Webhook ativo' : 'Sem fluxo conectado')
 
   return (
     <div
-      className="rounded-[14px] p-4 transition-colors"
+      className="rounded-[18px] p-5 transition-colors"
       style={{
-        background: '#16213e',
-        border: '1px solid rgba(255,255,255,0.06)',
+        background: 'linear-gradient(180deg,#0c0d10 0%,#08090b 100%)',
+        border: '1px solid rgba(255,255,255,0.08)',
         cursor: 'pointer',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
       }}
       onClick={onManage}
       onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = 'rgba(139,92,246,0.35)'
+        e.currentTarget.style.borderColor = 'rgba(168,85,247,0.45)'
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)'
+        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'
       }}
       role="button"
       tabIndex={0}
@@ -146,36 +209,36 @@ function BotCard({ bot, onManage }: BotCardProps) {
         }
       }}
     >
-      <div className="mb-3 flex items-center gap-3">
+      <div className="mb-5 flex items-center gap-4">
         <div
-          className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-[11px]"
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px]"
           style={{
-            background: 'linear-gradient(135deg,#1a1a2e,#2e1065)',
-            border: '1px solid rgba(139,92,246,0.3)',
+            background: 'linear-gradient(135deg,#111827,#2e1065)',
+            border: '1px solid rgba(168,85,247,0.34)',
           }}
         >
-          <BotIcon size={18} aria-hidden className="text-[#a78bfa]" />
+          <BotIcon size={21} aria-hidden className="text-[#c084fc]" />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="mb-0.5 truncate text-sm font-semibold text-white">{bot.name}</div>
-          <div className="font-mono text-[10px] text-slate-600">{handle}</div>
+          <div className="mb-1 truncate text-base font-black text-white">{bot.name}</div>
+          <div className="truncate font-mono text-[12px] text-slate-500">{handle}</div>
         </div>
         <div
-          className="flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-[3px]"
+          className="flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1"
           style={{
             border: `1px solid ${statusColor}44`,
             background: `${statusColor}11`,
           }}
         >
           <div
-            className="h-[5px] w-[5px] rounded-full"
+            className="h-1.5 w-1.5 rounded-full"
             style={{
               background: statusColor,
-              boxShadow: isActive ? `0 0 5px ${statusColor}` : 'none',
+              boxShadow: isActive ? `0 0 7px ${statusColor}` : 'none',
             }}
           />
           <span
-            className="text-[9px] font-semibold uppercase"
+            className="text-[10px] font-black uppercase"
             style={{ letterSpacing: '0.1em', color: statusColor }}
           >
             {statusText}
@@ -183,40 +246,15 @@ function BotCard({ bot, onManage }: BotCardProps) {
         </div>
       </div>
 
-      <div className="mb-3 grid grid-cols-2 gap-2">
-        <div
-          className="rounded-[9px] px-2.5 py-2.5"
-          style={{ background: 'rgba(255,255,255,0.03)' }}
-        >
-          <div
-            className="mb-0.5 text-[9px] uppercase text-slate-600"
-            style={{ letterSpacing: '0.1em' }}
-          >
-            Usuários
-          </div>
-          <div className="font-display text-[17px] font-bold" style={{ color: '#a78bfa' }}>
-            {formatNumber(usersCount)}
-          </div>
-        </div>
-        <div
-          className="rounded-[9px] px-2.5 py-2.5"
-          style={{ background: 'rgba(255,255,255,0.03)' }}
-        >
-          <div
-            className="mb-0.5 text-[9px] uppercase text-slate-600"
-            style={{ letterSpacing: '0.1em' }}
-          >
-            Mensagens
-          </div>
-          <div className="font-display text-[17px] font-bold" style={{ color: '#00ff88' }}>
-            {formatNumber(msgsCount)}
-          </div>
-        </div>
+      <div className="mb-4 grid grid-cols-3 gap-2">
+        <BotStat label="Interações" value={loadingMetrics ? '...' : formatCompactNumber(metrics?.interactions ?? 0)} color="#c084fc" />
+        <BotStat label="Vendas" value={loadingMetrics ? '...' : formatNumber(metrics?.confirmedPayments ?? 0)} color="#39ff14" />
+        <BotStat label="Receita" value={loadingMetrics ? '...' : formatCurrency(metrics?.revenueConfirmedCents ?? 0)} color="#ff2a9d" />
       </div>
 
-      <div className="flex items-center justify-between">
-        <span className="text-[10px] text-slate-500">
-          Fluxo: <span className="font-medium text-slate-400">{flowName}</span>
+      <div className="flex items-center justify-between gap-3">
+        <span className="min-w-0 truncate text-[12px] font-medium text-slate-500">
+          Fluxo: <span className="text-slate-300">{flowName}</span>
         </span>
         <button
           type="button"
@@ -224,15 +262,37 @@ function BotCard({ bot, onManage }: BotCardProps) {
             e.stopPropagation()
             onManage()
           }}
-          className="rounded-[7px] px-3.5 py-1 text-[11px] font-semibold"
+          className="rounded-[9px] px-4 py-2 text-[12px] font-black"
           style={{
-            border: '1px solid rgba(139,92,246,0.35)',
-            background: 'rgba(139,92,246,0.1)',
-            color: '#a78bfa',
+            border: '1px solid rgba(168,85,247,0.4)',
+            background: 'rgba(168,85,247,0.12)',
+            color: '#c084fc',
           }}
         >
-          Gerenciar →
+          Gerenciar
         </button>
+      </div>
+    </div>
+  )
+}
+
+function BotStat({ label, value, color }: { label: string; value: string; color: string }) {
+  return (
+    <div
+      className="rounded-[12px] px-3 py-3"
+      style={{
+        background: 'rgba(255,255,255,0.035)',
+        border: '1px solid rgba(255,255,255,0.06)',
+      }}
+    >
+      <div
+        className="mb-1 text-[10px] font-black uppercase text-slate-600"
+        style={{ letterSpacing: '0.08em' }}
+      >
+        {label}
+      </div>
+      <div className="font-display truncate text-[18px] font-black" style={{ color }}>
+        {value}
       </div>
     </div>
   )
@@ -246,31 +306,105 @@ interface DashboardHomeProps {
 
 export default function DashboardHome({ isMobile, onNavigate, onSelectBot }: DashboardHomeProps) {
   const [bots, setBots] = useState<BotRow[]>([])
-  const [loadingBots, setLoadingBots] = useState(true)
+  const [dashboard, setDashboard] = useState<AnalyticsDashboard | null>(null)
+  const [botMetrics, setBotMetrics] = useState<Record<string, BotMetricSummary>>({})
+  const [loading, setLoading] = useState(true)
+  const [loadingBotMetrics, setLoadingBotMetrics] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     let active = true
-    setLoadingBots(true)
-    listBots()
-      .then((data) => {
+
+    async function loadDashboard() {
+      setLoading(true)
+      setError(null)
+
+      try {
+        const [botRows, dashboardData] = await Promise.all([
+          listBots(),
+          getAnalyticsDashboard({ timeRange: 'month' }),
+        ])
+
         if (!active) return
-        setBots(data)
-        setError(null)
-      })
-      .catch((err: unknown) => {
+        setBots(botRows)
+        setDashboard(dashboardData)
+        setLoading(false)
+
+        const visibleBots = botRows.slice(0, 6)
+        if (visibleBots.length === 0) return
+
+        setLoadingBotMetrics(true)
+        const summaries = await Promise.all(
+          visibleBots.map(async (bot) => {
+            try {
+              const botDashboard = await getAnalyticsDashboard({ timeRange: 'month', botId: bot.id })
+              return [bot.id, toBotMetricSummary(botDashboard)] as const
+            } catch {
+              return [bot.id, null] as const
+            }
+          }),
+        )
+
         if (!active) return
-        setError(err instanceof Error ? err.message : 'Erro ao carregar bots')
-      })
-      .finally(() => {
-        if (active) setLoadingBots(false)
-      })
+        setBotMetrics(Object.fromEntries(summaries.filter((item): item is readonly [string, BotMetricSummary] => Boolean(item[1]))))
+      } catch (err) {
+        if (!active) return
+        setError(err instanceof Error ? err.message : 'Erro ao carregar dados reais do painel.')
+        setDashboard(null)
+        setBots([])
+      } finally {
+        if (active) {
+          setLoading(false)
+          setLoadingBotMetrics(false)
+        }
+      }
+    }
+
+    void loadDashboard()
+
     return () => {
       active = false
     }
   }, [])
 
+  const overview = dashboard?.overview ?? emptyOverview
   const today = new Date().toLocaleDateString('pt-BR')
+  const visibleBots = bots.slice(0, 6)
+
+  const kpis = useMemo<KpiCardData[]>(() => ([
+    {
+      label: 'Receita Total',
+      value: formatCurrency(overview.revenueConfirmedCents),
+      sub: `${formatCurrency(overview.revenueGeneratedCents)} gerados no mês`,
+      pct: percent(overview.revenueConfirmedCents, overview.revenueGeneratedCents),
+      accent: 'purple',
+      loading,
+    },
+    {
+      label: 'Pagos',
+      value: formatNumber(overview.confirmedPayments),
+      sub: `${formatNumber(overview.generatedPayments)} pagamentos gerados`,
+      pct: overview.approvalRate,
+      accent: 'green',
+      loading,
+    },
+    {
+      label: 'Interações',
+      value: formatCompactNumber(overview.interactions),
+      sub: `${formatCompactNumber(overview.starts)} starts registrados`,
+      pct: overview.startRate,
+      accent: 'pink',
+      loading,
+    },
+    {
+      label: 'Conversão',
+      value: `${overview.leadSaleRate}%`,
+      sub: 'leads que viraram venda',
+      pct: overview.leadSaleRate,
+      accent: 'gold',
+      loading,
+    },
+  ]), [loading, overview])
 
   const quickActions: Array<{
     label: string
@@ -278,73 +412,62 @@ export default function DashboardHome({ isMobile, onNavigate, onSelectBot }: Das
     icon: typeof GitBranch
     onClick: () => void
   }> = [
-    { label: 'Novo Fluxo', color: '#8b5cf6', icon: GitBranch, onClick: () => onNavigate('flowIntel') },
-    { label: 'Adicionar Bot', color: '#10b981', icon: BotIcon, onClick: () => onNavigate('bots') },
-    { label: 'Gerar PIX', color: '#f59e0b', icon: CreditCard, onClick: () => onNavigate('flows') },
-    { label: 'Ver Usuários', color: '#ec4899', icon: Users, onClick: () => onNavigate('users') },
+    { label: 'Novo Fluxo', color: '#a855f7', icon: GitBranch, onClick: () => onNavigate('flowIntel') },
+    { label: 'Adicionar Bot', color: '#39ff14', icon: BotIcon, onClick: () => onNavigate('bots') },
+    { label: 'Ver Métricas', color: '#ff2a9d', icon: CreditCard, onClick: () => onNavigate('analytics') },
+    { label: 'Ver Usuários', color: '#f59e0b', icon: Users, onClick: () => onNavigate('users') },
   ]
 
   return (
     <div
       className="flex-1 overflow-y-auto"
-      style={{ padding: isMobile ? '16px 14px' : '22px 28px' }}
+      style={{ padding: isMobile ? '18px 14px' : '28px 32px' }}
     >
       <div
-        className="mb-5 flex items-center gap-2.5 rounded-[10px] px-3.5 py-2.5"
+        className="mb-6 flex items-center gap-3 rounded-[16px] px-5 py-4"
         style={{
-          background: 'rgba(139,92,246,0.08)',
-          border: '1px solid rgba(139,92,246,0.22)',
+          background: 'linear-gradient(90deg,rgba(168,85,247,0.12),rgba(8,9,11,0.72))',
+          border: '1px solid rgba(168,85,247,0.24)',
         }}
       >
         <span
-          className="h-1.5 w-1.5 shrink-0 rounded-full"
-          style={{ background: '#8b5cf6', boxShadow: '0 0 8px rgba(139,92,246,0.8)' }}
+          className="h-2 w-2 shrink-0 rounded-full"
+          style={{ background: '#a855f7', boxShadow: '0 0 12px rgba(168,85,247,0.85)' }}
         />
-        <span className="text-xs font-medium text-[#a78bfa]">
-          Sistema operando normalmente · Última sincronização agora
+        <span className="text-sm font-bold text-[#c084fc]">
+          Painel real dos últimos 30 dias · vendas, interações e bots sincronizados
         </span>
         {!isMobile && (
-          <span className="ml-auto shrink-0 font-mono text-[10px] text-slate-700">{today}</span>
+          <span className="ml-auto shrink-0 font-mono text-[12px] text-slate-500">{today}</span>
         )}
       </div>
 
+      <SectionTitle label="Métricas Principais" />
       <div
-        className="mb-3 text-[9px] font-semibold uppercase"
-        style={{ letterSpacing: '0.15em', color: '#a78bfa' }}
-      >
-        Métricas Principais
-      </div>
-      <div
-        className="mb-6 grid gap-2.5"
+        className="mb-8 grid gap-4"
         style={{
-          gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)',
+          gridTemplateColumns: isMobile ? '1fr' : 'repeat(4,minmax(0,1fr))',
         }}
       >
-        {KPIS.map((m) => (
-          <KpiCard key={m.label} {...m} />
+        {kpis.map((metric) => (
+          <KpiCard key={metric.label} {...metric} />
         ))}
       </div>
 
-      <div className="mb-3 flex items-center justify-between">
-        <div
-          className="text-[9px] font-semibold uppercase"
-          style={{ letterSpacing: '0.15em', color: '#a78bfa' }}
-        >
-          Meus Bots ({bots.length})
-        </div>
+      <div className="mb-4 flex items-center justify-between">
+        <SectionTitle label={`Meus Bots (${bots.length})`} compact />
         <button
           type="button"
           onClick={() => onNavigate('bots')}
-          className="border-0 bg-transparent text-xs font-semibold"
-          style={{ color: '#8b5cf6' }}
+          className="rounded-[10px] border border-purple-500/30 bg-purple-500/10 px-4 py-2 text-sm font-black text-[#c084fc]"
         >
-          Ver todos →
+          Ver todos
         </button>
       </div>
 
       {error && (
         <div
-          className="mb-3 rounded-[10px] px-3.5 py-2.5 text-xs"
+          className="mb-4 rounded-[14px] px-4 py-3 text-sm font-semibold"
           style={{
             background: 'rgba(239,68,68,0.08)',
             border: '1px solid rgba(239,68,68,0.25)',
@@ -355,35 +478,43 @@ export default function DashboardHome({ isMobile, onNavigate, onSelectBot }: Das
         </div>
       )}
 
-      {loadingBots ? (
-        <div className="text-xs text-slate-500">Carregando bots…</div>
+      {loading ? (
+        <div
+          className="flex min-h-[180px] items-center justify-center rounded-[18px] text-sm font-bold text-slate-500"
+          style={{ background: '#0c0d10', border: '1px solid rgba(255,255,255,0.08)' }}
+        >
+          <Loader2 size={18} className="mr-3 animate-spin" aria-hidden />
+          Carregando dados reais...
+        </div>
       ) : bots.length === 0 ? (
         <div
-          className="rounded-[14px] p-5 text-center text-sm text-slate-400"
+          className="rounded-[18px] p-7 text-center text-base text-slate-400"
           style={{
-            background: '#16213e',
-            border: '1px dashed rgba(139,92,246,0.25)',
+            background: '#0c0d10',
+            border: '1px dashed rgba(168,85,247,0.32)',
           }}
         >
           Nenhum bot cadastrado ainda.{' '}
           <button
             type="button"
             onClick={() => onNavigate('bots')}
-            className="border-0 bg-transparent font-semibold"
-            style={{ color: '#a78bfa' }}
+            className="border-0 bg-transparent font-black"
+            style={{ color: '#c084fc' }}
           >
             Criar o primeiro
           </button>
         </div>
       ) : (
         <div
-          className="grid gap-3"
-          style={{ gridTemplateColumns: isMobile ? '1fr' : 'repeat(3,1fr)' }}
+          className="grid gap-4"
+          style={{ gridTemplateColumns: isMobile ? '1fr' : 'repeat(3,minmax(0,1fr))' }}
         >
-          {bots.slice(0, 6).map((bot) => (
+          {visibleBots.map((bot) => (
             <BotCard
               key={bot.id}
               bot={bot}
+              metrics={botMetrics[bot.id] ?? null}
+              loadingMetrics={loadingBotMetrics && !botMetrics[bot.id]}
               onManage={() => {
                 onSelectBot(bot.id)
                 onNavigate('bots')
@@ -393,60 +524,64 @@ export default function DashboardHome({ isMobile, onNavigate, onSelectBot }: Das
         </div>
       )}
 
-      <div className="mt-6">
+      <div className="mt-8">
+        <SectionTitle label="Ações Rápidas" />
         <div
-          className="mb-3 text-[9px] font-semibold uppercase"
-          style={{ letterSpacing: '0.15em', color: '#a78bfa' }}
-        >
-          Ações Rápidas
-        </div>
-        <div
-          className="grid gap-2.5"
+          className="grid gap-4"
           style={{
             gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)',
           }}
         >
-          {quickActions.map((a) => {
-            const Icon = a.icon
+          {quickActions.map((action) => {
+            const Icon = action.icon
             return (
               <button
-                key={a.label}
+                key={action.label}
                 type="button"
-                onClick={a.onClick}
-                className="flex items-center gap-2.5 rounded-xl px-3.5 py-4 transition-all"
+                onClick={action.onClick}
+                className="flex min-h-[86px] items-center gap-3 rounded-[16px] px-4 py-5 transition-all"
                 style={{
-                  background: '#16213e',
-                  border: `1px solid ${a.color}28`,
-                  color: a.color,
+                  background: '#0c0d10',
+                  border: `1px solid ${action.color}35`,
+                  color: action.color,
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = `${a.color}66`
-                  e.currentTarget.style.background = `${a.color}11`
+                  e.currentTarget.style.borderColor = `${action.color}70`
+                  e.currentTarget.style.background = `${action.color}12`
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = `${a.color}28`
-                  e.currentTarget.style.background = '#16213e'
+                  e.currentTarget.style.borderColor = `${action.color}35`
+                  e.currentTarget.style.background = '#0c0d10'
                 }}
               >
                 <div
-                  className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[9px]"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px]"
                   style={{
-                    background: `${a.color}18`,
-                    border: `1px solid ${a.color}33`,
+                    background: `${action.color}18`,
+                    border: `1px solid ${action.color}35`,
                   }}
                 >
-                  <Icon size={16} aria-hidden color={a.color} />
+                  <Icon size={19} aria-hidden color={action.color} />
                 </div>
-                <span
-                  className="text-left text-xs font-semibold leading-snug text-slate-200"
-                >
-                  {a.label}
+                <span className="text-left text-sm font-black leading-snug text-slate-100">
+                  {action.label}
                 </span>
               </button>
             )
           })}
         </div>
       </div>
+    </div>
+  )
+}
+
+function SectionTitle({ label, compact }: { label: string; compact?: boolean }) {
+  return (
+    <div
+      className={compact ? 'text-[12px] font-black uppercase' : 'mb-4 text-[12px] font-black uppercase'}
+      style={{ letterSpacing: '0.16em', color: '#c084fc' }}
+    >
+      {label}
     </div>
   )
 }
