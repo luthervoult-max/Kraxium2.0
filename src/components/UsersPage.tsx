@@ -292,19 +292,19 @@ export default function UsersPage() {
 
       <section className="overflow-hidden rounded-[18px] border border-white/10 bg-[#0c0d10]">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1180px] border-collapse text-left">
+          <table className="w-full min-w-[860px] border-collapse text-left">
             <thead>
               <tr className="border-b border-white/10 bg-white/[0.025] text-[11px] font-black uppercase tracking-[0.16em] text-gray-500">
-                <th className="px-7 py-5">Nome / Email</th>
-                <th className="px-5 py-5">ID</th>
-                <th className="px-5 py-5">Cod. Vendas</th>
-                <th className="px-5 py-5">Plano</th>
-                <th className="px-5 py-5">Bot</th>
-                <th className="px-5 py-5">Fluxo</th>
-                <th className="px-5 py-5">Etapa atual</th>
-                <th className="px-5 py-5">Status</th>
-                <th className="px-5 py-5">Data</th>
-                <th className="px-7 py-5 text-right">Chat</th>
+                <th className="px-4 py-4">Nome / Email</th>
+                <th className="px-3 py-4">ID</th>
+                <th className="px-3 py-4">Cod. Vendas</th>
+                <th className="px-3 py-4">Plano</th>
+                <th className="px-3 py-4">Bot</th>
+                <th className="px-3 py-4">Fluxo</th>
+                <th className="px-3 py-4">Etapa atual</th>
+                <th className="px-3 py-4">Status</th>
+                <th className="px-3 py-4">Data</th>
+                <th className="px-4 py-4 text-right">Chat</th>
               </tr>
             </thead>
             <tbody>
@@ -489,7 +489,7 @@ function LeadRow({ lead, onOpen }: { lead: LeadListItem; onOpen: () => void }) {
 
   return (
     <tr className="border-b border-white/10 text-sm text-gray-400 last:border-b-0 hover:bg-white/[0.025]">
-      <td className="px-7 py-5">
+      <td className="px-4 py-4">
         <div className="flex min-w-0 items-center gap-4">
           <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/10 text-sm font-black text-gray-300">
             {getInitials(name)}
@@ -512,33 +512,33 @@ function LeadRow({ lead, onOpen }: { lead: LeadListItem; onOpen: () => void }) {
           </div>
         </div>
       </td>
-      <td className="px-5 py-5 font-mono text-gray-500">#{lead.telegram_user_id.slice(-5)}</td>
-      <td className="px-5 py-5 font-mono text-neon-orange">{lead.sales_code || '-'}</td>
-      <td className="px-5 py-5">{lead.plan_name || '-'}</td>
-      <td className="px-5 py-5">
+      <td className="px-3 py-4 font-mono text-gray-500">#{lead.telegram_user_id.slice(-5)}</td>
+      <td className="px-3 py-4 font-mono text-neon-orange">{lead.sales_code || '-'}</td>
+      <td className="px-3 py-4">{lead.plan_name || '-'}</td>
+      <td className="px-3 py-4">
         <span className="inline-flex items-center gap-2">
           <Bot size={14} className="text-gray-600" aria-hidden="true" />
           {lead.bot?.name ?? '-'}
         </span>
       </td>
-      <td className="px-5 py-5">
+      <td className="px-3 py-4">
         <span className="inline-flex items-center gap-2">
           <GitBranch size={14} className="text-gray-600" aria-hidden="true" />
           {lead.flow?.name ?? '-'}
         </span>
       </td>
-      <td className="px-5 py-5">
+      <td className="px-3 py-4">
         <span className="max-w-[160px] truncate text-gray-300">
           {lead.last_node_label || 'Start'}
         </span>
       </td>
-      <td className="px-5 py-5">
+      <td className="px-3 py-4">
         <StatusBadge status={lead.status as LeadStatus} />
       </td>
-      <td className="px-5 py-5 whitespace-pre-line font-mono text-xs text-gray-500">
+      <td className="px-3 py-4 whitespace-pre-line font-mono text-xs text-gray-500">
         {formatDateTime(lead.last_seen_at)}
       </td>
-      <td className="px-7 py-5 text-right">
+      <td className="px-4 py-4 text-right">
         <Button
           type="button"
           variant="outline"
