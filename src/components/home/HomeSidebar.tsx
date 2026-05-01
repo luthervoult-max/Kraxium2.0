@@ -9,8 +9,8 @@ import {
   Home,
   LayoutGrid,
   Link2,
-  ListChecks,
   LogOut,
+  Megaphone,
   Package,
   Plus,
   Settings,
@@ -58,7 +58,7 @@ const SECTIONS: MenuSection[] = [
     icon: Zap,
     items: [
       { label: 'Flow Builder', icon: GitBranch, page: 'flows' },
-      { label: 'Sequências', icon: ListChecks, disabled: true },
+      { label: 'Remarketing', icon: Megaphone, page: 'remarketing' },
       { label: 'Gatilhos', icon: Target, disabled: true },
     ],
   },

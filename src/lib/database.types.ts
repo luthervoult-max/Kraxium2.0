@@ -534,6 +534,169 @@ export type Database = {
         }
         Relationships: []
       }
+      remarketing_campaigns: {
+        Row: {
+          audience_count: number
+          bot_id: string
+          completed_at: string | null
+          created_at: string
+          failed_count: number
+          filters: Json
+          flow_id: string | null
+          id: string
+          last_prepared_at: string | null
+          message: string
+          name: string
+          owner_id: string
+          sent_count: number
+          started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          audience_count?: number
+          bot_id: string
+          completed_at?: string | null
+          created_at?: string
+          failed_count?: number
+          filters?: Json
+          flow_id?: string | null
+          id?: string
+          last_prepared_at?: string | null
+          message: string
+          name: string
+          owner_id: string
+          sent_count?: number
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          audience_count?: number
+          bot_id?: string
+          completed_at?: string | null
+          created_at?: string
+          failed_count?: number
+          filters?: Json
+          flow_id?: string | null
+          id?: string
+          last_prepared_at?: string | null
+          message?: string
+          name?: string
+          owner_id?: string
+          sent_count?: number
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'remarketing_campaigns_bot_id_fkey'
+            columns: ['bot_id']
+            isOneToOne: false
+            referencedRelation: 'bots'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'remarketing_campaigns_flow_id_fkey'
+            columns: ['flow_id']
+            isOneToOne: false
+            referencedRelation: 'flows'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'remarketing_campaigns_owner_id_fkey'
+            columns: ['owner_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      remarketing_campaign_recipients: {
+        Row: {
+          bot_id: string
+          campaign_id: string
+          created_at: string
+          error_message: string | null
+          flow_id: string | null
+          id: string
+          lead_id: string
+          owner_id: string
+          rendered_message: string
+          sent_at: string | null
+          status: string
+          telegram_chat_id: string
+          updated_at: string
+        }
+        Insert: {
+          bot_id: string
+          campaign_id: string
+          created_at?: string
+          error_message?: string | null
+          flow_id?: string | null
+          id?: string
+          lead_id: string
+          owner_id: string
+          rendered_message: string
+          sent_at?: string | null
+          status?: string
+          telegram_chat_id: string
+          updated_at?: string
+        }
+        Update: {
+          bot_id?: string
+          campaign_id?: string
+          created_at?: string
+          error_message?: string | null
+          flow_id?: string | null
+          id?: string
+          lead_id?: string
+          owner_id?: string
+          rendered_message?: string
+          sent_at?: string | null
+          status?: string
+          telegram_chat_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'remarketing_campaign_recipients_bot_id_fkey'
+            columns: ['bot_id']
+            isOneToOne: false
+            referencedRelation: 'bots'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'remarketing_campaign_recipients_campaign_id_fkey'
+            columns: ['campaign_id']
+            isOneToOne: false
+            referencedRelation: 'remarketing_campaigns'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'remarketing_campaign_recipients_flow_id_fkey'
+            columns: ['flow_id']
+            isOneToOne: false
+            referencedRelation: 'flows'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'remarketing_campaign_recipients_lead_id_fkey'
+            columns: ['lead_id']
+            isOneToOne: false
+            referencedRelation: 'telegram_leads'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'remarketing_campaign_recipients_owner_id_fkey'
+            columns: ['owner_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       telegram_leads: {
         Row: {
           bot_id: string
