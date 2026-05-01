@@ -23,6 +23,7 @@ import {
   type AnalyticsOverview,
   type AnalyticsRankingItem,
 } from '@/lib/api/analytics'
+import type { AccountProfile } from '@/lib/api/profile'
 import type { Page } from '@/lib/pages'
 
 type Accent = 'purple' | 'green' | 'pink' | 'gold' | 'cyan'
@@ -137,11 +138,16 @@ function buildBotHandle(bot: BotRow): string {
   return 'bot sem usuário'
 }
 
-function getGreeting() {
-  const hour = new Date().getHours()
-  if (hour < 12) return 'Bom dia'
+function getGreeting(date = new Date()) {
+  const hour = date.getHours()
+  if (hour >= 5 && hour < 12) return 'Bom dia'
   if (hour < 18) return 'Boa tarde'
   return 'Boa noite'
+}
+
+function getDashboardDisplayName(profile?: AccountProfile | null, userEmail?: string | null) {
+  const preferredName = profile?.nickname || profile?.fullName || userEmail?.split('@')[0] || 'cliente'
+  return preferredName.trim() || 'cliente'
 }
 
 function getDateLabel() {
@@ -582,15 +588,29 @@ interface DashboardHomeProps {
   isMobile: boolean
   onNavigate: (page: Page) => void
   onSelectBot: (botId: string) => void
+  profile?: AccountProfile | null
+  userEmail?: string | null
 }
 
-export default function DashboardHome({ isMobile, onNavigate, onSelectBot }: DashboardHomeProps) {
+export default function DashboardHome({
+  isMobile,
+  onNavigate,
+  onSelectBot,
+  profile,
+  userEmail,
+}: DashboardHomeProps) {
   const [bots, setBots] = useState<BotRow[]>([])
   const [botSummaries, setBotSummaries] = useState<Record<string, BotSummary>>({})
   const [dashboards, setDashboards] = useState<DashboardBundle | null>(null)
   const [loadingBots, setLoadingBots] = useState(true)
   const [loadingDashboard, setLoadingDashboard] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [currentTime, setCurrentTime] = useState(() => new Date())
+
+  useEffect(() => {
+    const interval = window.setInterval(() => setCurrentTime(new Date()), 60_000)
+    return () => window.clearInterval(interval)
+  }, [])
 
   useEffect(() => {
     let active = true
@@ -666,6 +686,8 @@ export default function DashboardHome({ isMobile, onNavigate, onSelectBot }: Das
   const todayOverview = dashboards?.today.overview ?? emptyOverview
   const weekOverview = dashboards?.week.overview ?? emptyOverview
   const monthOverview = dashboards?.month.overview ?? emptyOverview
+  const greeting = getGreeting(currentTime)
+  const displayName = getDashboardDisplayName(profile, userEmail)
 
   const kpis = useMemo<KpiCardData[]>(() => {
     const generatedRate = rate(monthOverview.generatedPayments, monthOverview.starts)
@@ -767,7 +789,7 @@ export default function DashboardHome({ isMobile, onNavigate, onSelectBot }: Das
             Dashboard
           </p>
           <h1 className="font-display text-[38px] font-black leading-none text-white sm:text-[46px]">
-            {getGreeting()}, Lord
+            {greeting}, {displayName}
           </h1>
           <p className="mt-3 text-[17px] font-medium capitalize text-slate-400">{getDateLabel()}</p>
         </div>

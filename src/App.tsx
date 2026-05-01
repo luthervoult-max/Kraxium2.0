@@ -307,6 +307,8 @@ function Shell() {
             isMobile={isMobile}
             onNavigate={requestNavigate}
             onSelectBot={handleBotSelection}
+            profile={accountProfile}
+            userEmail={user.email}
           />
         )}
 
