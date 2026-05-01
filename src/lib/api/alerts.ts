@@ -13,10 +13,16 @@ export interface Alert {
   pageLabel?: string
 }
 
+export interface AlertsReport {
+  alerts: Alert[]
+  errors: string[]
+}
+
 const SEVERITY_ORDER: Record<AlertSeverity, number> = { critical: 0, high: 1, medium: 2 }
 
-export async function listAlerts(): Promise<Alert[]> {
+export async function getAlertsReport(): Promise<AlertsReport> {
   const alerts: Alert[] = []
+  const errors: string[] = []
 
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
 
@@ -25,7 +31,7 @@ export async function listAlerts(): Promise<Alert[]> {
       supabase
         .from('bots')
         .select(
-          'id, name, telegram_token, connection_status, webhook_last_error, webhook_enabled, webhook_url, updated_at',
+          'id, name, connection_status, webhook_last_error, webhook_enabled, webhook_url, updated_at',
         ),
       supabase.from('flows').select('id, name, status, updated_at'),
       supabase
@@ -36,24 +42,31 @@ export async function listAlerts(): Promise<Alert[]> {
       supabase.from('payment_gateway_connections').select('id, provider, status, updated_at'),
     ])
 
-  if (botsResult.status === 'fulfilled' && botsResult.value.data) {
-    for (const bot of botsResult.value.data) {
-      if (!bot.telegram_token) {
-        alerts.push({
-          id: `bot-no-token-${bot.id}`,
-          severity: 'high',
-          title: 'Bot sem token configurado',
-          description: `O bot "${bot.name}" não tem token Telegram configurado.`,
-          createdAt: bot.updated_at ?? new Date().toISOString(),
-          page: 'bots',
-          pageLabel: 'Bots',
-        })
-      } else if (bot.connection_status !== 'connected') {
+  const bots = getQueryData(botsResult, 'bots', errors)
+  const flows = getQueryData(flowsResult, 'fluxos', errors)
+  const pixPayments = getQueryData(pixResult, 'pagamentos Pix', errors)
+  const remarketingCampaigns = getQueryData(remarketingResult, 'remarketing', errors)
+  const gateways = getQueryData(gatewayResult, 'gateways', errors)
+
+  if (bots.length > 0) {
+    for (const bot of bots) {
+      if (bot.connection_status !== 'connected') {
         alerts.push({
           id: `bot-disconnected-${bot.id}`,
           severity: 'critical',
           title: 'Bot desconectado',
           description: `O bot "${bot.name}" não está conectado ao Telegram.`,
+          createdAt: bot.updated_at ?? new Date().toISOString(),
+          page: 'bots',
+          pageLabel: 'Bots',
+        })
+      }
+      if (bot.connection_status === 'connected' && !bot.webhook_enabled) {
+        alerts.push({
+          id: `bot-webhook-disabled-${bot.id}`,
+          severity: 'medium',
+          title: 'Webhook do bot desativado',
+          description: `O bot "${bot.name}" está conectado, mas o webhook está desativado.`,
           createdAt: bot.updated_at ?? new Date().toISOString(),
           page: 'bots',
           pageLabel: 'Bots',
@@ -84,8 +97,8 @@ export async function listAlerts(): Promise<Alert[]> {
     }
   }
 
-  if (flowsResult.status === 'fulfilled' && flowsResult.value.data) {
-    for (const flow of flowsResult.value.data) {
+  if (flows.length > 0) {
+    for (const flow of flows) {
       if (flow.status === 'error') {
         alerts.push({
           id: `flow-error-${flow.id}`,
@@ -110,9 +123,9 @@ export async function listAlerts(): Promise<Alert[]> {
     }
   }
 
-  if (pixResult.status === 'fulfilled' && pixResult.value.data) {
-    const failed = pixResult.value.data.filter((p) => p.status === 'failed')
-    const expired = pixResult.value.data.filter((p) => p.status === 'expired')
+  if (pixPayments.length > 0) {
+    const failed = pixPayments.filter((p) => p.status === 'failed')
+    const expired = pixPayments.filter((p) => p.status === 'expired')
     if (failed.length > 0) {
       alerts.push({
         id: 'pix-failed',
@@ -137,24 +150,25 @@ export async function listAlerts(): Promise<Alert[]> {
     }
   }
 
-  if (remarketingResult.status === 'fulfilled' && remarketingResult.value.data) {
-    for (const campaign of remarketingResult.value.data) {
+  if (remarketingCampaigns.length > 0) {
+    for (const campaign of remarketingCampaigns) {
+      const failedCount = Number(campaign.failed_count ?? 0)
       if (campaign.status === 'failed') {
         alerts.push({
           id: `remarketing-failed-${campaign.id}`,
           severity: 'high',
-          title: 'Campanha de remarketing falhou',
-          description: `A campanha "${campaign.name}" falhou completamente.`,
+          title: 'Campanha de remarketing com falha',
+          description: `A campanha "${campaign.name}" está marcada como falha.`,
           createdAt: campaign.updated_at,
           page: 'remarketing',
           pageLabel: 'Remarketing',
         })
-      } else if (campaign.status === 'completed' && (campaign.failed_count ?? 0) > 0) {
+      } else if (failedCount > 0) {
         alerts.push({
           id: `remarketing-partial-${campaign.id}`,
           severity: 'medium',
           title: 'Campanha com falhas parciais',
-          description: `A campanha "${campaign.name}" foi concluída com ${campaign.failed_count} falha(s).`,
+          description: `A campanha "${campaign.name}" tem ${failedCount} mensagem(ns) com falha.`,
           createdAt: campaign.updated_at,
           page: 'remarketing',
           pageLabel: 'Remarketing',
@@ -163,8 +177,8 @@ export async function listAlerts(): Promise<Alert[]> {
     }
   }
 
-  if (gatewayResult.status === 'fulfilled' && gatewayResult.value.data) {
-    for (const gateway of gatewayResult.value.data) {
+  if (gateways.length > 0) {
+    for (const gateway of gateways) {
       if (gateway.status !== 'connected') {
         alerts.push({
           id: `gateway-disconnected-${gateway.id}`,
@@ -179,6 +193,20 @@ export async function listAlerts(): Promise<Alert[]> {
     }
   }
 
+  return { alerts: sortAlerts(alerts), errors }
+}
+
+export async function listAlerts(): Promise<Alert[]> {
+  const report = await getAlertsReport()
+  return report.alerts
+}
+
+export async function getAlertCount(): Promise<number> {
+  const alerts = await listAlerts()
+  return alerts.length
+}
+
+function sortAlerts(alerts: Alert[]) {
   return alerts.sort((a, b) => {
     const diff = SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]
     if (diff !== 0) return diff
@@ -186,7 +214,27 @@ export async function listAlerts(): Promise<Alert[]> {
   })
 }
 
-export async function getAlertCount(): Promise<number> {
-  const alerts = await listAlerts()
-  return alerts.length
+function getQueryData<T extends { [key: string]: unknown }>(
+  result: PromiseSettledResult<{ data: T[] | null; error: { message?: string } | null }>,
+  label: string,
+  errors: string[],
+): T[] {
+  if (result.status === 'rejected') {
+    errors.push(`${label}: ${normalizeQueryError(result.reason)}`)
+    return []
+  }
+
+  if (result.value.error) {
+    errors.push(`${label}: ${normalizeQueryError(result.value.error)}`)
+    return []
+  }
+
+  return result.value.data ?? []
+}
+
+function normalizeQueryError(error: unknown) {
+  if (error && typeof error === 'object' && 'message' in error) {
+    return String((error as { message?: unknown }).message ?? 'erro desconhecido')
+  }
+  return error instanceof Error ? error.message : 'erro desconhecido'
 }

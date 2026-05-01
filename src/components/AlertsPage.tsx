@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ElementType } from 'react'
 import { AlertTriangle, Bell, RefreshCw, Wifi, Zap } from 'lucide-react'
-import { listAlerts, type Alert, type AlertSeverity } from '@/lib/api/alerts'
+import { getAlertsReport, type Alert, type AlertSeverity } from '@/lib/api/alerts'
 import type { Page } from '@/lib/pages'
 
 interface AlertsPageProps {
@@ -21,7 +21,7 @@ const SEVERITY_LABEL: Record<AlertSeverity, string> = {
   medium: 'Médio',
 }
 
-const SEVERITY_ICON: Record<AlertSeverity, React.ElementType> = {
+const SEVERITY_ICON: Record<AlertSeverity, ElementType> = {
   critical: Wifi,
   high: AlertTriangle,
   medium: Zap,
@@ -61,12 +61,20 @@ export default function AlertsPage({ onNavigate }: AlertsPageProps) {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<Filter>('all')
   const [refreshing, setRefreshing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [sourceErrors, setSourceErrors] = useState<string[]>([])
 
   async function load(showRefreshing = false) {
     if (showRefreshing) setRefreshing(true)
     try {
-      const data = await listAlerts()
-      setAlerts(data)
+      const report = await getAlertsReport()
+      setAlerts(report.alerts)
+      setSourceErrors(report.errors)
+      setError(null)
+    } catch (err) {
+      setAlerts([])
+      setSourceErrors([])
+      setError(err instanceof Error ? err.message : 'Falha ao carregar alertas.')
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -129,6 +137,21 @@ export default function AlertsPage({ onNavigate }: AlertsPageProps) {
           <RefreshCw size={15} aria-hidden className={refreshing ? 'animate-spin' : ''} />
         </button>
       </div>
+
+      {(error || sourceErrors.length > 0) && (
+        <div
+          className="rounded-[14px] px-4 py-3 text-sm leading-6"
+          style={{
+            background: 'rgba(255,157,42,0.1)',
+            border: '1px solid rgba(255,157,42,0.28)',
+            color: '#ffb15c',
+          }}
+        >
+          {error
+            ? `Não foi possível carregar os alertas: ${error}`
+            : `Algumas fontes não responderam: ${sourceErrors.slice(0, 3).join(' | ')}`}
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-2">
         {filters.map(({ key, label, color }) => {
