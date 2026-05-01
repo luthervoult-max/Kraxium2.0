@@ -72,7 +72,7 @@ const SECTIONS: MenuSection[] = [
     label: 'Integrações',
     icon: Link2,
     items: [
-      { label: 'Webhooks', icon: Link2, disabled: true },
+      { label: 'Webhooks', icon: Link2, page: 'webhooks' },
       { label: 'Radar de Pagamentos', icon: Activity, page: 'paymentRadar' },
       { label: 'Pagamentos', icon: CreditCard, page: 'payments' },
     ],

@@ -7,6 +7,7 @@ import {
   type PixPaymentStatus,
 } from '../../src/lib/pixPaymentCore.js'
 import { HttpError } from './http.js'
+import { dispatchWebhookEvent, maybeDispatchGatewayInstability } from './outboundWebhooks.js'
 import { decryptCredentials, type PaymentGatewayRow } from './paymentGateways.js'
 import { serviceSupabase } from './supabase.js'
 
@@ -147,7 +148,31 @@ export async function createPixCharge(input: PixChargeInput) {
     .single()
 
   if (error) throw error
-  return data as PixTransactionRow
+  const transaction = data as PixTransactionRow
+  await dispatchWebhookEvent(
+    input.ownerId,
+    'transaction_generated',
+    {
+      title: 'Transação PIX gerada',
+      message: `${transaction.plan_name || 'Oferta'} gerou PIX de ${formatCurrency(transaction.amount_cents, transaction.currency)}.`,
+      severity: 'info',
+      data: {
+        transactionId: transaction.id,
+        provider: transaction.provider,
+        botId: transaction.bot_id,
+        flowId: transaction.flow_id,
+        leadId: transaction.lead_id,
+        amountCents: transaction.amount_cents,
+        currency: transaction.currency,
+        planName: transaction.plan_name,
+        status: transaction.status,
+        expiresAt: transaction.expires_at,
+      },
+    },
+    { dedupeKey: transaction.id },
+  )
+
+  return transaction
 }
 
 export async function verifyPixTransaction(transactionId: string) {
@@ -543,7 +568,38 @@ async function updatePixTransactionStatus(
     .single()
 
   if (error) throw error
-  return data as PixTransactionRow
+  const updated = data as PixTransactionRow
+
+  if (nextStatus === 'paid' && transaction.status !== 'paid') {
+    await dispatchWebhookEvent(
+      updated.owner_id,
+      'transaction_approved',
+      {
+        title: 'Transação PIX aprovada',
+        message: `${updated.plan_name || 'Pagamento'} foi confirmado em ${formatCurrency(updated.amount_cents, updated.currency)}.`,
+        severity: 'success',
+        data: {
+          transactionId: updated.id,
+          provider: updated.provider,
+          botId: updated.bot_id,
+          flowId: updated.flow_id,
+          leadId: updated.lead_id,
+          amountCents: updated.amount_cents,
+          currency: updated.currency,
+          planName: updated.plan_name,
+          status: updated.status,
+          paidAt: updated.paid_at,
+        },
+      },
+      { dedupeKey: updated.id },
+    )
+  }
+
+  if (['failed', 'expired', 'canceled'].includes(nextStatus)) {
+    await maybeDispatchGatewayInstability(updated.owner_id, updated.provider)
+  }
+
+  return updated
 }
 
 async function findWebhookTransaction(
@@ -622,6 +678,13 @@ function syncPayBaseUrl() {
 
 function centsToMoney(cents: number) {
   return Number((cents / 100).toFixed(2))
+}
+
+function formatCurrency(cents: number, currency = 'BRL') {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency,
+  }).format(cents / 100)
 }
 
 function getLeadEmail(lead: PaymentLead) {

@@ -13,6 +13,7 @@ import AnalyticsPage from '@/components/AnalyticsPage'
 import PaymentsPage from '@/components/PaymentsPage'
 import PaymentRadarPage from '@/components/PaymentRadarPage'
 import RemarketingPage from '@/components/RemarketingPage'
+import WebhooksPage from '@/components/WebhooksPage'
 import { Button } from '@/components/ui/button'
 import { AuthProvider, useAuth } from '@/lib/auth/AuthContext'
 import { listBots, type Bot as BotRow } from '@/lib/api/bots'
@@ -27,6 +28,7 @@ const pageConfig: Record<Page, { eyebrow: string; title: string; titleHighlight?
   flowIntel: { eyebrow: 'Automação', title: 'Flow Builder' },
   users: { eyebrow: 'CRM', title: 'Base de', titleHighlight: 'Clientes' },
   analytics: { eyebrow: 'Métricas', title: 'Performance' },
+  webhooks: { eyebrow: 'Integrações', title: 'Webhooks' },
   payments: { eyebrow: 'Integrações', title: 'Pagamentos' },
   paymentRadar: { eyebrow: 'Integrações', title: 'Radar de', titleHighlight: 'Pagamentos' },
   remarketing: { eyebrow: 'Automação', title: 'Remarketing' },
@@ -330,6 +332,11 @@ function Shell() {
         {page === 'payments' && (
           <div className="flex-1 overflow-y-auto">
             <PaymentsPage />
+          </div>
+        )}
+        {page === 'webhooks' && (
+          <div className="flex-1 overflow-y-auto">
+            <WebhooksPage />
           </div>
         )}
         {page === 'paymentRadar' && (

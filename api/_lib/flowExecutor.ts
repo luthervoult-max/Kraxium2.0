@@ -1,6 +1,7 @@
 import { answerCallbackQuery, sendChatAction, sendMessage } from './telegram.js'
 import { serviceSupabase } from './supabase.js'
 import { createPixCharge, loadPixTransaction, verifyPixTransaction, type PixTransactionRow } from './pixPayments.js'
+import { dispatchWebhookEvent, maybeDispatchGatewayInstability } from './outboundWebhooks.js'
 
 type JsonRecord = Record<string, unknown>
 
@@ -362,6 +363,24 @@ async function runFlow(context: ExecutionContext, startNodeId?: string | null) {
         .from('bots')
         .update({ connection_status: 'error', webhook_last_error: message })
         .eq('id', context.bot.id)
+      await dispatchWebhookEvent(
+        context.bot.owner_id,
+        isStartCommand(context.text) ? 'bot_start_error' : 'bot_unstable',
+        {
+          title: isStartCommand(context.text) ? 'Erro no start do bot' : 'Bot instável no fluxo',
+          message,
+          severity: 'critical',
+          data: {
+            botId: context.bot.id,
+            botName: context.bot.name,
+            flowId: context.flow.id,
+            leadId: context.lead.id,
+            nodeId: node.id,
+            nodeType: node.type,
+          },
+        },
+        { dedupeKey: `${context.flow.id}:${context.lead.id}:${node.id}:${message}` },
+      )
       await sendMessage(context.token, context.chatId, `Erro no fluxo: ${message}`).catch(() => undefined)
       return
     }
@@ -498,22 +517,50 @@ async function executePixNode(
     stringConfig(config.preferredGateway) ||
     normalizePreferredGateway(stringConfig(config.gateway))
   const expiresInMinutes = Math.max(1, Number(config.expiresIn ?? config.timeout ?? 30))
-  const transaction = await createPixCharge({
-    ownerId: context.bot.owner_id,
-    botId: context.bot.id,
-    flowId: context.flow.id,
-    leadId: context.lead.id,
-    nodeId: node.id,
-    nodeType: node.type === 'PG' ? 'PG' : 'PX',
-    telegramChatId: context.chatId,
-    amountCents,
-    currency: stringConfig(config.currency) || 'BRL',
-    planName,
-    description: stringConfig(config.description) || stringConfig(config.message) || null,
-    expiresInMinutes,
-    preferredProvider,
-    lead: context.lead,
-  })
+  let transaction: PixTransactionRow
+  try {
+    transaction = await createPixCharge({
+      ownerId: context.bot.owner_id,
+      botId: context.bot.id,
+      flowId: context.flow.id,
+      leadId: context.lead.id,
+      nodeId: node.id,
+      nodeType: node.type === 'PG' ? 'PG' : 'PX',
+      telegramChatId: context.chatId,
+      amountCents,
+      currency: stringConfig(config.currency) || 'BRL',
+      planName,
+      description: stringConfig(config.description) || stringConfig(config.message) || null,
+      expiresInMinutes,
+      preferredProvider,
+      lead: context.lead,
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Falha ao gerar PIX.'
+    await dispatchWebhookEvent(
+      context.bot.owner_id,
+      'pix_generation_error',
+      {
+        title: 'Erro na geração do PIX',
+        message,
+        severity: 'critical',
+        data: {
+          botId: context.bot.id,
+          botName: context.bot.name,
+          flowId: context.flow.id,
+          leadId: context.lead.id,
+          nodeId: node.id,
+          nodeType: node.type,
+          preferredProvider,
+          amountCents,
+          planName,
+        },
+      },
+      { dedupeKey: `${context.flow.id}:${context.lead.id}:${node.id}:${Date.now()}` },
+    )
+    await maybeDispatchGatewayInstability(context.bot.owner_id, preferredProvider)
+    throw error
+  }
 
   await recordPaymentGenerated(context, node, {
     amountCents,

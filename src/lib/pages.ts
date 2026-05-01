@@ -5,6 +5,7 @@ export type Page =
   | 'bots'
   | 'users'
   | 'analytics'
+  | 'webhooks'
   | 'payments'
   | 'paymentRadar'
   | 'remarketing'
