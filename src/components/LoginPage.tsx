@@ -89,7 +89,7 @@ export default function LoginPage() {
           <img
             src={loginLogoUrl}
             alt="KRAXIUM BOT"
-            className="mb-[-4px] h-[220px] w-[220px] object-contain drop-shadow-[0_0_28px_rgba(180,77,255,0.58)] max-[480px]:h-[118px] max-[480px]:w-[118px]"
+            className="mb-[-4px] h-[232px] w-[232px] object-contain drop-shadow-[0_0_30px_rgba(180,77,255,0.62)] max-[480px]:h-[136px] max-[480px]:w-[136px]"
           />
           <p className="font-mono text-[11px] font-medium uppercase tracking-[0.24em] text-neon-purple/80">
             KRAXIUM BOT

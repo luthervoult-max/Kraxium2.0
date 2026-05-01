@@ -201,8 +201,12 @@ export default function HomeSidebar({
               <img
                 src={logoUrl}
                 alt="Kraxium"
-                className="h-[42px] w-[42px] object-contain"
-                style={{ filter: 'drop-shadow(0 0 10px rgba(139,92,246,0.5))' }}
+                className="object-contain"
+                style={{
+                  width: railMode ? 44 : 50,
+                  height: railMode ? 44 : 50,
+                  filter: 'drop-shadow(0 0 12px rgba(139,92,246,0.58))',
+                }}
               />
               {sidebarExpanded && (
                 <div className="min-w-0">
