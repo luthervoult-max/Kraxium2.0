@@ -162,6 +162,10 @@ interface AnalyticsRows {
   revenueEvents: RevenueEvent[]
 }
 
+interface CommonFilterQuery {
+  eq(column: string, value: string): this
+}
+
 const generatedEventTypes = new Set<AnalyticsRevenueEventType>([
   'payment_generated',
   'upsell',
@@ -450,7 +454,7 @@ async function loadAnalyticsRows(filters: AnalyticsFilters) {
 }
 
 async function loadLeads(filters: AnalyticsFilters, range: DateRange | null) {
-  let query: any = supabase
+  let query = supabase
     .from('telegram_leads')
     .select(`
       id,
@@ -487,7 +491,7 @@ async function loadLeads(filters: AnalyticsFilters, range: DateRange | null) {
 }
 
 async function loadLeadEvents(filters: AnalyticsFilters, range: DateRange | null) {
-  let query: any = supabase
+  let query = supabase
     .from('lead_flow_events')
     .select('id,bot_id,flow_id,lead_id,event_type,node_type,node_label,occurred_at,metadata')
     .order('occurred_at', { ascending: false })
@@ -503,7 +507,7 @@ async function loadLeadEvents(filters: AnalyticsFilters, range: DateRange | null
 }
 
 async function loadRevenueEvents(filters: AnalyticsFilters, range: DateRange | null) {
-  let query: any = supabase
+  let query = supabase
     .from('analytics_revenue_events')
     .select('*')
     .order('occurred_at', { ascending: false })
@@ -524,7 +528,7 @@ async function loadRevenueEvents(filters: AnalyticsFilters, range: DateRange | n
   return (data ?? []) as RevenueEvent[]
 }
 
-function applyCommonFilters(query: any, filters: AnalyticsFilters) {
+function applyCommonFilters<Query extends CommonFilterQuery>(query: Query, filters: AnalyticsFilters): Query {
   const botId = normalizeFilter(filters.botId)
   const flowId = normalizeFilter(filters.flowId)
 

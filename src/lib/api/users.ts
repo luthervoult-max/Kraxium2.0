@@ -43,13 +43,20 @@ const leadSelect = `
   flow:flows(id,name)
 `
 
+interface LeadFilterQuery {
+  eq(column: string, value: string | number): this
+  gte(column: string, value: string | number): this
+  lt(column: string, value: string): this
+  or(filters: string): this
+}
+
 export async function listLeads(filters: LeadFilters = {}) {
   const page = filters.page ?? 1
   const pageSize = filters.pageSize ?? 35
   const from = Math.max(0, (page - 1) * pageSize)
   const to = from + pageSize - 1
 
-  let query: any = supabase
+  let query = supabase
     .from('telegram_leads')
     .select(leadSelect, { count: 'exact' })
     .order('last_seen_at', { ascending: false })
@@ -107,7 +114,7 @@ export async function listLeadFilterOptions(): Promise<LeadFilterOptions> {
 }
 
 async function countLeads(filters: LeadFilters, status?: LeadStatus) {
-  let query: any = supabase
+  let query = supabase
     .from('telegram_leads')
     .select('id', { count: 'exact', head: true })
 
@@ -119,7 +126,11 @@ async function countLeads(filters: LeadFilters, status?: LeadStatus) {
   return count ?? 0
 }
 
-function applyLeadFilters(query: any, filters: LeadFilters, includeStatus: boolean) {
+function applyLeadFilters<Query extends LeadFilterQuery>(
+  query: Query,
+  filters: LeadFilters,
+  includeStatus: boolean,
+): Query {
   const range = getDateRange(filters.timeRange ?? 'all')
 
   if (range?.from) query = query.gte('first_seen_at', range.from)
