@@ -80,8 +80,10 @@ export function FlowCanvasToolbar({
           disabled={saveState === 'saving'}
           aria-label="Salvar fluxo"
           title="Salvar fluxo"
-          variant="neonGradient"
-          className={cn(toolbarButtonClass, 'shadow-[0_0_16px_rgba(180,77,255,0.22)]')}
+          className={cn(
+            toolbarButtonClass,
+            'border border-neon-purple/70 bg-[linear-gradient(90deg,#b44dff,#ff2a9d)] text-white shadow-[0_0_16px_rgba(180,77,255,0.22)] hover:opacity-95 disabled:opacity-60',
+          )}
         >
           {saveState === 'saving' ? (
             <Loader2 size={13} className="mr-1.5 animate-spin" aria-hidden="true" />

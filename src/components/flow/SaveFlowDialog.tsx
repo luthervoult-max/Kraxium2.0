@@ -105,9 +105,7 @@ export function SaveFlowDialog({
             type="button"
             onClick={onConfirm}
             disabled={saving || loadingBots || bots.length === 0}
-            variant="neonGradient"
-            size="pill"
-            className="font-bold"
+            className="rounded-full border border-neon-purple/70 bg-[linear-gradient(90deg,#b44dff,#ff2a9d)] px-5 font-bold text-white shadow-[0_0_18px_rgba(180,77,255,0.25)] hover:opacity-95 disabled:opacity-60"
           >
             {saving ? (
               <Loader2 size={15} className="mr-2 animate-spin" aria-hidden="true" />
