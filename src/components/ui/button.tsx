@@ -13,12 +13,20 @@ const buttonVariants = cva(
         secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
         ghost: 'hover:bg-accent/10 hover:text-accent',
         link: 'text-primary underline-offset-4 hover:underline',
+        neonGradient:
+          'border border-neon-purple/70 bg-[linear-gradient(90deg,#b44dff,#ff2a9d)] text-white shadow-[0_0_18px_rgba(180,77,255,0.25)] transition-all hover:opacity-95',
+        neonOutline:
+          'border border-neon-purple bg-neon-purple/20 text-neon-purple shadow-[0_0_15px_rgba(180,77,255,0.3)] hover:bg-neon-purple/30',
+        glass:
+          'border border-white/10 bg-white/5 text-gray-200 transition-colors hover:bg-white/10',
       },
       size: {
         default: 'h-10 px-4 py-2',
         sm: 'h-9 rounded-md px-3',
         lg: 'h-11 rounded-md px-8',
         icon: 'h-10 w-10',
+        pill: 'h-10 rounded-full px-5',
+        cta: 'h-14 rounded-[16px] px-8 text-base font-black',
       },
     },
     defaultVariants: {
