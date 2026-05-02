@@ -8,6 +8,9 @@
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
+  "crons": [
+    { "path": "/api/mailing?dispatchDue=1", "schedule": "* * * * *" }
+  ],
   "headers": [
     {
       "source": "/assets/(.*)",

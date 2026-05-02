@@ -225,7 +225,7 @@ interface LeadAudienceRow {
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const maxCampaigns = 50
 const messageLimit = 4096
-const sendBatchSize = 25
+const cronBatchSize = 50
 const minimumCooldownHours = 3
 
 const campaignStatuses = new Set<MailingCampaignStatus>([
@@ -401,7 +401,7 @@ export async function sendMailingBatch(
   }
 
   const campaignId = normalizeRequiredUuid(campaignIdValue, 'Mailing invalido.')
-  return processMailingCampaign(ownerId, campaignId, { enforceCooldown: true })
+  return processMailingCampaign(ownerId, campaignId, { enforceCooldown: true, sendBatchSize: 0 })
 }
 
 export async function dispatchDueMailings() {
@@ -432,7 +432,7 @@ export async function dispatchDueMailings() {
 
   for (const row of rows) {
     try {
-      await processMailingCampaign(row.owner_id, row.id, { enforceCooldown: false })
+      await processMailingCampaign(row.owner_id, row.id, { enforceCooldown: false, sendBatchSize: cronBatchSize })
       results.push({ campaignId: row.id, ok: true })
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Falha ao processar mailing.'
@@ -451,7 +451,7 @@ export async function dispatchDueMailings() {
 async function processMailingCampaign(
   ownerId: string,
   campaignId: string,
-  options: { enforceCooldown: boolean },
+  options: { enforceCooldown: boolean; sendBatchSize: number },
 ) {
   const campaign = await getCampaign(ownerId, campaignId)
   if (!campaign) throw new HttpError(404, 'Mailing nao encontrado.')
@@ -481,6 +481,10 @@ async function processMailingCampaign(
     .eq('id', campaign.id)
     .eq('owner_id', ownerId)
 
+  if (options.sendBatchSize <= 0) {
+    return getPublicCampaign(ownerId, campaign.id)
+  }
+
   const signedAssets = await getSignedAssets(campaign)
   const { data, error } = await serviceSupabase
     .from('mailing_recipients')
@@ -489,7 +493,7 @@ async function processMailingCampaign(
     .eq('run_id', run.id)
     .eq('status', 'queued')
     .order('created_at', { ascending: true })
-    .limit(sendBatchSize)
+    .limit(options.sendBatchSize)
 
   if (error) throw error
 
