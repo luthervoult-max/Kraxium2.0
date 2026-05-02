@@ -115,7 +115,7 @@ export default function FlowsPage({ onCreateFlow, onEditFlow, onImportFlow }: Fl
             type="button"
             variant="outline"
             onClick={() => importInputRef.current?.click()}
-            className="h-12 rounded-[14px] border-white/10 bg-[#0c0d10] px-5 text-sm font-black text-gray-300 hover:border-neon-purple/35 hover:bg-neon-purple/10 hover:text-white"
+            className="h-12 rounded-[14px] border-white/10 bg-surface-2 px-5 text-sm font-black text-gray-300 hover:border-neon-purple/35 hover:bg-neon-purple/10 hover:text-white"
           >
             <Upload size={16} className="mr-2" aria-hidden="true" />
             Importar Fluxo
@@ -123,7 +123,7 @@ export default function FlowsPage({ onCreateFlow, onEditFlow, onImportFlow }: Fl
           <Button
             type="button"
             onClick={onCreateFlow}
-            className="h-12 rounded-[14px] border border-white/10 bg-[#0c0d10] px-5 text-sm font-black text-white shadow-[0_0_18px_rgba(180,77,255,0.14)] hover:border-neon-purple/45 hover:bg-neon-purple/15"
+            className="h-12 rounded-[14px] border border-white/10 bg-surface-2 px-5 text-sm font-black text-white shadow-[0_0_18px_rgba(180,77,255,0.14)] hover:border-neon-purple/45 hover:bg-neon-purple/15"
           >
             <Plus size={17} className="mr-2" aria-hidden="true" />
             Criar Fluxo ({flows.length}/50)
@@ -147,14 +147,14 @@ export default function FlowsPage({ onCreateFlow, onEditFlow, onImportFlow }: Fl
       </section>
 
       {loading && (
-        <div className="flex min-h-[340px] items-center justify-center rounded-[18px] border border-white/10 bg-[#0c0d10] text-gray-500">
+        <div className="flex min-h-[340px] items-center justify-center rounded-[18px] border border-white/10 bg-surface-2 text-gray-500">
           <Loader2 size={20} className="mr-3 animate-spin" aria-hidden="true" />
           Carregando fluxos...
         </div>
       )}
 
       {!loading && flows.length === 0 && (
-        <section className="rounded-[18px] border border-white/10 bg-[#0c0d10] px-6 py-16 text-center">
+        <section className="rounded-[18px] border border-white/10 bg-surface-2 px-6 py-16 text-center">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-neon-purple/25 bg-neon-purple/10 text-neon-purple">
             <GitBranch size={26} aria-hidden="true" />
           </div>
@@ -217,7 +217,7 @@ function FlowSummaryCard({
   }[tone]
 
   return (
-    <div className="rounded-[14px] border border-white/10 bg-[#0c0d10] px-5 py-5">
+    <div className="rounded-[14px] border border-white/10 bg-surface-2 px-5 py-5">
       <div className="flex items-center gap-4">
         <span className={cn('flex h-12 w-12 items-center justify-center rounded-[10px] border', toneClass)}>
           <Icon size={21} aria-hidden="true" />
@@ -244,7 +244,7 @@ function SavedFlowCard({
   const kind = inferFlowKind(flow)
 
   return (
-    <article className="overflow-hidden rounded-[18px] border border-white/10 bg-[#0c0d10] transition-colors hover:border-neon-purple/30">
+    <article className="overflow-hidden rounded-[18px] border border-white/10 bg-surface-2 transition-colors hover:border-neon-purple/30">
       <div className="p-5">
         <div className="mb-5 flex items-start justify-between gap-4">
           <span
@@ -328,7 +328,7 @@ function RemarketingDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="remarketing-dialog-title"
-        className="w-full max-w-xl rounded-[24px] border border-neon-purple/25 bg-[#0c0d10] p-6 shadow-[0_24px_90px_rgba(0,0,0,0.6)]"
+        className="w-full max-w-xl rounded-[24px] border border-neon-purple/25 bg-surface-2 p-6 shadow-[0_24px_90px_rgba(0,0,0,0.6)]"
       >
         <div className="mb-6 flex items-start justify-between gap-4">
           <div className="flex items-start gap-4">
@@ -357,7 +357,7 @@ function RemarketingDialog({
           </button>
         </div>
 
-        <div className="grid gap-3 rounded-[16px] border border-white/10 bg-[#08090b] p-4 sm:grid-cols-2">
+        <div className="grid gap-3 rounded-[16px] border border-white/10 bg-surface-1 p-4 sm:grid-cols-2">
           <DialogMetric label="Fluxo" value={flow.name || 'Fluxo sem nome'} />
           <DialogMetric label="Bot executor" value={flow.bot?.name ?? 'Nenhum bot vinculado'} />
           <DialogMetric label="Status" value={flow.status === 'active' && flow.bot_id ? 'Ativo' : 'Pausado'} />
@@ -387,7 +387,9 @@ function RemarketingDialog({
           <Button
             type="button"
             onClick={onEdit}
-            className="rounded-full border border-neon-purple/70 bg-[linear-gradient(90deg,#b44dff,#ff2a9d)] px-5 font-bold text-white shadow-[0_0_18px_rgba(180,77,255,0.25)] hover:opacity-95"
+            variant="neonGradient"
+            size="pill"
+            className="font-bold"
           >
             Editar antes
           </Button>

@@ -14,12 +14,23 @@ export default {
           800: '#0d0d1a',
           700: '#111128',
         },
+        surface: {
+          1: '#08090b',
+          2: '#0c0d10',
+          3: '#11131a',
+          4: '#11141d',
+          5: '#1c2230',
+        },
         neon: {
           purple: '#b44dff',
           green: '#39ff14',
           magenta: '#ff2a9d',
           blue: '#00d4ff',
           orange: '#ff9d2a',
+        },
+        danger: {
+          DEFAULT: '#ff3b5f',
+          soft: '#ff6b84',
         },
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',

@@ -79,7 +79,7 @@ export default function LoginPage() {
   const isLoading = loadingMode !== null
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#08090b] px-5 py-8 text-white">
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-surface-1 px-5 py-8 text-white">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle,rgba(139,92,246,0.14)_1px,transparent_1px)] bg-[length:34px_34px] opacity-40" />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(139,92,246,0.20),transparent_34%),linear-gradient(135deg,rgba(196,181,253,0.08),transparent_38%,rgba(236,72,153,0.08)_100%)]" />
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#c4b5fd]/70 to-[#ec4899]/55" />
@@ -205,7 +205,7 @@ export default function LoginPage() {
           variant="outline"
           onClick={() => void handleGoogleSignIn()}
           disabled={isLoading}
-          className="h-[44px] w-full rounded-[10px] border-white/10 bg-[#08090b]/70 text-[13px] font-semibold text-gray-200 transition-all hover:border-[#c4b5fd]/40 hover:bg-white/10"
+          className="h-[44px] w-full rounded-[10px] border-white/10 bg-surface-1/70 text-[13px] font-semibold text-gray-200 transition-all hover:border-[#c4b5fd]/40 hover:bg-white/10"
         >
           {loadingMode === 'google' ? (
             <Loader2 size={16} className="mr-2 animate-spin" aria-hidden="true" />
@@ -289,7 +289,7 @@ function LoginField({
           placeholder={placeholder}
           autoComplete={autoComplete}
           className={cn(
-            'h-[43px] w-full rounded-[10px] border border-white/10 bg-[#08090b]/85 px-10 text-sm text-white outline-none transition-[border-color,box-shadow] placeholder:text-slate-700 focus:border-[#c4b5fd]/60 focus:shadow-[0_0_0_3px_rgba(139,92,246,0.16)]',
+            'h-[43px] w-full rounded-[10px] border border-white/10 bg-surface-1/85 px-10 text-sm text-white outline-none transition-[border-color,box-shadow] placeholder:text-slate-700 focus:border-[#c4b5fd]/60 focus:shadow-[0_0_0_3px_rgba(139,92,246,0.16)]',
             action && 'pr-11',
           )}
         />

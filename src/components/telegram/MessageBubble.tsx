@@ -37,7 +37,7 @@ function MessageBubbleComponent({ message, awaitingButton }: MessageBubbleProps)
   if (message.kind === 'typing') {
     return (
       <div className="flex justify-start">
-        <div className="rounded-2xl bg-[#1c2230] px-4 py-3 text-xs text-gray-400">
+        <div className="rounded-2xl bg-surface-5 px-4 py-3 text-xs text-gray-400">
           <span className="inline-flex gap-1">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-gray-400 [animation-delay:0ms]" />
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-gray-400 [animation-delay:160ms]" />
@@ -57,7 +57,7 @@ function MessageBubbleComponent({ message, awaitingButton }: MessageBubbleProps)
           'max-w-[78%] rounded-2xl px-3.5 py-2.5 text-sm leading-6 shadow-md',
           isUser
             ? 'bg-neon-purple text-white rounded-br-sm'
-            : 'bg-[#1c2230] text-gray-100 rounded-bl-sm border border-white/4',
+            : 'bg-surface-5 text-gray-100 rounded-bl-sm border border-white/4',
         )}
         style={
           !isUser && meta

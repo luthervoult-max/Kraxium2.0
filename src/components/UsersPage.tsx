@@ -240,7 +240,7 @@ export default function UsersPage() {
               resetToFirstPage()
             }}
             placeholder="Buscar por nome, telefone, email..."
-            className="h-[54px] w-full rounded-[14px] border border-white/10 bg-[#0c0d10] pl-12 pr-4 text-sm font-semibold text-white outline-none transition-colors placeholder:text-gray-600 focus:border-neon-purple/45"
+            className="h-[54px] w-full rounded-[14px] border border-white/10 bg-surface-2 pl-12 pr-4 text-sm font-semibold text-white outline-none transition-colors placeholder:text-gray-600 focus:border-neon-purple/45"
           />
         </label>
 
@@ -290,7 +290,7 @@ export default function UsersPage() {
         />
       </section>
 
-      <section className="overflow-hidden rounded-[18px] border border-white/10 bg-[#0c0d10]">
+      <section className="overflow-hidden rounded-[18px] border border-white/10 bg-surface-2">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[860px] border-collapse text-left">
             <thead>
@@ -432,7 +432,7 @@ function UsersMetricCard({
   }[tone]
 
   return (
-    <div className="rounded-[14px] border border-white/10 bg-[#0c0d10] px-6 py-7">
+    <div className="rounded-[14px] border border-white/10 bg-surface-2 px-6 py-7">
       <div className="flex items-center gap-5">
         <span className={cn('flex h-14 w-14 items-center justify-center rounded-2xl border', toneClass)}>
           <Icon size={24} aria-hidden="true" />
@@ -470,10 +470,10 @@ function FilterSelect({
         value={value}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
-        className="h-[54px] w-full appearance-none rounded-[14px] border border-white/10 bg-[#0c0d10] pl-11 pr-9 text-sm font-bold text-gray-300 outline-none transition-colors focus:border-neon-purple/45 disabled:opacity-50"
+        className="h-[54px] w-full appearance-none rounded-[14px] border border-white/10 bg-surface-2 pl-11 pr-9 text-sm font-bold text-gray-300 outline-none transition-colors focus:border-neon-purple/45 disabled:opacity-50"
       >
         {options.map((option) => (
-          <option key={option.value} value={option.value} className="bg-[#0c0d10] text-gray-200">
+          <option key={option.value} value={option.value} className="bg-surface-2 text-gray-200">
             {option.label}
           </option>
         ))}

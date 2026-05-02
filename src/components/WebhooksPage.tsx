@@ -297,7 +297,7 @@ export default function WebhooksPage() {
       </section>
 
       {loading && !dashboard ? (
-        <div className="flex min-h-[360px] items-center justify-center rounded-[18px] border border-white/10 bg-[#0c0d10] text-gray-500">
+        <div className="flex min-h-[360px] items-center justify-center rounded-[18px] border border-white/10 bg-surface-2 text-gray-500">
           <Loader2 size={22} className="mr-3 animate-spin" aria-hidden="true" />
           Carregando webhooks...
         </div>
@@ -335,7 +335,7 @@ export default function WebhooksPage() {
 
 function SummaryCard({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: number }) {
   return (
-    <article className="rounded-[18px] border border-white/10 bg-[#0c0d10] p-5">
+    <article className="rounded-[18px] border border-white/10 bg-surface-2 p-5">
       <div className="flex items-center gap-4">
         <span className="flex h-12 w-12 items-center justify-center rounded-[15px] border border-neon-purple/30 bg-neon-purple/15 text-neon-purple">
           <Icon size={23} aria-hidden="true" />
@@ -351,7 +351,7 @@ function SummaryCard({ icon: Icon, label, value }: { icon: LucideIcon; label: st
 
 function InstructionStep({ number, title, text }: { number: number; title: string; text: string }) {
   return (
-    <div className="flex gap-4 rounded-[14px] border border-white/10 bg-[#08090b]/80 px-4 py-4">
+    <div className="flex gap-4 rounded-[14px] border border-white/10 bg-surface-1/80 px-4 py-4">
       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-neon-purple text-sm font-black text-white">
         {number}
       </span>
@@ -389,7 +389,7 @@ function WebhookEventCard({
   const status = getSubscriptionStatus(subscription)
 
   return (
-    <article className="flex min-h-[360px] flex-col rounded-[22px] border border-white/10 bg-[#0c0d10] p-6 transition-colors hover:border-neon-purple/35">
+    <article className="flex min-h-[360px] flex-col rounded-[22px] border border-white/10 bg-surface-2 p-6 transition-colors hover:border-neon-purple/35">
       <div className="flex items-start justify-between gap-4">
         <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[18px] border border-neon-purple/30 bg-neon-purple/15 text-neon-purple shadow-[0_0_24px_rgba(180,77,255,0.18)]">
           <Icon size={30} aria-hidden="true" />
@@ -409,7 +409,7 @@ function WebhookEventCard({
       <h3 className="mt-4 text-2xl font-black text-white">{event.title}</h3>
       <p className="mt-3 min-h-[54px] text-base leading-7 text-gray-500">{event.description}</p>
 
-      <div className="mt-5 rounded-[14px] border border-white/10 bg-[#08090b] p-4 text-sm leading-6">
+      <div className="mt-5 rounded-[14px] border border-white/10 bg-surface-1 p-4 text-sm leading-6">
         <div className="flex items-center justify-between gap-3">
           <span className="text-gray-500">Último envio</span>
           <span className="font-bold text-gray-300">{formatDateTime(subscription?.lastSentAt)}</span>
@@ -591,7 +591,9 @@ function WebhookConfigModal({
             type="button"
             onClick={() => void handleSave()}
             disabled={saving}
-            className="rounded-full border border-neon-purple/70 bg-[linear-gradient(90deg,#b44dff,#ff2a9d)] px-6 font-black text-white shadow-[0_0_18px_rgba(180,77,255,0.25)] hover:opacity-95 disabled:opacity-45"
+            variant="neonGradient"
+            size="pill"
+            className="px-6 font-black"
           >
             {saving ? <Loader2 size={16} className="mr-2 animate-spin" /> : <Save size={16} className="mr-2" />}
             Salvar Webhook

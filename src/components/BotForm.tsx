@@ -149,7 +149,8 @@ export default function BotForm({ bot, onChanged }: BotFormProps) {
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className="bg-neon-purple/20 border border-neon-purple text-neon-purple hover:bg-neon-purple/30 shadow-[0_0_12px_rgba(180,77,255,0.25)] transition-all disabled:opacity-60"
+          variant="neonOutline"
+          className="shadow-[0_0_12px_rgba(180,77,255,0.25)]"
         >
           {saving ? (
             <Loader2 size={15} className="mr-2 animate-spin" aria-hidden />

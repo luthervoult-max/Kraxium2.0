@@ -668,7 +668,7 @@ function PasswordModal({
 function Panel({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
     <section
-      className={`rounded-[28px] border border-white/10 bg-[#0c0d10] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.25)] ${className}`}
+      className={`rounded-[28px] border border-white/10 bg-surface-2 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.25)] ${className}`}
     >
       {children}
     </section>
@@ -755,7 +755,7 @@ function Modal({
 }) {
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/75 px-4 backdrop-blur-sm">
-      <div className="w-full max-w-xl rounded-[28px] border border-white/10 bg-[#11131a] p-6 shadow-[0_30px_110px_rgba(0,0,0,0.7)]">
+      <div className="w-full max-w-xl rounded-[28px] border border-white/10 bg-surface-3 p-6 shadow-[0_30px_110px_rgba(0,0,0,0.7)]">
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-2xl font-black text-white">{title}</h2>
           <button

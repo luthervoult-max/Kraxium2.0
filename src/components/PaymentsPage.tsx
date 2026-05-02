@@ -183,7 +183,7 @@ export default function PaymentsPage() {
         </div>
       )}
 
-      <section className="rounded-[18px] border border-white/10 bg-[#0c0d10] p-5 shadow-[0_24px_70px_rgba(0,0,0,0.22)]">
+      <section className="rounded-[18px] border border-white/10 bg-surface-2 p-5 shadow-[0_24px_70px_rgba(0,0,0,0.22)]">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
             <span className="flex h-11 w-11 items-center justify-center rounded-[12px] border border-neon-purple/25 bg-neon-purple/10 text-neon-purple">
@@ -209,7 +209,7 @@ export default function PaymentsPage() {
                     'flex h-10 shrink-0 items-center gap-2 rounded-[10px] border px-4 text-sm font-black transition-colors',
                     active
                       ? 'border-neon-purple/45 bg-neon-purple/15 text-neon-purple shadow-[0_0_18px_rgba(180,77,255,0.14)]'
-                      : 'border-white/10 bg-[#08090b] text-gray-500 hover:border-neon-purple/30 hover:text-white',
+                      : 'border-white/10 bg-surface-1 text-gray-500 hover:border-neon-purple/30 hover:text-white',
                   )}
                 >
                   <Icon size={15} aria-hidden="true" />
@@ -221,7 +221,7 @@ export default function PaymentsPage() {
         </div>
 
         {loading && (
-          <div className="mt-5 flex min-h-[260px] items-center justify-center rounded-[16px] border border-white/10 bg-[#08090b] text-gray-500">
+          <div className="mt-5 flex min-h-[260px] items-center justify-center rounded-[16px] border border-white/10 bg-surface-1 text-gray-500">
             <Loader2 size={20} className="mr-3 animate-spin" aria-hidden="true" />
             Carregando gateways...
           </div>
@@ -276,7 +276,7 @@ export default function PaymentsPage() {
 
 function PaymentStat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-[14px] border border-white/10 bg-[#0c0d10] px-5 py-3">
+    <div className="rounded-[14px] border border-white/10 bg-surface-2 px-5 py-3">
       <p className="text-[10px] font-black uppercase tracking-[0.18em] text-gray-600">{label}</p>
       <p className="mt-1 text-2xl font-black text-white">{value}</p>
     </div>
@@ -296,7 +296,7 @@ function GatewayCard({
   const status = getStatusMeta(connection)
 
   return (
-    <article className="group relative min-h-[250px] rounded-[18px] border border-white/10 bg-[#08090b] p-5 transition-colors hover:border-neon-purple/35">
+    <article className="group relative min-h-[250px] rounded-[18px] border border-white/10 bg-surface-1 p-5 transition-colors hover:border-neon-purple/35">
       <button
         type="button"
         onClick={onConfigure}
@@ -310,7 +310,7 @@ function GatewayCard({
       <div className="flex h-full flex-col items-center justify-center text-center">
         <div className="relative flex h-[72px] w-[72px] items-center justify-center rounded-[18px] border border-neon-purple/30 bg-neon-purple/10 text-neon-purple shadow-[0_0_24px_rgba(180,77,255,0.14)]">
           <Icon size={28} aria-hidden="true" />
-          <span className="absolute -bottom-2 rounded-full border border-neon-purple/35 bg-[#0c0d10] px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-neon-purple">
+          <span className="absolute -bottom-2 rounded-full border border-neon-purple/35 bg-surface-2 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-neon-purple">
             {gateway.initials}
           </span>
         </div>
@@ -351,7 +351,7 @@ function InfoTile({
   text: string
 }) {
   return (
-    <div className="rounded-[16px] border border-white/10 bg-[#0c0d10] p-5">
+    <div className="rounded-[16px] border border-white/10 bg-surface-2 p-5">
       <div className="flex items-start gap-4">
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] border border-neon-purple/25 bg-neon-purple/10 text-neon-purple">
           <Icon size={19} aria-hidden="true" />
@@ -546,7 +546,7 @@ function GatewayConfigModal({
             </div>
 
             {scope === 'specific' && (
-              <div className="mt-4 rounded-[16px] border border-white/10 bg-[#0c0d10] p-4">
+              <div className="mt-4 rounded-[16px] border border-white/10 bg-surface-2 p-4">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <p className="text-sm font-black text-white">Fluxos que podem usar este gateway</p>
                   <span className="text-xs font-bold text-gray-600">
@@ -628,7 +628,9 @@ function GatewayConfigModal({
             type="button"
             onClick={() => void handleSave()}
             disabled={!canSave || saving || disconnecting}
-            className="rounded-full border border-neon-purple/70 bg-[linear-gradient(90deg,#b44dff,#ff2a9d)] px-6 font-black text-white shadow-[0_0_18px_rgba(180,77,255,0.25)] hover:opacity-95 disabled:opacity-45"
+            variant="neonGradient"
+            size="pill"
+            className="px-6 font-black"
           >
             {saving ? <Loader2 size={16} className="mr-2 animate-spin" aria-hidden="true" /> : <Save size={16} className="mr-2" aria-hidden="true" />}
             Salvar

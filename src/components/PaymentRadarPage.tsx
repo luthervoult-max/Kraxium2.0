@@ -131,7 +131,7 @@ export default function PaymentRadarPage() {
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <span className="rounded-full border border-white/10 bg-[#0c0d10] px-4 py-2 text-xs font-bold text-gray-500">
+          <span className="rounded-full border border-white/10 bg-surface-2 px-4 py-2 text-xs font-bold text-gray-500">
             {dashboard ? formatUpdatedAt(dashboard.updatedAt) : 'Aguardando dados'}
           </span>
           <Button
@@ -187,7 +187,7 @@ export default function PaymentRadarPage() {
         </div>
       </section>
 
-      <section className="rounded-[18px] border border-white/10 bg-[#0c0d10] p-4">
+      <section className="rounded-[18px] border border-white/10 bg-surface-2 p-4">
         <div className="mb-4 flex items-center gap-3 text-sm font-black text-white">
           <Filter size={16} className="text-neon-purple" aria-hidden="true" />
           Filtros do Radar
@@ -268,7 +268,7 @@ export default function PaymentRadarPage() {
           )}
 
           {!hasTransactions && (
-            <section className="flex min-h-[230px] flex-col items-center justify-center rounded-[18px] border border-dashed border-white/12 bg-[#08090b] px-6 text-center">
+            <section className="flex min-h-[230px] flex-col items-center justify-center rounded-[18px] border border-dashed border-white/12 bg-surface-1 px-6 text-center">
               <Zap size={44} className="text-gray-500" aria-hidden="true" />
               <h3 className="mt-5 text-2xl font-black text-white">
                 Nenhuma transação nas {dashboard.rangeLabel}
@@ -322,10 +322,10 @@ function FilterSelect({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-12 w-full rounded-[12px] border border-white/10 bg-[#08090b] px-3 text-sm font-bold text-white outline-none transition-colors focus:border-neon-purple/55"
+        className="h-12 w-full rounded-[12px] border border-white/10 bg-surface-1 px-3 text-sm font-bold text-white outline-none transition-colors focus:border-neon-purple/55"
       >
         {options.map((option) => (
-          <option key={option.id} value={option.id} className="bg-[#08090b] text-white">
+          <option key={option.id} value={option.id} className="bg-surface-1 text-white">
             {option.label}
           </option>
         ))}
@@ -434,7 +434,7 @@ function ConsoleChannelCard({
         : 'bg-gray-600'
 
   return (
-    <article className="group overflow-hidden rounded-none border border-white/10 bg-[#08090b] shadow-[0_22px_70px_rgba(0,0,0,0.24)] transition-colors hover:border-neon-purple/35">
+    <article className="group overflow-hidden rounded-none border border-white/10 bg-surface-1 shadow-[0_22px_70px_rgba(0,0,0,0.24)] transition-colors hover:border-neon-purple/35">
       <div className="flex min-h-[330px] flex-col p-5">
         <div className="flex items-center justify-between border-b border-white/[0.08] pb-4 font-mono text-[11px] uppercase tracking-[0.18em]">
           <span className="text-gray-500">{channel}</span>
@@ -533,7 +533,7 @@ function GatewayRadarCard({ gateway }: { gateway: PaymentRadarGateway }) {
   const MethodIcon = methodIcon
 
   return (
-    <article className="flex h-full min-w-0 flex-col rounded-[18px] border border-white/10 bg-[#0c0d10] p-5">
+    <article className="flex h-full min-w-0 flex-col rounded-[18px] border border-white/10 bg-surface-2 p-5">
       <div className="flex min-h-[132px] items-start justify-between gap-4">
         <div className="flex min-w-0 items-start gap-3">
           <span className="flex h-12 w-12 items-center justify-center rounded-[14px] border border-neon-purple/30 bg-neon-purple/10 text-neon-purple">
@@ -569,7 +569,7 @@ function GatewayRadarCard({ gateway }: { gateway: PaymentRadarGateway }) {
         </div>
       </div>
 
-      <div className="mt-auto rounded-[14px] border border-white/10 bg-[#08090b] p-4">
+      <div className="mt-auto rounded-[14px] border border-white/10 bg-surface-1 p-4">
         <div className="flex items-center justify-between gap-3">
           <span className="text-[10px] font-black uppercase tracking-[0.16em] text-gray-600">
             Receita
@@ -593,7 +593,7 @@ function FunnelPanel({ dashboard }: { dashboard: PaymentRadarDashboard }) {
   return (
     <section
       id="radar-funnel"
-      className="min-w-0 scroll-mt-6 rounded-[18px] border border-white/10 bg-[#0c0d10] p-5"
+      className="min-w-0 scroll-mt-6 rounded-[18px] border border-white/10 bg-surface-2 p-5"
     >
       <div className="flex items-center justify-between gap-4">
         <div>
@@ -627,7 +627,7 @@ function FunnelPanel({ dashboard }: { dashboard: PaymentRadarDashboard }) {
         />
       </div>
 
-      <div className="mt-5 rounded-[16px] border border-white/10 bg-[#08090b] p-4">
+      <div className="mt-5 rounded-[16px] border border-white/10 bg-surface-1 p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <span className="text-sm font-bold text-gray-400">Conversão start até venda</span>
           <span className="text-2xl font-black text-white">{funnel.startToPaidRate}%</span>
@@ -657,7 +657,7 @@ function FunnelStep({
   detail: string
 }) {
   return (
-    <article className="min-w-0 rounded-[16px] border border-white/10 bg-[#08090b] p-4">
+    <article className="min-w-0 rounded-[16px] border border-white/10 bg-surface-1 p-4">
       <span className="flex h-10 w-10 items-center justify-center rounded-[12px] border border-neon-purple/25 bg-neon-purple/10 text-neon-purple">
         <Icon size={18} aria-hidden="true" />
       </span>
@@ -687,7 +687,7 @@ function WebhookPanel({
   return (
     <section
       id="radar-webhooks"
-      className="min-w-0 scroll-mt-6 rounded-[18px] border border-white/10 bg-[#0c0d10] p-5"
+      className="min-w-0 scroll-mt-6 rounded-[18px] border border-white/10 bg-surface-2 p-5"
     >
       <div className="flex items-center justify-between gap-4">
         <div>
@@ -705,7 +705,7 @@ function WebhookPanel({
           return (
             <article
               key={gateway.id}
-              className="min-w-0 rounded-[16px] border border-white/10 bg-[#08090b] p-4"
+              className="min-w-0 rounded-[16px] border border-white/10 bg-surface-1 p-4"
             >
               <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                 <div>
@@ -757,7 +757,7 @@ function MiniStat({ label, value }: { label: string; value: string }) {
 
 function LoadingBlock() {
   return (
-    <div className="flex min-h-[420px] items-center justify-center rounded-[18px] border border-white/10 bg-[#0c0d10] text-gray-500">
+    <div className="flex min-h-[420px] items-center justify-center rounded-[18px] border border-white/10 bg-surface-2 text-gray-500">
       <Loader2 size={22} className="mr-3 animate-spin" aria-hidden="true" />
       Carregando radar...
     </div>

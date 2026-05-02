@@ -148,7 +148,7 @@ export default function BotsPage({ selectedBotId, onSelectBot }: BotsPageProps) 
           type="button"
           onClick={() => setView('connect')}
           disabled={bots.length >= 50}
-          className="h-12 rounded-[14px] border border-white/10 bg-[#0c0d10] px-7 text-sm font-black text-white shadow-[0_0_18px_rgba(180,77,255,0.12)] hover:border-neon-purple/45 hover:bg-neon-purple/15"
+          className="h-12 rounded-[14px] border border-white/10 bg-surface-2 px-7 text-sm font-black text-white shadow-[0_0_18px_rgba(180,77,255,0.12)] hover:border-neon-purple/45 hover:bg-neon-purple/15"
         >
           Conectar Bot ({bots.length}/50)
         </Button>
@@ -167,7 +167,7 @@ export default function BotsPage({ selectedBotId, onSelectBot }: BotsPageProps) 
       </section>
 
       {loading && (
-        <div className="flex min-h-[340px] items-center justify-center rounded-[18px] border border-white/10 bg-[#08090b] text-gray-500">
+        <div className="flex min-h-[340px] items-center justify-center rounded-[18px] border border-white/10 bg-surface-1 text-gray-500">
           <Loader2 size={20} className="mr-3 animate-spin" aria-hidden="true" />
           Carregando bots...
         </div>
@@ -191,7 +191,7 @@ export default function BotsPage({ selectedBotId, onSelectBot }: BotsPageProps) 
             type="button"
             onClick={() => setView('connect')}
             disabled={bots.length >= 50}
-            className="flex min-h-[356px] flex-col items-center justify-center rounded-[28px] border border-dashed border-white/10 bg-[#08090b] p-6 text-center transition-colors hover:border-neon-purple/35 hover:bg-neon-purple/5 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex min-h-[356px] flex-col items-center justify-center rounded-[28px] border border-dashed border-white/10 bg-surface-1 p-6 text-center transition-colors hover:border-neon-purple/35 hover:bg-neon-purple/5 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <span className="flex h-20 w-20 items-center justify-center rounded-full border border-white/10 bg-white/5 text-gray-500">
               <Plus size={42} strokeWidth={1.5} aria-hidden="true" />
@@ -252,7 +252,7 @@ function ConnectBotView({
         <button
           type="button"
           onClick={onBack}
-          className="mt-1 flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-white/10 bg-[#08090b] text-white transition-colors hover:border-neon-purple/35 hover:text-neon-purple"
+          className="mt-1 flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-white/10 bg-surface-1 text-white transition-colors hover:border-neon-purple/35 hover:text-neon-purple"
           aria-label="Voltar para Meus Robos"
         >
           <ArrowLeft size={23} aria-hidden="true" />
@@ -266,7 +266,7 @@ function ConnectBotView({
       </section>
 
       <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.66fr)]">
-        <section className="overflow-hidden rounded-[18px] border border-white/10 bg-[#08090b]">
+        <section className="overflow-hidden rounded-[18px] border border-white/10 bg-surface-1">
           <div className="flex items-center gap-4 border-b border-white/10 px-7 py-5">
             <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-neon-purple/25 bg-neon-purple/10 text-neon-purple">
               <Server size={18} aria-hidden="true" />
@@ -352,7 +352,8 @@ function ConnectBotView({
                 type="button"
                 onClick={handleConnect}
                 disabled={!preview || connecting}
-                className="h-12 rounded-[14px] border border-neon-purple/55 bg-[linear-gradient(90deg,#b44dff,#ff2a9d)] px-8 font-black text-white shadow-[0_0_18px_rgba(180,77,255,0.25)] hover:opacity-95"
+                variant="neonGradient"
+                className="h-12 rounded-[14px] border-neon-purple/55 px-8 font-black"
               >
                 {connecting && <Loader2 size={16} className="mr-2 animate-spin" aria-hidden="true" />}
                 Criar Bot
@@ -385,7 +386,7 @@ function SummaryCard({
   }[tone]
 
   return (
-    <article className="rounded-[16px] border border-white/10 bg-[#08090b] px-6 py-6">
+    <article className="rounded-[16px] border border-white/10 bg-surface-1 px-6 py-6">
       <div className="flex items-center gap-4">
         <span className={cn('flex h-12 w-12 items-center justify-center rounded-xl border', toneClass)}>
           <Icon size={21} aria-hidden="true" />
@@ -421,7 +422,7 @@ function BotCard({
   return (
     <article
       className={cn(
-        'group relative overflow-hidden rounded-[28px] border bg-[#08090b] transition-all duration-200',
+        'group relative overflow-hidden rounded-[28px] border bg-surface-1 transition-all duration-200',
         selected
           ? 'border-neon-purple/55 shadow-[0_0_26px_rgba(180,77,255,0.16)]'
           : 'border-white/10 hover:border-neon-purple/30 hover:shadow-[0_0_18px_rgba(180,77,255,0.08)]',
@@ -537,7 +538,7 @@ function BotInfoField({
 
 function TutorialPanel() {
   return (
-    <aside className="rounded-[18px] border border-white/10 bg-[#08090b] p-7">
+    <aside className="rounded-[18px] border border-white/10 bg-surface-1 p-7">
       <h3 className="text-2xl font-black text-white">Tutorial: Criar Bot no Telegram</h3>
       <p className="mt-4 text-base text-gray-500">Siga estes passos para criar seu bot no Telegram:</p>
 

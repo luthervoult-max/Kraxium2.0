@@ -270,7 +270,7 @@ export default function AnalyticsPage() {
         <TimeRangeTabs value={timeRange} onChange={setTimeRange} />
       </section>
 
-      <section className="rounded-[18px] border border-white/10 bg-[#0c0d10] p-3">
+      <section className="rounded-[18px] border border-white/10 bg-surface-2 p-3">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_1fr_1fr_auto]">
           <FilterSelect
             icon={Bot}
@@ -398,7 +398,7 @@ export default function AnalyticsPage() {
               <LoaderBlock key={index} className="h-[186px] w-full" />
             ))
           ) : rankings.topFlows.length === 0 ? (
-            <section className="rounded-[14px] border border-white/10 bg-[#0c0d10] p-6 md:col-span-2 xl:col-span-4">
+            <section className="rounded-[14px] border border-white/10 bg-surface-2 p-6 md:col-span-2 xl:col-span-4">
               <EmptyState label="Nenhum fluxo com vendas para o periodo selecionado" />
             </section>
           ) : (
@@ -551,7 +551,7 @@ function OverviewCard({
   }[tone]
 
   return (
-    <article className="relative min-h-[220px] overflow-hidden rounded-[14px] border border-white/10 bg-[#0c0d10] p-6">
+    <article className="relative min-h-[220px] overflow-hidden rounded-[14px] border border-white/10 bg-surface-2 p-6">
       <div className="flex items-start justify-between gap-4">
         <p className="text-[12px] font-black uppercase tracking-[0.2em] text-gray-500">{label}</p>
         <span className={cn('flex h-12 w-12 items-center justify-center rounded-2xl border p-3', classes)}>
@@ -590,7 +590,7 @@ function DonutMetric({ percent, color, label }: { percent: number; color: string
         }}
         aria-label={`${value}% ${label}`}
       >
-        <div className="absolute inset-3 rounded-full border border-white/10 bg-[#0c0d10]" />
+        <div className="absolute inset-3 rounded-full border border-white/10 bg-surface-2" />
         <div className="relative text-center">
           <p className="font-mono text-xl font-black text-white">{value}%</p>
           <p className="mt-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-gray-600">taxa</p>
@@ -619,7 +619,7 @@ function ChartPanel({
   loading: boolean
 }) {
   return (
-    <section className="rounded-[14px] border border-white/10 bg-[#0c0d10] p-6">
+    <section className="rounded-[14px] border border-white/10 bg-surface-2 p-6">
       <div className="mb-7 flex items-center gap-4">
         <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-neon-purple/20 bg-neon-purple/10 text-neon-purple">
           <Icon size={21} aria-hidden="true" />
@@ -709,7 +709,7 @@ function CalendarPanel({ timeSeries, loading }: { timeSeries: AnalyticsTimeSerie
   const leadingBlanks = firstDay.getDay()
 
   return (
-    <section className="rounded-[14px] border border-white/10 bg-[#0c0d10] p-6">
+    <section className="rounded-[14px] border border-white/10 bg-surface-2 p-6">
       <div className="mb-7 flex items-center gap-4">
         <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-neon-purple/20 bg-neon-purple/10 text-neon-purple">
           <CalendarDays size={21} aria-hidden="true" />
@@ -830,7 +830,7 @@ function RankingCard({
   className?: string
 }) {
   return (
-    <section className={cn('min-h-[260px] rounded-[14px] border border-white/10 bg-[#0c0d10] p-6', className)}>
+    <section className={cn('min-h-[260px] rounded-[14px] border border-white/10 bg-surface-2 p-6', className)}>
       <PanelHeader icon={Icon} title={title} subtitle={subtitle} />
       {loading ? (
         <LoaderBlock className="mt-8 h-28 w-full" />
@@ -860,7 +860,7 @@ function RankingCard({
 
 function FunnelPanel({ funnel, loading }: { funnel: AnalyticsFunnel; loading: boolean }) {
   return (
-    <section className="min-h-[260px] rounded-[14px] border border-white/10 bg-[#0c0d10] p-6 xl:col-span-2">
+    <section className="min-h-[260px] rounded-[14px] border border-white/10 bg-surface-2 p-6 xl:col-span-2">
       <PanelHeader icon={Filter} title="Funil de Conversão" subtitle="Jornada do usuario ate a compra" />
       {loading ? (
         <LoaderBlock className="mt-8 h-36 w-full" />
@@ -884,7 +884,7 @@ function FunnelPanel({ funnel, loading }: { funnel: AnalyticsFunnel; loading: bo
 
 function AverageTimeCard({ advanced, loading }: { advanced: AnalyticsAdvancedMetrics; loading: boolean }) {
   return (
-    <section className="rounded-[14px] border border-white/10 bg-[#0c0d10] p-6">
+    <section className="rounded-[14px] border border-white/10 bg-surface-2 p-6">
       <PanelHeader icon={Clock3} title="Tempo Medio" subtitle="/start -> pagamento" />
       {loading ? (
         <LoaderBlock className="mt-8 h-24 w-full" />
@@ -921,7 +921,7 @@ function RateCard({
 }) {
   const toneClass = getToneClass(tone)
   return (
-    <section className="rounded-[14px] border border-white/10 bg-[#0c0d10] p-6">
+    <section className="rounded-[14px] border border-white/10 bg-surface-2 p-6">
       <div className="flex items-center gap-4">
         <span className={cn('flex h-12 w-12 items-center justify-center rounded-xl border', toneClass)}>
           <Icon size={20} aria-hidden="true" />
@@ -962,7 +962,7 @@ function ValueCard({
 }) {
   const textClass = tone === 'green' ? 'text-neon-green' : tone === 'purple' ? 'text-neon-purple' : 'text-neon-orange'
   return (
-    <section className="overflow-hidden rounded-[14px] border border-white/10 bg-[#0c0d10] p-6">
+    <section className="overflow-hidden rounded-[14px] border border-white/10 bg-surface-2 p-6">
       <PanelHeader icon={Icon} title={title} subtitle="" />
       {loading ? (
         <LoaderBlock className="mt-12 h-20 w-full" />
@@ -984,7 +984,7 @@ function CountersCard({
   loading: boolean
 }) {
   return (
-    <section className="rounded-[14px] border border-white/10 bg-[#0c0d10] p-6">
+    <section className="rounded-[14px] border border-white/10 bg-surface-2 p-6">
       <PanelHeader icon={Users} title="Contadores de Usuários" subtitle="Por tipo" />
       {loading ? (
         <LoaderBlock className="mt-8 h-44 w-full" />

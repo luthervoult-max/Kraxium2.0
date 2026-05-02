@@ -51,7 +51,7 @@ export default function Header({ eyebrow, title, titleHighlight, right }: Header
           </Button>
 
           {right ?? (
-            <Button className="border border-neon-purple bg-neon-purple/20 text-neon-purple hover:bg-neon-purple/30 shadow-[0_0_15px_rgba(180,77,255,0.3)]">
+            <Button variant="neonOutline">
               <Plus size={16} aria-hidden="true" className="mr-2" />
               Novo Bot
             </Button>

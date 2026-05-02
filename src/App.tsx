@@ -403,7 +403,7 @@ function Shell() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="unsaved-flow-title"
-            className="w-full max-w-lg rounded-[28px] border border-neon-purple/25 bg-[#11141d] p-6 shadow-[0_24px_90px_rgba(0,0,0,0.55)]"
+            className="w-full max-w-lg rounded-[28px] border border-neon-purple/25 bg-surface-4 p-6 shadow-[0_24px_90px_rgba(0,0,0,0.55)]"
           >
             <div className="mb-5 flex items-start gap-4">
               <span className="mt-1 h-3 w-3 shrink-0 rounded-full bg-neon-orange shadow-[0_0_18px_rgba(255,177,0,0.8)]" />
@@ -441,7 +441,9 @@ function Shell() {
                 type="button"
                 onClick={() => void handleSaveAndLeave()}
                 disabled={!flowSaveHandler || savingBeforeLeave}
-                className="rounded-full border border-neon-purple/70 bg-[linear-gradient(90deg,#b44dff,#ff2a9d)] px-5 font-bold text-white shadow-[0_0_18px_rgba(180,77,255,0.25)] hover:opacity-95 disabled:opacity-60"
+                variant="neonGradient"
+                size="pill"
+                className="font-bold"
               >
                 {savingBeforeLeave ? 'Salvando...' : 'Salvar e sair'}
               </Button>

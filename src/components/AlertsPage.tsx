@@ -40,7 +40,7 @@ function relativeTime(iso: string): string {
 
 function AlertSkeleton() {
   return (
-    <div className="animate-pulse rounded-[14px] border border-white/10 bg-[#0c0d10] p-4">
+    <div className="animate-pulse rounded-[14px] border border-white/10 bg-surface-2 p-4">
       <div className="flex items-start gap-3">
         <div className="h-8 w-8 shrink-0 rounded-[9px] bg-white/5" />
         <div className="flex-1 space-y-2">
@@ -226,7 +226,7 @@ export default function AlertsPage({ onNavigate }: AlertsPageProps) {
             return (
               <div
                 key={alert.id}
-                className="overflow-hidden rounded-[14px] border border-white/10 bg-[#0c0d10]"
+                className="overflow-hidden rounded-[14px] border border-white/10 bg-surface-2"
                 style={{ borderLeft: `3px solid ${color}` }}
               >
                 <div className="flex items-start gap-3 p-4">

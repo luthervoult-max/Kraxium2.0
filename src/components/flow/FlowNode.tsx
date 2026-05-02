@@ -93,7 +93,7 @@ function FlowNodeComponent({ id, data, selected }: NodeProps & { data: FlowNodeD
   if (data.expanded) {
     return (
       <div
-        className="group/node relative w-[310px] rounded-[14px] border bg-[#11131a]/98 p-0 shadow-[0_24px_80px_rgba(0,0,0,0.4)] backdrop-blur-md transition-all"
+        className="group/node relative w-[310px] rounded-[14px] border bg-surface-3/98 p-0 shadow-[0_24px_80px_rgba(0,0,0,0.4)] backdrop-blur-md transition-all"
         style={{
           borderColor: selected || hasRuntimeError || hasValidationIssues ? nodeColor : `rgba(${nodeRgb}, 0.32)`,
           boxShadow: selected
@@ -281,7 +281,7 @@ function DeleteButton({ title, onDelete }: { title: string; onDelete: () => void
         event.stopPropagation()
         onDelete()
       }}
-      className="nodrag nopan pointer-events-none absolute right-3 top-3 z-20 flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-[#0f1118]/95 text-gray-300 opacity-0 shadow-[0_10px_28px_rgba(0,0,0,0.36)] backdrop-blur-md transition-all hover:border-[#ff3b5f]/45 hover:text-[#ff6b84] focus:pointer-events-auto focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-neon-purple/60 group-hover/node:pointer-events-auto group-hover/node:opacity-100"
+      className="nodrag nopan pointer-events-none absolute right-3 top-3 z-20 flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-[#0f1118]/95 text-gray-300 opacity-0 shadow-[0_10px_28px_rgba(0,0,0,0.36)] backdrop-blur-md transition-all hover:border-danger/45 hover:text-danger-soft focus:pointer-events-auto focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-neon-purple/60 group-hover/node:pointer-events-auto group-hover/node:opacity-100"
     >
       <X size={13} aria-hidden="true" />
     </button>
@@ -447,7 +447,7 @@ function StringListEditor({
           <button
             type="button"
             onClick={() => onChange(value.filter((_, itemIndex) => itemIndex !== index))}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] border border-white/8 bg-white/5 text-gray-400 hover:border-[#ff3b5f]/35 hover:text-[#ff6b84]"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] border border-white/8 bg-white/5 text-gray-400 hover:border-danger/35 hover:text-danger-soft"
             aria-label="Remover item"
           >
             <Trash2 size={12} aria-hidden="true" />
@@ -502,7 +502,7 @@ function RouteListEditor({
           <button
             type="button"
             onClick={() => onChange(value.filter((_, routeIndex) => routeIndex !== index))}
-            className="flex h-8 w-8 items-center justify-center rounded-[8px] border border-white/8 bg-white/5 text-gray-400 hover:border-[#ff3b5f]/35 hover:text-[#ff6b84]"
+            className="flex h-8 w-8 items-center justify-center rounded-[8px] border border-white/8 bg-white/5 text-gray-400 hover:border-danger/35 hover:text-danger-soft"
             aria-label="Remover caminho"
           >
             <Trash2 size={12} aria-hidden="true" />

@@ -150,7 +150,9 @@ export default function RemarketingPage() {
           type="button"
           disabled={campaignLimitReached || options.bots.length === 0}
           onClick={() => setDialogCampaign('new')}
-          className="h-14 rounded-[16px] border border-neon-purple/40 bg-[linear-gradient(90deg,#b44dff,#ff2a9d)] px-6 text-base font-black text-white shadow-[0_0_22px_rgba(180,77,255,0.25)] hover:opacity-95 disabled:opacity-50"
+          variant="neonGradient"
+          size="cta"
+          className="border-neon-purple/40 px-6 shadow-[0_0_22px_rgba(180,77,255,0.25)]"
           title={
             options.bots.length === 0
               ? 'Crie ou conecte um bot antes de criar campanha'
@@ -198,7 +200,7 @@ export default function RemarketingPage() {
       </section>
 
       {loading ? (
-        <div className="flex min-h-[420px] items-center justify-center rounded-[24px] border border-white/10 bg-[#0c0d10] text-gray-500">
+        <div className="flex min-h-[420px] items-center justify-center rounded-[24px] border border-white/10 bg-surface-2 text-gray-500">
           <Loader2 size={22} className="mr-3 animate-spin text-neon-purple" aria-hidden="true" />
           Carregando campanhas...
         </div>
@@ -263,7 +265,7 @@ function RemarketingStatCard({
   }[tone]
 
   return (
-    <article className="rounded-[18px] border border-white/10 bg-[#0c0d10] p-5 shadow-[0_18px_60px_rgba(0,0,0,0.2)]">
+    <article className="rounded-[18px] border border-white/10 bg-surface-2 p-5 shadow-[0_18px_60px_rgba(0,0,0,0.2)]">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-[13px] font-black text-gray-500">{label}</p>
@@ -277,7 +279,7 @@ function RemarketingStatCard({
 
 function EmptyRemarketingState({ disabled, onCreate }: { disabled: boolean; onCreate: () => void }) {
   return (
-    <section className="rounded-[24px] border border-white/10 bg-[#0c0d10] px-6 py-20 text-center shadow-[0_24px_80px_rgba(0,0,0,0.22)]">
+    <section className="rounded-[24px] border border-white/10 bg-surface-2 px-6 py-20 text-center shadow-[0_24px_80px_rgba(0,0,0,0.22)]">
       <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full border border-neon-purple/25 bg-neon-purple/12 text-neon-purple shadow-[0_0_32px_rgba(180,77,255,0.18)]">
         <Megaphone size={42} aria-hidden="true" />
       </div>
@@ -289,7 +291,9 @@ function EmptyRemarketingState({ disabled, onCreate }: { disabled: boolean; onCr
         type="button"
         disabled={disabled}
         onClick={onCreate}
-        className="mt-8 h-14 rounded-[16px] border border-neon-purple/40 bg-[linear-gradient(90deg,#b44dff,#ff2a9d)] px-8 text-base font-black text-white shadow-[0_0_22px_rgba(180,77,255,0.24)] hover:opacity-95 disabled:opacity-50"
+        variant="neonGradient"
+        size="cta"
+        className="mt-8 border-neon-purple/40 shadow-[0_0_22px_rgba(180,77,255,0.24)]"
       >
         <Plus size={20} className="mr-2" aria-hidden="true" />
         Criar Primeira Campanha
@@ -314,7 +318,7 @@ function CampaignCard({
   const sentLocked = campaign.sentCount > 0
 
   return (
-    <article className="overflow-hidden rounded-[20px] border border-white/10 bg-[#0c0d10] transition-colors hover:border-neon-purple/35">
+    <article className="overflow-hidden rounded-[20px] border border-white/10 bg-surface-2 transition-colors hover:border-neon-purple/35">
       <div className="p-5">
         <div className="mb-5 flex items-start justify-between gap-4">
           <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[12px] border border-neon-purple/25 bg-neon-purple/12 text-neon-purple">
@@ -481,7 +485,7 @@ function CampaignDialog({ campaign, options, onClose, onSaved }: CampaignDialogP
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 px-4 backdrop-blur-sm">
-      <div className="max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-[26px] border border-neon-purple/25 bg-[#0c0d10] p-6 shadow-[0_24px_90px_rgba(0,0,0,0.62)]">
+      <div className="max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-[26px] border border-neon-purple/25 bg-surface-2 p-6 shadow-[0_24px_90px_rgba(0,0,0,0.62)]">
         <div className="mb-6 flex items-start justify-between gap-4">
           <div className="flex items-start gap-4">
             <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] border border-neon-purple/25 bg-neon-purple/12 text-neon-purple">
@@ -521,7 +525,7 @@ function CampaignDialog({ campaign, options, onClose, onSaved }: CampaignDialogP
               <input
                 value={name}
                 onChange={(event) => setName(event.target.value)}
-                className="h-12 w-full rounded-[14px] border border-white/10 bg-[#08090b] px-4 text-sm font-bold text-white outline-none transition focus:border-neon-purple/50"
+                className="h-12 w-full rounded-[14px] border border-white/10 bg-surface-1 px-4 text-sm font-bold text-white outline-none transition focus:border-neon-purple/50"
                 placeholder="Ex: Recuperar carrinho"
               />
             </Field>
@@ -531,7 +535,7 @@ function CampaignDialog({ campaign, options, onClose, onSaved }: CampaignDialogP
                 <select
                   value={filters.botId}
                   onChange={(event) => updateFilter('botId', event.target.value)}
-                  className="h-12 w-full rounded-[14px] border border-white/10 bg-[#08090b] px-4 text-sm font-bold text-white outline-none focus:border-neon-purple/50"
+                  className="h-12 w-full rounded-[14px] border border-white/10 bg-surface-1 px-4 text-sm font-bold text-white outline-none focus:border-neon-purple/50"
                 >
                   {options.bots.length === 0 && <option value="">Nenhum bot encontrado</option>}
                   {options.bots.map((bot) => (
@@ -544,7 +548,7 @@ function CampaignDialog({ campaign, options, onClose, onSaved }: CampaignDialogP
                 <select
                   value={filters.flowId ?? 'all'}
                   onChange={(event) => updateFilter('flowId', event.target.value === 'all' ? null : event.target.value)}
-                  className="h-12 w-full rounded-[14px] border border-white/10 bg-[#08090b] px-4 text-sm font-bold text-white outline-none focus:border-neon-purple/50"
+                  className="h-12 w-full rounded-[14px] border border-white/10 bg-surface-1 px-4 text-sm font-bold text-white outline-none focus:border-neon-purple/50"
                 >
                   <option value="all">Todos os fluxos do bot</option>
                   {filteredFlows.map((flow) => (
@@ -557,7 +561,7 @@ function CampaignDialog({ campaign, options, onClose, onSaved }: CampaignDialogP
                 <select
                   value={filters.leadStatus}
                   onChange={(event) => updateFilter('leadStatus', event.target.value as RemarketingLeadStatus)}
-                  className="h-12 w-full rounded-[14px] border border-white/10 bg-[#08090b] px-4 text-sm font-bold text-white outline-none focus:border-neon-purple/50"
+                  className="h-12 w-full rounded-[14px] border border-white/10 bg-surface-1 px-4 text-sm font-bold text-white outline-none focus:border-neon-purple/50"
                 >
                   {leadStatusOptions.map((option) => (
                     <option key={option.value} value={option.value}>{option.label}</option>
@@ -569,7 +573,7 @@ function CampaignDialog({ campaign, options, onClose, onSaved }: CampaignDialogP
                 <select
                   value={filters.starts}
                   onChange={(event) => updateFilter('starts', event.target.value as RemarketingStartsFilter)}
-                  className="h-12 w-full rounded-[14px] border border-white/10 bg-[#08090b] px-4 text-sm font-bold text-white outline-none focus:border-neon-purple/50"
+                  className="h-12 w-full rounded-[14px] border border-white/10 bg-surface-1 px-4 text-sm font-bold text-white outline-none focus:border-neon-purple/50"
                 >
                   {startsOptions.map((option) => (
                     <option key={option.value} value={option.value}>{option.label}</option>
@@ -581,7 +585,7 @@ function CampaignDialog({ campaign, options, onClose, onSaved }: CampaignDialogP
                 <select
                   value={filters.lastSeen}
                   onChange={(event) => updateFilter('lastSeen', event.target.value as RemarketingLastSeenFilter)}
-                  className="h-12 w-full rounded-[14px] border border-white/10 bg-[#08090b] px-4 text-sm font-bold text-white outline-none focus:border-neon-purple/50"
+                  className="h-12 w-full rounded-[14px] border border-white/10 bg-surface-1 px-4 text-sm font-bold text-white outline-none focus:border-neon-purple/50"
                 >
                   {lastSeenOptions.map((option) => (
                     <option key={option.value} value={option.value}>{option.label}</option>
@@ -595,12 +599,12 @@ function CampaignDialog({ campaign, options, onClose, onSaved }: CampaignDialogP
                 value={message}
                 onChange={(event) => setMessage(event.target.value)}
                 rows={6}
-                className="w-full resize-none rounded-[14px] border border-white/10 bg-[#08090b] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none transition placeholder:text-gray-700 focus:border-neon-purple/50"
+                className="w-full resize-none rounded-[14px] border border-white/10 bg-surface-1 px-4 py-3 text-sm font-semibold leading-6 text-white outline-none transition placeholder:text-gray-700 focus:border-neon-purple/50"
                 placeholder={defaultMessage}
               />
             </Field>
 
-            <div className="rounded-[16px] border border-white/10 bg-[#08090b] p-4">
+            <div className="rounded-[16px] border border-white/10 bg-surface-1 p-4">
               <p className="text-[11px] font-black uppercase tracking-[0.16em] text-gray-600">Preview da mensagem</p>
               <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-gray-300">{messagePreview}</p>
               <p className="mt-3 text-xs text-gray-600">Variáveis: {'{nome}'}, {'{bot}'}, {'{fluxo}'}</p>
@@ -627,7 +631,7 @@ function CampaignDialog({ campaign, options, onClose, onSaved }: CampaignDialogP
               </Button>
             </div>
 
-            <div className="rounded-[18px] border border-white/10 bg-[#08090b] p-5">
+            <div className="rounded-[18px] border border-white/10 bg-surface-1 p-5">
               <p className="text-[11px] font-black uppercase tracking-[0.18em] text-gray-600">Amostra</p>
               {preview?.sample.length ? (
                 <div className="mt-4 space-y-3">
@@ -663,7 +667,9 @@ function CampaignDialog({ campaign, options, onClose, onSaved }: CampaignDialogP
             type="button"
             onClick={() => void handleSave()}
             disabled={saving || !filters.botId}
-            className="rounded-full border border-neon-purple/70 bg-[linear-gradient(90deg,#b44dff,#ff2a9d)] px-6 font-bold text-white shadow-[0_0_18px_rgba(180,77,255,0.25)] hover:opacity-95 disabled:opacity-60"
+            variant="neonGradient"
+            size="pill"
+            className="px-6 font-bold"
           >
             {saving ? <Loader2 size={16} className="mr-2 animate-spin" /> : <CheckCircle2 size={16} className="mr-2" />}
             Salvar e Preparar
@@ -698,7 +704,7 @@ function ConfirmSendDialog({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 px-4 backdrop-blur-sm">
-      <div className="w-full max-w-xl rounded-[24px] border border-neon-orange/25 bg-[#0c0d10] p-6 shadow-[0_24px_90px_rgba(0,0,0,0.62)]">
+      <div className="w-full max-w-xl rounded-[24px] border border-neon-orange/25 bg-surface-2 p-6 shadow-[0_24px_90px_rgba(0,0,0,0.62)]">
         <div className="flex items-start gap-4">
           <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] border border-neon-orange/25 bg-neon-orange/10 text-neon-orange">
             <AlertTriangle size={24} aria-hidden="true" />
@@ -715,7 +721,7 @@ function ConfirmSendDialog({
           </div>
         </div>
 
-        <div className="mt-6 rounded-[16px] border border-white/10 bg-[#08090b] p-4">
+        <div className="mt-6 rounded-[16px] border border-white/10 bg-surface-1 p-4">
           <p className="text-lg font-black text-white">{campaign.name}</p>
           <p className="mt-2 text-sm text-gray-500">
             Na fila: <span className="font-black text-white">{campaign.queuedCount}</span> · Bot:{' '}
