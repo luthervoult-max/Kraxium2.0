@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto'
 import { HttpError } from './http.js'
 import { serviceSupabase } from './supabase.js'
 import {
@@ -6,6 +7,7 @@ import {
   sendPhoto,
   sendVideo,
   sendVoice,
+  TelegramApiError,
   type InlineKeyboardButton,
 } from './telegram.js'
 
@@ -87,6 +89,7 @@ export interface PublicMailingCampaign {
   sentCount: number
   failedCount: number
   skippedCount: number
+  clickCount: number
   lastRunAt: string | null
   nextRunAt: string | null
   latestRun: PublicMailingRun | null
@@ -224,7 +227,7 @@ interface LeadAudienceRow {
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const maxCampaigns = 50
 const messageLimit = 4096
-const sendBatchSize = 25
+const cronBatchSize = 50
 const minimumCooldownHours = 3
 
 const campaignStatuses = new Set<MailingCampaignStatus>([
@@ -282,8 +285,13 @@ export async function listMailingDashboard(
   const campaignIds = campaigns.map((campaign) => campaign.id)
   const runs = await listRuns(ownerId, campaignIds)
   const runsByCampaign = groupRuns(runs)
+  const clicksByCampaign = await getCampaignClickTotals(campaignIds)
   const publicCampaigns = campaigns.map((campaign) =>
-    toPublicCampaign(campaign, runsByCampaign.get(campaign.id) ?? []),
+    toPublicCampaign(
+      campaign,
+      runsByCampaign.get(campaign.id) ?? [],
+      clicksByCampaign.get(campaign.id) ?? 0,
+    ),
   )
   const groupCounts = botId ? await getGroupCounts(ownerId, botId, null) : emptyGroupCounts()
 
@@ -400,7 +408,57 @@ export async function sendMailingBatch(
   }
 
   const campaignId = normalizeRequiredUuid(campaignIdValue, 'Mailing invalido.')
-  return processMailingCampaign(ownerId, campaignId, { enforceCooldown: true })
+  return processMailingCampaign(ownerId, campaignId, { enforceCooldown: true, sendBatchSize: 0 })
+}
+
+export async function controlMailingCampaign(
+  ownerId: string,
+  campaignIdValue: unknown,
+  action: 'pause' | 'resume' | 'cancel',
+) {
+  const campaignId = normalizeRequiredUuid(campaignIdValue, 'Mailing invalido.')
+  const campaign = await getCampaign(ownerId, campaignId)
+  if (!campaign) throw new HttpError(404, 'Mailing nao encontrado.')
+
+  if (action === 'pause') {
+    if (campaign.status !== 'sending' && campaign.status !== 'scheduled') {
+      throw new HttpError(400, 'So da pra pausar mailings em envio ou agendados.')
+    }
+    await updateCampaignStatus(ownerId, campaignId, 'paused')
+  } else if (action === 'resume') {
+    if (campaign.status !== 'paused') {
+      throw new HttpError(400, 'So da pra retomar mailings pausados.')
+    }
+    await updateCampaignStatus(ownerId, campaignId, 'sending')
+  } else {
+    if (campaign.status === 'canceled' || campaign.status === 'sent') {
+      throw new HttpError(400, 'Esse mailing ja foi finalizado.')
+    }
+    await updateCampaignStatus(ownerId, campaignId, 'canceled')
+    await serviceSupabase
+      .from('mailing_recipients')
+      .update({ status: 'skipped' })
+      .eq('owner_id', ownerId)
+      .eq('campaign_id', campaignId)
+      .eq('status', 'queued')
+    await serviceSupabase
+      .from('mailing_runs')
+      .update({ status: 'canceled', completed_at: new Date().toISOString() })
+      .eq('owner_id', ownerId)
+      .eq('campaign_id', campaignId)
+      .in('status', ['queued', 'sending'])
+  }
+
+  return getPublicCampaign(ownerId, campaignId)
+}
+
+async function updateCampaignStatus(ownerId: string, campaignId: string, status: MailingCampaignStatus) {
+  const { error } = await serviceSupabase
+    .from('mailing_campaigns')
+    .update({ status })
+    .eq('owner_id', ownerId)
+    .eq('id', campaignId)
+  if (error) throw error
 }
 
 export async function dispatchDueMailings() {
@@ -431,7 +489,7 @@ export async function dispatchDueMailings() {
 
   for (const row of rows) {
     try {
-      await processMailingCampaign(row.owner_id, row.id, { enforceCooldown: false })
+      await processMailingCampaign(row.owner_id, row.id, { enforceCooldown: false, sendBatchSize: cronBatchSize })
       results.push({ campaignId: row.id, ok: true })
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Falha ao processar mailing.'
@@ -450,7 +508,7 @@ export async function dispatchDueMailings() {
 async function processMailingCampaign(
   ownerId: string,
   campaignId: string,
-  options: { enforceCooldown: boolean },
+  options: { enforceCooldown: boolean; sendBatchSize: number },
 ) {
   const campaign = await getCampaign(ownerId, campaignId)
   if (!campaign) throw new HttpError(404, 'Mailing nao encontrado.')
@@ -480,6 +538,10 @@ async function processMailingCampaign(
     .eq('id', campaign.id)
     .eq('owner_id', ownerId)
 
+  if (options.sendBatchSize <= 0) {
+    return getPublicCampaign(ownerId, campaign.id)
+  }
+
   const signedAssets = await getSignedAssets(campaign)
   const { data, error } = await serviceSupabase
     .from('mailing_recipients')
@@ -488,14 +550,16 @@ async function processMailingCampaign(
     .eq('run_id', run.id)
     .eq('status', 'queued')
     .order('created_at', { ascending: true })
-    .limit(sendBatchSize)
+    .limit(options.sendBatchSize)
 
   if (error) throw error
 
   const recipients = (data ?? []) as MailingRecipientRow[]
+  const buttonsByRecipient = await loadRecipientButtons(recipients.map((recipient) => recipient.id))
   for (const recipient of recipients) {
     try {
-      await sendMailingRecipient(secret.telegram_token, recipient, campaign, signedAssets)
+      const buttons = buttonsByRecipient.get(recipient.id) ?? []
+      await sendMailingRecipient(secret.telegram_token, recipient, campaign, signedAssets, buttons)
       await serviceSupabase
         .from('mailing_recipients')
         .update({
@@ -515,7 +579,16 @@ async function processMailingCampaign(
         })
         .eq('id', recipient.id)
         .eq('owner_id', ownerId)
+
+      if (error instanceof TelegramApiError && error.telegramCode === 403) {
+        await serviceSupabase
+          .from('telegram_leads')
+          .update({ status: 'bloqueado' })
+          .eq('id', recipient.lead_id)
+          .eq('owner_id', ownerId)
+      }
     }
+    await sleep(80 + Math.floor(Math.random() * 100))
   }
 
   await refreshRunCounters(ownerId, campaign.id, run.id)
@@ -556,11 +629,35 @@ async function createRun(ownerId: string, campaign: MailingCampaignRow) {
     status: 'queued',
   }))
 
-  const { error: insertError } = await serviceSupabase
+  const { data: insertedRecipients, error: insertError } = await serviceSupabase
     .from('mailing_recipients')
     .insert(recipients)
+    .select('id')
 
   if (insertError) throw insertError
+
+  const buttons = normalizeButtons(campaign.button_config)
+  if (buttons.length > 0 && insertedRecipients) {
+    const clickRows = (insertedRecipients as Array<{ id: string }>).flatMap((recipient) =>
+      buttons.map((button, buttonIndex) => ({
+        token: generateClickToken(),
+        owner_id: ownerId,
+        campaign_id: campaign.id,
+        recipient_id: recipient.id,
+        button_index: buttonIndex,
+        label: button.label,
+        destination_url: button.url,
+      })),
+    )
+
+    for (let i = 0; i < clickRows.length; i += 500) {
+      const { error: clickError } = await serviceSupabase
+        .from('mailing_link_clicks')
+        .insert(clickRows.slice(i, i + 500))
+      if (clickError) throw clickError
+    }
+  }
+
   return run
 }
 
@@ -569,28 +666,38 @@ async function sendMailingRecipient(
   recipient: MailingRecipientRow,
   campaign: MailingCampaignRow,
   assets: { mediaUrl: string | null; audioUrl: string | null },
+  buttons: Array<{ label: string; url: string }>,
 ) {
-  const keyboard = normalizeButtons(campaign.button_config).map((button) => [
-    { text: button.label, url: button.url } satisfies InlineKeyboardButton,
-  ])
+  const keyboard = buttons.length > 0
+    ? buttons.map((button) => [{ text: button.label, url: button.url } satisfies InlineKeyboardButton])
+    : undefined
 
-  await sendMessage(
-    token,
-    recipient.telegram_chat_id,
-    recipient.rendered_message,
-    keyboard.length > 0 ? keyboard : undefined,
-  )
+  const chatId = recipient.telegram_chat_id
+  const text = recipient.rendered_message
+  const mediaUrl = assets.mediaUrl
+  const mediaKind: 'image' | 'video' | null = !mediaUrl
+    ? null
+    : campaign.media_mime?.startsWith('image/')
+      ? 'image'
+      : campaign.media_mime === 'video/mp4'
+        ? 'video'
+        : null
 
-  if (assets.mediaUrl && campaign.media_mime?.startsWith('image/')) {
-    await sendPhoto(token, recipient.telegram_chat_id, assets.mediaUrl)
-  } else if (assets.mediaUrl && campaign.media_mime === 'video/mp4') {
-    await sendVideo(token, recipient.telegram_chat_id, assets.mediaUrl)
+  if (mediaUrl && mediaKind && text.length <= 1024) {
+    const sendMedia = mediaKind === 'image' ? sendPhoto : sendVideo
+    await sendMedia(token, chatId, mediaUrl, text, keyboard)
+  } else {
+    if (mediaUrl && mediaKind) {
+      const sendMedia = mediaKind === 'image' ? sendPhoto : sendVideo
+      await sendMedia(token, chatId, mediaUrl)
+    }
+    await sendMessage(token, chatId, text, keyboard)
   }
 
   if (assets.audioUrl && campaign.audio_mime === 'audio/ogg') {
-    await sendVoice(token, recipient.telegram_chat_id, assets.audioUrl)
+    await sendVoice(token, chatId, assets.audioUrl)
   } else if (assets.audioUrl) {
-    await sendAudio(token, recipient.telegram_chat_id, assets.audioUrl)
+    await sendAudio(token, chatId, assets.audioUrl)
   }
 }
 
@@ -867,7 +974,45 @@ async function getPublicCampaign(ownerId: string, campaignId: string) {
   const campaign = await getCampaign(ownerId, campaignId)
   if (!campaign) throw new HttpError(404, 'Mailing nao encontrado.')
   const runs = await listRuns(ownerId, [campaignId])
-  return toPublicCampaign(campaign, runs)
+  const clickCount = (await getCampaignClickTotals([campaignId])).get(campaignId) ?? 0
+  return toPublicCampaign(campaign, runs, clickCount)
+}
+
+async function getCampaignClickTotals(campaignIds: string[]) {
+  const totals = new Map<string, number>()
+  if (campaignIds.length === 0) return totals
+  const { data, error } = await serviceSupabase
+    .from('mailing_link_clicks')
+    .select('campaign_id, click_count')
+    .in('campaign_id', campaignIds)
+  if (error) throw error
+  for (const row of (data ?? []) as Array<{ campaign_id: string; click_count: number }>) {
+    totals.set(row.campaign_id, (totals.get(row.campaign_id) ?? 0) + Number(row.click_count ?? 0))
+  }
+  return totals
+}
+
+async function loadRecipientButtons(recipientIds: string[]) {
+  const map = new Map<string, Array<{ label: string; url: string }>>()
+  if (recipientIds.length === 0) return map
+  const baseUrl = getPublicAppUrl()
+  const { data, error } = await serviceSupabase
+    .from('mailing_link_clicks')
+    .select('recipient_id, button_index, label, token')
+    .in('recipient_id', recipientIds)
+    .order('button_index', { ascending: true })
+  if (error) throw error
+  for (const row of (data ?? []) as Array<{
+    recipient_id: string
+    button_index: number
+    label: string
+    token: string
+  }>) {
+    const list = map.get(row.recipient_id) ?? []
+    list.push({ label: row.label, url: `${baseUrl}/api/c?t=${row.token}` })
+    map.set(row.recipient_id, list)
+  }
+  return map
 }
 
 async function getOpenRun(ownerId: string, campaignId: string) {
@@ -907,7 +1052,11 @@ function groupRuns(runs: MailingRunRow[]) {
   return grouped
 }
 
-function toPublicCampaign(campaign: MailingCampaignRow, runs: MailingRunRow[]): PublicMailingCampaign {
+function toPublicCampaign(
+  campaign: MailingCampaignRow,
+  runs: MailingRunRow[],
+  clickCount: number,
+): PublicMailingCampaign {
   const latestRun = runs[0] ? toPublicRun(runs[0]) : null
   return {
     id: campaign.id,
@@ -940,6 +1089,7 @@ function toPublicCampaign(campaign: MailingCampaignRow, runs: MailingRunRow[]): 
     sentCount: runs.reduce((total, run) => total + Number(run.sent_count ?? 0), 0),
     failedCount: runs.reduce((total, run) => total + Number(run.failed_count ?? 0), 0),
     skippedCount: runs.reduce((total, run) => total + Number(run.skipped_count ?? 0), 0),
+    clickCount,
     lastRunAt: campaign.last_run_at,
     nextRunAt: campaign.next_run_at,
     latestRun,
@@ -1144,6 +1294,22 @@ function booleanValue(value: unknown) {
 
 function addHours(date: Date, hours: number) {
   return new Date(date.getTime() + hours * 60 * 60 * 1000)
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+function generateClickToken() {
+  return randomBytes(8).toString('hex')
+}
+
+function getPublicAppUrl() {
+  const explicit = process.env.PUBLIC_APP_URL?.trim()
+  if (explicit) return explicit.replace(/\/$/, '')
+  const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim() || process.env.VERCEL_URL?.trim()
+  if (vercel) return `https://${vercel.replace(/^https?:\/\//, '').replace(/\/$/, '')}`
+  throw new HttpError(500, 'PUBLIC_APP_URL nao configurado para gerar links de tracking.')
 }
 
 function normalizeRequiredUuid(value: unknown, message: string) {

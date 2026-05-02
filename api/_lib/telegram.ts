@@ -15,6 +15,18 @@ interface TelegramResponse<T> {
   result?: T
   description?: string
   error_code?: number
+  parameters?: { retry_after?: number; migrate_to_chat_id?: number }
+}
+
+export class TelegramApiError extends HttpError {
+  telegramCode: number
+  retryAfter: number | null
+
+  constructor(statusCode: number, message: string, telegramCode: number, retryAfter: number | null) {
+    super(statusCode, message)
+    this.telegramCode = telegramCode
+    this.retryAfter = retryAfter
+  }
 }
 
 export type InlineKeyboardButton =
@@ -31,6 +43,7 @@ async function telegramRequest<T>(
   token: string,
   method: string,
   payload?: Record<string, unknown>,
+  attempt = 0,
 ): Promise<T> {
   const response = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
     method: 'POST',
@@ -42,7 +55,20 @@ async function telegramRequest<T>(
 
   if (!response.ok || !data?.ok) {
     const description = data?.description || `Telegram retornou HTTP ${response.status}.`
-    throw new HttpError(response.status === 401 ? 401 : 400, description)
+    const telegramCode = data?.error_code ?? response.status
+    const retryAfter = data?.parameters?.retry_after ?? null
+
+    if (telegramCode === 429 && retryAfter && attempt < 2) {
+      await new Promise((resolve) => setTimeout(resolve, (retryAfter + 0.2) * 1000))
+      return telegramRequest<T>(token, method, payload, attempt + 1)
+    }
+
+    throw new TelegramApiError(
+      response.status === 401 ? 401 : 400,
+      description,
+      telegramCode,
+      retryAfter,
+    )
   }
 
   return data.result as T
@@ -101,11 +127,13 @@ export async function sendPhoto(
   chatId: string,
   photo: string,
   caption?: string,
+  keyboard?: InlineKeyboardButton[][],
 ) {
   return telegramRequest(token, 'sendPhoto', {
     chat_id: chatId,
     photo,
     ...(caption ? { caption } : {}),
+    ...(keyboard ? { reply_markup: { inline_keyboard: keyboard } } : {}),
   })
 }
 
@@ -114,11 +142,13 @@ export async function sendVideo(
   chatId: string,
   video: string,
   caption?: string,
+  keyboard?: InlineKeyboardButton[][],
 ) {
   return telegramRequest(token, 'sendVideo', {
     chat_id: chatId,
     video,
     ...(caption ? { caption } : {}),
+    ...(keyboard ? { reply_markup: { inline_keyboard: keyboard } } : {}),
   })
 }
 

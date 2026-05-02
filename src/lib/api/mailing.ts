@@ -63,6 +63,7 @@ export interface MailingCampaign {
   sentCount: number
   failedCount: number
   skippedCount: number
+  clickCount: number
   lastRunAt: string | null
   nextRunAt: string | null
   latestRun: MailingRun | null
@@ -171,6 +172,17 @@ export async function sendMailingCampaign(campaignId: string, confirm: boolean) 
   const data = await mailingFetch<{ campaign: MailingCampaign }>('/api/mailing', {
     method: 'POST',
     body: JSON.stringify({ action: 'send', campaignId, confirm }),
+  })
+  return data.campaign
+}
+
+export async function controlMailingCampaign(
+  campaignId: string,
+  action: 'pause' | 'resume' | 'cancel',
+) {
+  const data = await mailingFetch<{ campaign: MailingCampaign }>('/api/mailing', {
+    method: 'POST',
+    body: JSON.stringify({ action, campaignId }),
   })
   return data.campaign
 }
