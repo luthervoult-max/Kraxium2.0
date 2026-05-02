@@ -1009,7 +1009,7 @@ async function loadRecipientButtons(recipientIds: string[]) {
     token: string
   }>) {
     const list = map.get(row.recipient_id) ?? []
-    list.push({ label: row.label, url: `${baseUrl}/api/c?t=${row.token}` })
+    list.push({ label: row.label, url: `${baseUrl}/api/mailing?click=${row.token}` })
     map.set(row.recipient_id, list)
   }
   return map
