@@ -580,27 +580,37 @@ async function sendMailingRecipient(
   campaign: MailingCampaignRow,
   assets: { mediaUrl: string | null; audioUrl: string | null },
 ) {
-  const keyboard = normalizeButtons(campaign.button_config).map((button) => [
-    { text: button.label, url: button.url } satisfies InlineKeyboardButton,
-  ])
+  const buttons = normalizeButtons(campaign.button_config)
+  const keyboard = buttons.length > 0
+    ? buttons.map((button) => [{ text: button.label, url: button.url } satisfies InlineKeyboardButton])
+    : undefined
 
-  await sendMessage(
-    token,
-    recipient.telegram_chat_id,
-    recipient.rendered_message,
-    keyboard.length > 0 ? keyboard : undefined,
-  )
+  const chatId = recipient.telegram_chat_id
+  const text = recipient.rendered_message
+  const mediaUrl = assets.mediaUrl
+  const mediaKind: 'image' | 'video' | null = !mediaUrl
+    ? null
+    : campaign.media_mime?.startsWith('image/')
+      ? 'image'
+      : campaign.media_mime === 'video/mp4'
+        ? 'video'
+        : null
 
-  if (assets.mediaUrl && campaign.media_mime?.startsWith('image/')) {
-    await sendPhoto(token, recipient.telegram_chat_id, assets.mediaUrl)
-  } else if (assets.mediaUrl && campaign.media_mime === 'video/mp4') {
-    await sendVideo(token, recipient.telegram_chat_id, assets.mediaUrl)
+  if (mediaUrl && mediaKind && text.length <= 1024) {
+    const sendMedia = mediaKind === 'image' ? sendPhoto : sendVideo
+    await sendMedia(token, chatId, mediaUrl, text, keyboard)
+  } else {
+    if (mediaUrl && mediaKind) {
+      const sendMedia = mediaKind === 'image' ? sendPhoto : sendVideo
+      await sendMedia(token, chatId, mediaUrl)
+    }
+    await sendMessage(token, chatId, text, keyboard)
   }
 
   if (assets.audioUrl && campaign.audio_mime === 'audio/ogg') {
-    await sendVoice(token, recipient.telegram_chat_id, assets.audioUrl)
+    await sendVoice(token, chatId, assets.audioUrl)
   } else if (assets.audioUrl) {
-    await sendAudio(token, recipient.telegram_chat_id, assets.audioUrl)
+    await sendAudio(token, chatId, assets.audioUrl)
   }
 }
 

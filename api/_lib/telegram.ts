@@ -127,11 +127,13 @@ export async function sendPhoto(
   chatId: string,
   photo: string,
   caption?: string,
+  keyboard?: InlineKeyboardButton[][],
 ) {
   return telegramRequest(token, 'sendPhoto', {
     chat_id: chatId,
     photo,
     ...(caption ? { caption } : {}),
+    ...(keyboard ? { reply_markup: { inline_keyboard: keyboard } } : {}),
   })
 }
 
@@ -140,11 +142,13 @@ export async function sendVideo(
   chatId: string,
   video: string,
   caption?: string,
+  keyboard?: InlineKeyboardButton[][],
 ) {
   return telegramRequest(token, 'sendVideo', {
     chat_id: chatId,
     video,
     ...(caption ? { caption } : {}),
+    ...(keyboard ? { reply_markup: { inline_keyboard: keyboard } } : {}),
   })
 }
 
