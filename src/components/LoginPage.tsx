@@ -182,7 +182,7 @@ export default function LoginPage() {
             type="submit"
             disabled={isLoading}
             variant="neonGradient"
-            className="relative h-[46px] w-full overflow-hidden rounded-[10px] border-0 text-sm font-black tracking-[0.08em] shadow-[0_4px_24px_rgba(180,77,255,0.42),0_0_24px_rgba(255,42,157,0.16)] transition-all hover:-translate-y-px hover:shadow-[0_4px_30px_rgba(180,77,255,0.62),0_0_30px_rgba(255,42,157,0.20)] disabled:translate-y-0 disabled:opacity-70"
+            className="relative h-[46px] w-full overflow-hidden rounded-[10px] border-0 bg-[linear-gradient(135deg,#b44dff,#ff2a9d)] text-sm font-black tracking-[0.08em] shadow-[0_4px_24px_rgba(180,77,255,0.42),0_0_24px_rgba(255,42,157,0.16)] transition-all hover:-translate-y-px hover:shadow-[0_4px_30px_rgba(180,77,255,0.62),0_0_30px_rgba(255,42,157,0.20)] disabled:translate-y-0 disabled:opacity-70"
           >
             {loadingMode === 'password' ? (
               <>
