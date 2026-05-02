@@ -258,14 +258,14 @@ export default function HomeSidebar({
                 height: railMode ? 44 : 'auto',
                 gap: railMode ? 0 : 8,
                 padding: railMode ? 0 : '12px 16px',
-                background: 'linear-gradient(135deg,#8b5cf6,#6d28d9)',
-                boxShadow: '0 4px 20px rgba(139,92,246,0.4)',
+                background: 'linear-gradient(135deg,#b44dff,#ff2a9d)',
+                boxShadow: '0 4px 20px rgba(180,77,255,0.4)',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = '0 4px 28px rgba(139,92,246,0.6)'
+                e.currentTarget.style.boxShadow = '0 4px 28px rgba(180,77,255,0.6)'
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = '0 4px 20px rgba(139,92,246,0.4)'
+                e.currentTarget.style.boxShadow = '0 4px 20px rgba(180,77,255,0.4)'
               }}
             >
               <Plus size={16} aria-hidden />

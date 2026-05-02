@@ -130,6 +130,57 @@ Ao concluir uma mudanca nao trivial, rode pelo menos `npm run build` e
 
 ---
 
+## 7. Regras De Operacao
+
+Regras explicitas de comportamento neste projeto. Seguir mesmo se o pedido
+parecer permitir o contrario.
+
+### Validacao
+
+- Sempre rodar `npm run build` e `npm test` antes de dizer "terminei". Sem
+  exceção, mesmo para mudanças pequenas que parecem seguras.
+- Sempre confirmar visualmente (Vercel preview ou print do usuário) antes de
+  declarar feature concluída em UI.
+- Nunca afirmar que algo está corrigido sem ter rodado o teste/build que prova.
+
+### Escopo e cautela
+
+- Antes de modificar 5 ou mais arquivos numa única tarefa, mostrar plano e
+  esperar OK do usuário.
+- Antes de mexer em design tokens (`src/index.css`), Button base
+  (`src/components/ui/button.tsx`) ou `tailwind.config.js`, perguntar primeiro.
+- Quando achar inconsistência fora do escopo do pedido, listar como TODO no
+  fim da resposta. Nao corrigir junto.
+
+### Git
+
+- Nunca commitar sem pedido explícito do usuário ("commita pra mim", "faz
+  commit"). Mostrar `git status` e esperar OK conta como pedido.
+- Nunca pushar sozinho. Push é sempre pedido explícito.
+- Sempre `git add` arquivo-por-arquivo, nunca `git add -A` ou `git add .`.
+  Mostrar a lista de arquivos staged antes do commit.
+- Nunca tocar a branch `main` direto. Mudanças entram via PR ou merge da
+  branch de trabalho. Fast-forward push para `main` so com pedido explícito.
+
+### Comunicação
+
+- Resposta padrão é curta. Resumos longos só quando o usuário pedir.
+- Quando der erro, mostrar o erro REAL (stack trace, log, output) sem
+  interpretar primeiro. Usuário decide a causa antes do agente teorizar.
+- Sempre responder em PT-BR.
+
+### Design
+
+- Botões primários novos sempre via `<Button variant="neonGradient">` (ou
+  outra variant do `Button`). Nunca `<button>` HTML cru com gradient inline em
+  className.
+- Cores novas só via tokens existentes (`surface-*`, `neon-*`, `danger`,
+  `primary`, `accent`, `muted`). Nunca hex inline novo (`bg-[#...]`).
+- Mudanças visuais sempre acompanhadas de print antes/depois quando possível,
+  ou descrição clara do que muda.
+
+---
+
 Estas diretrizes estao funcionando se houver menos mudancas desnecessarias em
 diffs, menos reescritas por supercomplicacao e perguntas de clarificacao antes
 da implementacao, nao depois dos erros.
