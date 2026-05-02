@@ -1,4 +1,5 @@
 import {
+  getHeader,
   HttpError,
   readJsonBody,
   sendError,
@@ -8,6 +9,7 @@ import {
 } from '../_lib/http.js'
 import { requireUser } from '../_lib/supabase.js'
 import {
+  dispatchDueMailings,
   listMailingDashboard,
   previewMailingAudience,
   saveMailingCampaign,
@@ -24,6 +26,13 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   if (withCors(req, res)) return
 
   try {
+    if (getQueryValue(req, 'dispatchDue') === '1') {
+      requireCronSecret(req)
+      const result = await dispatchDueMailings()
+      res.status(200).json(result)
+      return
+    }
+
     const user = await requireUser(req)
 
     if (req.method === 'GET') {
@@ -70,4 +79,21 @@ function getQueryValue(req: ApiRequest, key: string) {
   if (!req.url) return undefined
   const url = new URL(req.url, 'http://localhost')
   return url.searchParams.get(key) ?? undefined
+}
+
+function requireCronSecret(req: ApiRequest) {
+  const expected = process.env.CRON_SECRET
+  if (!expected) {
+    throw new HttpError(500, 'CRON_SECRET nao configurado.')
+  }
+
+  const authorization = getHeader(req, 'authorization') ?? ''
+  const cronHeader = getHeader(req, 'x-cron-secret') ?? ''
+  const provided = authorization.startsWith('Bearer ')
+    ? authorization.slice('Bearer '.length).trim()
+    : cronHeader
+
+  if (provided !== expected) {
+    throw new HttpError(401, 'Execucao nao autorizada.')
+  }
 }
