@@ -11,12 +11,12 @@ import {
   LayoutGrid,
   Link2,
   LogOut,
+  Mail,
   Megaphone,
   Package,
   Plus,
   Settings,
   Shield,
-  Target,
   User,
   Users,
   X,
@@ -64,7 +64,7 @@ const SECTIONS: MenuSection[] = [
     items: [
       { label: 'Flow Builder', icon: GitBranch, page: 'flows' },
       { label: 'Remarketing', icon: Megaphone, page: 'remarketing' },
-      { label: 'Gatilhos', icon: Target, disabled: true },
+      { label: 'Mailing', icon: Mail, page: 'mailing' },
     ],
   },
   {

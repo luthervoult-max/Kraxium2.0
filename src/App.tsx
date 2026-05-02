@@ -13,6 +13,7 @@ import AnalyticsPage from '@/components/AnalyticsPage'
 import PaymentsPage from '@/components/PaymentsPage'
 import PaymentRadarPage from '@/components/PaymentRadarPage'
 import RemarketingPage from '@/components/RemarketingPage'
+import MailingPage from '@/components/MailingPage'
 import WebhooksPage from '@/components/WebhooksPage'
 import AccountPage from '@/components/AccountPage'
 import { Button } from '@/components/ui/button'
@@ -34,6 +35,7 @@ const pageConfig: Record<Page, { eyebrow: string; title: string; titleHighlight?
   payments: { eyebrow: 'Integrações', title: 'Pagamentos' },
   paymentRadar: { eyebrow: 'Integrações', title: 'Radar de', titleHighlight: 'Pagamentos' },
   remarketing: { eyebrow: 'Automação', title: 'Remarketing' },
+  mailing: { eyebrow: 'Automação', title: 'Mailing' },
   alerts: { eyebrow: 'Sistema', title: 'Alertas', titleHighlight: 'Importantes' },
   account: { eyebrow: 'Configurações', title: 'Minha', titleHighlight: 'Conta' },
 }
@@ -371,6 +373,11 @@ function Shell() {
         {page === 'remarketing' && (
           <div className="flex-1 overflow-y-auto">
             <RemarketingPage />
+          </div>
+        )}
+        {page === 'mailing' && (
+          <div className="flex-1 overflow-y-auto">
+            <MailingPage selectedBotId={selectedBotId} />
           </div>
         )}
         {page === 'alerts' && (

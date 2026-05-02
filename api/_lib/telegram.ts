@@ -17,10 +17,15 @@ interface TelegramResponse<T> {
   error_code?: number
 }
 
-export interface InlineKeyboardButton {
-  text: string
-  callback_data: string
-}
+export type InlineKeyboardButton =
+  | {
+      text: string
+      callback_data: string
+    }
+  | {
+      text: string
+      url: string
+    }
 
 async function telegramRequest<T>(
   token: string,
@@ -88,6 +93,56 @@ export async function sendMessage(
     disable_web_page_preview: true,
     ...(options.parseMode ? { parse_mode: options.parseMode } : {}),
     ...(keyboard ? { reply_markup: { inline_keyboard: keyboard } } : {}),
+  })
+}
+
+export async function sendPhoto(
+  token: string,
+  chatId: string,
+  photo: string,
+  caption?: string,
+) {
+  return telegramRequest(token, 'sendPhoto', {
+    chat_id: chatId,
+    photo,
+    ...(caption ? { caption } : {}),
+  })
+}
+
+export async function sendVideo(
+  token: string,
+  chatId: string,
+  video: string,
+  caption?: string,
+) {
+  return telegramRequest(token, 'sendVideo', {
+    chat_id: chatId,
+    video,
+    ...(caption ? { caption } : {}),
+  })
+}
+
+export async function sendAudio(
+  token: string,
+  chatId: string,
+  audio: string,
+  caption?: string,
+) {
+  return telegramRequest(token, 'sendAudio', {
+    chat_id: chatId,
+    audio,
+    ...(caption ? { caption } : {}),
+  })
+}
+
+export async function sendVoice(
+  token: string,
+  chatId: string,
+  voice: string,
+) {
+  return telegramRequest(token, 'sendVoice', {
+    chat_id: chatId,
+    voice,
   })
 }
 
