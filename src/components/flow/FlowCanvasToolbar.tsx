@@ -76,13 +76,14 @@ export function FlowCanvasToolbar({
         </Button>
         <Button
           type="button"
+          variant="neonGradient"
           onClick={onRequestSave}
           disabled={saveState === 'saving'}
           aria-label="Salvar fluxo"
           title="Salvar fluxo"
           className={cn(
             toolbarButtonClass,
-            'border border-neon-purple/70 bg-[linear-gradient(90deg,#b44dff,#ff2a9d)] text-white shadow-[0_0_16px_rgba(180,77,255,0.22)] hover:opacity-95 disabled:opacity-60',
+            'disabled:opacity-60',
           )}
         >
           {saveState === 'saving' ? (

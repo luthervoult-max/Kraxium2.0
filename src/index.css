@@ -26,6 +26,9 @@
     --input: 240 3.7% 15.9%;
     --ring: 275 100% 65%;
     --radius: 0.75rem;
+    --kraxium-cta-gradient: linear-gradient(90deg,#8b5cf6,#6d28d9);
+    --kraxium-cta-shadow: 0 10px 28px rgba(124,58,237,0.34), 0 0 18px rgba(139,92,246,0.24);
+    --kraxium-cta-shadow-hover: 0 12px 34px rgba(124,58,237,0.46), 0 0 24px rgba(139,92,246,0.32);
   }
 
   html,
@@ -51,4 +54,13 @@
     background: rgba(180, 77, 255, 0.45);
     border-radius: 3px;
   }
+}
+
+.kraxium-neon-cta {
+  background: var(--kraxium-cta-gradient);
+  box-shadow: var(--kraxium-cta-shadow);
+}
+
+.kraxium-neon-cta:hover:not(:disabled) {
+  box-shadow: var(--kraxium-cta-shadow-hover);
 }

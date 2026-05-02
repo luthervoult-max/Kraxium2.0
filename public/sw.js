@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kraxium-static-v1';
+const CACHE_NAME = 'kraxium-static-v2';
 
 const APP_SHELL = [
   '/',
@@ -20,6 +20,14 @@ const shouldBypassCache = (url) =>
   url.pathname.startsWith('/rest/') ||
   url.pathname.startsWith('/storage/') ||
   url.pathname.startsWith('/functions/');
+
+const cacheResponse = (request, response) => {
+  if (!response.ok) return response;
+
+  const responseClone = response.clone();
+  caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
+  return response;
+};
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -57,17 +65,20 @@ self.addEventListener('fetch', (event) => {
 
   if (!['font', 'image', 'manifest', 'script', 'style'].includes(request.destination)) return;
 
+  if (request.destination === 'script' || request.destination === 'style') {
+    event.respondWith(
+      fetch(request)
+        .then((response) => cacheResponse(request, response))
+        .catch(() => caches.match(request).then((cachedResponse) => cachedResponse || Response.error())),
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(request).then((cachedResponse) => {
       const networkResponse = fetch(request)
-        .then((response) => {
-          if (response.ok) {
-            const responseClone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, responseClone));
-          }
-          return response;
-        })
-        .catch(() => cachedResponse);
+        .then((response) => cacheResponse(request, response))
+        .catch(() => cachedResponse || Response.error());
 
       return cachedResponse || networkResponse;
     }),

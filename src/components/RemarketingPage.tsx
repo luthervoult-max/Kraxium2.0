@@ -152,7 +152,7 @@ export default function RemarketingPage() {
           onClick={() => setDialogCampaign('new')}
           variant="neonGradient"
           size="cta"
-          className="border-neon-purple/40 px-6 shadow-[0_0_22px_rgba(180,77,255,0.25)]"
+          className="border-neon-purple/40 px-6"
           title={
             options.bots.length === 0
               ? 'Crie ou conecte um bot antes de criar campanha'
@@ -293,7 +293,7 @@ function EmptyRemarketingState({ disabled, onCreate }: { disabled: boolean; onCr
         onClick={onCreate}
         variant="neonGradient"
         size="cta"
-        className="mt-8 border-neon-purple/40 shadow-[0_0_22px_rgba(180,77,255,0.24)]"
+        className="mt-8 border-neon-purple/40"
       >
         <Plus size={20} className="mr-2" aria-hidden="true" />
         Criar Primeira Campanha

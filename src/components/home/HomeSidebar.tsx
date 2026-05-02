@@ -252,20 +252,12 @@ export default function HomeSidebar({
               onClick={onCreateBot}
               title="Criar novo bot"
               aria-label="Criar novo bot"
-              className="flex items-center justify-center rounded-xl border-0 text-sm font-bold tracking-wide text-white transition-all"
+              className="kraxium-neon-cta flex items-center justify-center rounded-xl border-0 text-sm font-bold tracking-wide text-white transition-all hover:opacity-95"
               style={{
                 width: railMode ? 44 : '100%',
                 height: railMode ? 44 : 'auto',
                 gap: railMode ? 0 : 8,
                 padding: railMode ? 0 : '12px 16px',
-                background: 'linear-gradient(135deg,#5b1fa6,#b44dff)',
-                boxShadow: '0 4px 20px rgba(180,77,255,0.4)',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = '0 4px 28px rgba(180,77,255,0.6)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = '0 4px 20px rgba(180,77,255,0.4)'
               }}
             >
               <Plus size={16} aria-hidden />

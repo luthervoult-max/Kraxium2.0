@@ -187,7 +187,7 @@ export default function MailingPage({ selectedBotId }: MailingPageProps) {
             onClick={() => setEditing('new')}
             variant="neonGradient"
             size="cta"
-            className="border-neon-purple/40 px-6 shadow-[0_0_22px_rgba(180,77,255,0.25)]"
+            className="border-neon-purple/40 px-6"
           >
             <Plus size={20} className="mr-2" aria-hidden="true" />
             Criar Mailing ({dashboard.summary.totalCampaigns}/50)
