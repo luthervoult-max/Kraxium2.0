@@ -18,6 +18,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { listLeadFilterOptions, type LeadFilterOptions } from '@/lib/api/users'
 import {
+  controlMailingCampaign,
   listMailingDashboard,
   mailingGroups,
   previewMailingAudience,
@@ -108,6 +109,19 @@ export default function MailingPage({ selectedBotId }: MailingPageProps) {
     void load(selectedBot)
   }, [selectedBot])
 
+  const hasActiveCampaign = useMemo(
+    () => dashboard.campaigns.some((campaign) => campaign.status === 'sending' || campaign.status === 'scheduled'),
+    [dashboard.campaigns],
+  )
+
+  useEffect(() => {
+    if (!hasActiveCampaign) return
+    const interval = window.setInterval(() => {
+      void load(selectedBot)
+    }, 6000)
+    return () => window.clearInterval(interval)
+  }, [hasActiveCampaign, selectedBot])
+
   const selectedBotName = useMemo(
     () => options.bots.find((bot) => bot.id === selectedBot)?.name ?? 'Nenhum bot selecionado',
     [options.bots, selectedBot],
@@ -124,6 +138,16 @@ export default function MailingPage({ selectedBotId }: MailingPageProps) {
       setError(normalizeError(err, 'Falha ao enviar Mailing.'))
     } finally {
       setSending(false)
+    }
+  }
+
+  async function handleControl(campaign: MailingCampaign, action: 'pause' | 'resume' | 'cancel') {
+    setError(null)
+    try {
+      await controlMailingCampaign(campaign.id, action)
+      await load()
+    } catch (err) {
+      setError(normalizeError(err, 'Falha ao atualizar Mailing.'))
     }
   }
 
@@ -253,6 +277,10 @@ export default function MailingPage({ selectedBotId }: MailingPageProps) {
                 campaign={campaign}
                 onEdit={() => setEditing(campaign)}
                 onSend={() => setSendTarget(campaign)}
+                onControl={(action) => {
+                  if (action === 'cancel' && !window.confirm(`Cancelar o mailing "${campaign.name}"? Os destinatarios em fila nao receberao mais.`)) return
+                  void handleControl(campaign, action)
+                }}
               />
             ))}
           </div>
@@ -685,12 +713,17 @@ function MailingCard({
   campaign,
   onEdit,
   onSend,
+  onControl,
 }: {
   campaign: MailingCampaign
   onEdit: () => void
   onSend: () => void
+  onControl: (action: 'pause' | 'resume' | 'cancel') => void
 }) {
-  const canSend = campaign.status === 'ready' || campaign.status === 'sending' || campaign.status === 'failed'
+  const canSend = campaign.status === 'ready' || campaign.status === 'failed'
+  const canPause = campaign.status === 'sending' || campaign.status === 'scheduled'
+  const canResume = campaign.status === 'paused'
+  const canCancel = canPause || canResume
   return (
     <article className="flex min-h-[320px] flex-col rounded-[24px] border border-white/10 bg-surface-2 p-5">
       <div className="flex items-start justify-between gap-3">
@@ -711,9 +744,45 @@ function MailingCard({
         <Button type="button" variant="outline" onClick={onEdit} className="rounded-full border-white/10 bg-white/5 text-gray-200">
           Editar Mailing
         </Button>
-        <Button type="button" variant="neonGradient" onClick={onSend} disabled={!canSend} className="rounded-full font-bold">
-          Enviar / continuar lote
-        </Button>
+        {canSend && (
+          <Button type="button" variant="neonGradient" onClick={onSend} className="rounded-full font-bold">
+            Enviar Mailing
+          </Button>
+        )}
+        {(canPause || canResume) && (
+          <div className="flex gap-2">
+            {canPause && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onControl('pause')}
+                className="flex-1 rounded-full border-white/10 bg-white/5 text-gray-200"
+              >
+                Pausar
+              </Button>
+            )}
+            {canResume && (
+              <Button
+                type="button"
+                variant="neonGradient"
+                onClick={() => onControl('resume')}
+                className="flex-1 rounded-full font-bold"
+              >
+                Retomar
+              </Button>
+            )}
+            {canCancel && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onControl('cancel')}
+                className="flex-1 rounded-full border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/15"
+              >
+                Cancelar
+              </Button>
+            )}
+          </div>
+        )}
       </div>
     </article>
   )

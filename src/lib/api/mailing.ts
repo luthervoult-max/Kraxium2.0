@@ -176,6 +176,17 @@ export async function sendMailingCampaign(campaignId: string, confirm: boolean) 
   return data.campaign
 }
 
+export async function controlMailingCampaign(
+  campaignId: string,
+  action: 'pause' | 'resume' | 'cancel',
+) {
+  const data = await mailingFetch<{ campaign: MailingCampaign }>('/api/mailing', {
+    method: 'POST',
+    body: JSON.stringify({ action, campaignId }),
+  })
+  return data.campaign
+}
+
 export async function uploadMailingAsset(file: File, kind: 'media' | 'audio') {
   const { data: userData, error: userError } = await supabase.auth.getUser()
   if (userError || !userData.user) {

@@ -9,6 +9,7 @@ import {
 } from '../_lib/http.js'
 import { requireUser } from '../_lib/supabase.js'
 import {
+  controlMailingCampaign,
   dispatchDueMailings,
   listMailingDashboard,
   previewMailingAudience,
@@ -21,6 +22,7 @@ type MailingActionBody =
   | ({ action: 'preview'; filters?: unknown; message?: unknown } & Record<string, unknown>)
   | ({ action: 'save' } & SaveMailingInput)
   | ({ action: 'send'; campaignId?: unknown; confirm?: unknown } & Record<string, unknown>)
+  | ({ action: 'pause' | 'resume' | 'cancel'; campaignId?: unknown } & Record<string, unknown>)
 
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   if (withCors(req, res)) return
@@ -61,6 +63,12 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
     if (body.action === 'send') {
       const campaign = await sendMailingBatch(user.id, body.campaignId, body.confirm)
+      res.status(200).json({ campaign })
+      return
+    }
+
+    if (body.action === 'pause' || body.action === 'resume' || body.action === 'cancel') {
+      const campaign = await controlMailingCampaign(user.id, body.campaignId, body.action)
       res.status(200).json({ campaign })
       return
     }

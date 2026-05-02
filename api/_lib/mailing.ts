@@ -411,6 +411,56 @@ export async function sendMailingBatch(
   return processMailingCampaign(ownerId, campaignId, { enforceCooldown: true, sendBatchSize: 0 })
 }
 
+export async function controlMailingCampaign(
+  ownerId: string,
+  campaignIdValue: unknown,
+  action: 'pause' | 'resume' | 'cancel',
+) {
+  const campaignId = normalizeRequiredUuid(campaignIdValue, 'Mailing invalido.')
+  const campaign = await getCampaign(ownerId, campaignId)
+  if (!campaign) throw new HttpError(404, 'Mailing nao encontrado.')
+
+  if (action === 'pause') {
+    if (campaign.status !== 'sending' && campaign.status !== 'scheduled') {
+      throw new HttpError(400, 'So da pra pausar mailings em envio ou agendados.')
+    }
+    await updateCampaignStatus(ownerId, campaignId, 'paused')
+  } else if (action === 'resume') {
+    if (campaign.status !== 'paused') {
+      throw new HttpError(400, 'So da pra retomar mailings pausados.')
+    }
+    await updateCampaignStatus(ownerId, campaignId, 'sending')
+  } else {
+    if (campaign.status === 'canceled' || campaign.status === 'sent') {
+      throw new HttpError(400, 'Esse mailing ja foi finalizado.')
+    }
+    await updateCampaignStatus(ownerId, campaignId, 'canceled')
+    await serviceSupabase
+      .from('mailing_recipients')
+      .update({ status: 'skipped' })
+      .eq('owner_id', ownerId)
+      .eq('campaign_id', campaignId)
+      .eq('status', 'queued')
+    await serviceSupabase
+      .from('mailing_runs')
+      .update({ status: 'canceled', completed_at: new Date().toISOString() })
+      .eq('owner_id', ownerId)
+      .eq('campaign_id', campaignId)
+      .in('status', ['queued', 'sending'])
+  }
+
+  return getPublicCampaign(ownerId, campaignId)
+}
+
+async function updateCampaignStatus(ownerId: string, campaignId: string, status: MailingCampaignStatus) {
+  const { error } = await serviceSupabase
+    .from('mailing_campaigns')
+    .update({ status })
+    .eq('owner_id', ownerId)
+    .eq('id', campaignId)
+  if (error) throw error
+}
+
 export async function dispatchDueMailings() {
   const now = new Date().toISOString()
 
