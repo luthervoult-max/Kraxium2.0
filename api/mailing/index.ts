@@ -7,7 +7,7 @@ import {
   type ApiRequest,
   type ApiResponse,
 } from '../_lib/http.js'
-import { requireUser } from '../_lib/supabase.js'
+import { requireUser, serviceSupabase } from '../_lib/supabase.js'
 import {
   controlMailingCampaign,
   dispatchDueMailings,
@@ -28,6 +28,12 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   if (withCors(req, res)) return
 
   try {
+    const clickToken = getQueryValue(req, 'click')?.trim()
+    if (clickToken) {
+      await handleClickRedirect(req, res, clickToken)
+      return
+    }
+
     if (getQueryValue(req, 'dispatchDue') === '1') {
       requireCronSecret(req)
       const result = await dispatchDueMailings()
@@ -87,6 +93,30 @@ function getQueryValue(req: ApiRequest, key: string) {
   if (!req.url) return undefined
   const url = new URL(req.url, 'http://localhost')
   return url.searchParams.get(key) ?? undefined
+}
+
+async function handleClickRedirect(req: ApiRequest, res: ApiResponse, token: string) {
+  if (req.method !== 'GET') throw new HttpError(405, 'Metodo nao permitido.')
+
+  const { data, error } = await serviceSupabase
+    .from('mailing_link_clicks')
+    .select('destination_url, click_count')
+    .eq('token', token)
+    .maybeSingle()
+
+  if (error) throw error
+  if (!data) throw new HttpError(404, 'Link expirado.')
+
+  await serviceSupabase
+    .from('mailing_link_clicks')
+    .update({
+      click_count: (data.click_count ?? 0) + 1,
+      last_clicked_at: new Date().toISOString(),
+    })
+    .eq('token', token)
+
+  res.setHeader('Location', data.destination_url)
+  res.status(302).end()
 }
 
 function requireCronSecret(req: ApiRequest) {
