@@ -57,7 +57,7 @@ export function RemovableEdge({
               data.onDeleteEdge?.(id)
             }}
             className={cn(
-              'nodrag nopan absolute z-30 flex h-7 w-7 items-center justify-center rounded-full border bg-surface-4/95 text-white shadow-[0_12px_35px_rgba(0,0,0,0.4)] backdrop-blur-md transition-all duration-150 focus:pointer-events-auto focus:scale-100 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-neon-purple/60',
+              'nodrag nopan absolute z-30 flex h-7 w-7 items-center justify-center rounded-full border bg-[#11141d]/95 text-white shadow-[0_12px_35px_rgba(0,0,0,0.4)] backdrop-blur-md transition-all duration-150 focus:pointer-events-auto focus:scale-100 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-neon-purple/60',
               isHovered ? 'pointer-events-auto scale-100 opacity-100' : 'pointer-events-none scale-75 opacity-0',
             )}
             style={{

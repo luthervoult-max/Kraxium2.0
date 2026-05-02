@@ -66,7 +66,7 @@ export function IntelDock({
       </div>
 
       {selectedNode && (
-        <Card className="border-white/6 bg-surface-3">
+        <Card className="border-white/6 bg-[#111318]">
           <CardContent className="p-4">
             <div className="flex flex-wrap items-center gap-3">
               <BuilderPill label={`no ativo: ${selectedNode.data.code}`} tone="neutral" />
@@ -83,7 +83,7 @@ export function IntelDock({
         <>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {tiles.map((tile) => (
-              <div key={tile.label} className="rounded-[22px] border border-white/6 bg-surface-3 p-4">
+              <div key={tile.label} className="rounded-[22px] border border-white/6 bg-[#111318] p-4">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gray-500">
                   {tile.label}
                 </p>
@@ -163,7 +163,7 @@ export function IntelDock({
           </div>
         </>
       ) : (
-        <Card className="border-white/6 bg-surface-3">
+        <Card className="border-white/6 bg-[#111318]">
           <CardContent className="flex min-h-[180px] items-center justify-center text-center text-sm text-gray-500">
             Rode a analise para preencher o dock com gargalos, copy otimizada e o JSON final.
           </CardContent>
@@ -191,7 +191,7 @@ export function JsonDock({
   readOnly?: boolean
 }) {
   return (
-    <Card className="border-white/6 bg-surface-3">
+    <Card className="border-white/6 bg-[#111318]">
       <CardContent className="p-0">
         <div className="flex flex-col gap-3 border-b border-white/6 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
@@ -267,7 +267,7 @@ function IntelItem({
       : 'border-neon-orange/30 bg-neon-orange/12 text-neon-orange'
 
   return (
-    <div className="rounded-[22px] border border-white/6 bg-surface-3 p-4">
+    <div className="rounded-[22px] border border-white/6 bg-[#111318] p-4">
       <div className="flex items-start justify-between gap-3">
         <p className="text-sm font-semibold text-white">{title}</p>
         <Badge variant="outline" className={cn('rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em]', toneClass)}>
@@ -281,7 +281,7 @@ function IntelItem({
 
 function EmptyIntel({ text }: { text: string }) {
   return (
-    <div className="rounded-[22px] border border-white/6 bg-surface-3 px-4 py-5 text-sm text-gray-500">
+    <div className="rounded-[22px] border border-white/6 bg-[#111318] px-4 py-5 text-sm text-gray-500">
       {text}
     </div>
   )

@@ -35,7 +35,7 @@ export function FlowHealthButton({
       aria-label={isOpen ? 'Ocultar painel de saude do fluxo' : 'Mostrar painel de saude do fluxo'}
       title={isHealthy ? 'Fluxo saudavel' : `${formatProblemCount(problemCount)} no fluxo`}
       className={cn(
-        'absolute right-5 top-5 z-30 flex h-14 w-14 items-center justify-center rounded-full border bg-surface-4/95 shadow-[0_18px_50px_rgba(0,0,0,0.38)] backdrop-blur-md transition-all hover:scale-105',
+        'absolute right-5 top-5 z-30 flex h-14 w-14 items-center justify-center rounded-full border bg-[#11141d]/95 shadow-[0_18px_50px_rgba(0,0,0,0.38)] backdrop-blur-md transition-all hover:scale-105',
         statusClass,
         isOpen && 'scale-105',
       )}
@@ -86,7 +86,7 @@ export function NodeTracePanel({
         : 'border-danger/35 bg-danger/15 text-danger-soft'
 
   return (
-    <div className="absolute right-5 top-24 z-30 w-[380px] max-w-[calc(100%-2.5rem)] rounded-[22px] border border-white/10 bg-surface-4/95 p-4 shadow-[0_20px_70px_rgba(0,0,0,0.45)] backdrop-blur-md">
+    <div className="absolute right-5 top-24 z-30 w-[380px] max-w-[calc(100%-2.5rem)] rounded-[22px] border border-white/10 bg-[#11141d]/95 p-4 shadow-[0_20px_70px_rgba(0,0,0,0.45)] backdrop-blur-md">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-gray-500">

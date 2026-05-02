@@ -31,7 +31,7 @@ export function SaveFlowDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="save-flow-dialog-title"
-        className="w-full max-w-xl rounded-[28px] border border-neon-purple/25 bg-surface-4 p-6 shadow-[0_24px_90px_rgba(0,0,0,0.6)]"
+        className="w-full max-w-xl rounded-[28px] border border-neon-purple/25 bg-[#11141d] p-6 shadow-[0_24px_90px_rgba(0,0,0,0.6)]"
       >
         <div className="mb-6 flex items-start gap-4">
           <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-neon-purple/25 bg-neon-purple/10 text-neon-purple">

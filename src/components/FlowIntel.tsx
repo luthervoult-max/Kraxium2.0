@@ -703,7 +703,7 @@ export default function FlowIntel({
   if (loadingFlow) {
     return (
       <main className="p-6">
-        <div className="flex items-center justify-center rounded-[28px] border border-white/8 bg-surface-4 p-16 text-gray-500">
+        <div className="flex items-center justify-center rounded-[28px] border border-white/8 bg-[#11141d] p-16 text-gray-500">
           <Loader2 size={20} className="mr-3 animate-spin" aria-hidden />
           Carregando fluxo…
         </div>
@@ -738,7 +738,7 @@ export default function FlowIntel({
         <div className="min-w-0">
           <section
             className={cn(
-              'flex flex-col overflow-hidden rounded-[22px] border border-white/10 bg-surface-2 shadow-[0_18px_55px_rgba(0,0,0,0.36)]',
+              'flex flex-col overflow-hidden rounded-[22px] border border-white/10 bg-[#0c0d10] shadow-[0_18px_55px_rgba(0,0,0,0.36)]',
               builderPanelHeightClass,
             )}
           >
@@ -760,12 +760,12 @@ export default function FlowIntel({
 
             <div
               className={cn(
-                'grid min-h-0 flex-1 bg-surface-1',
+                'grid min-h-0 flex-1 bg-[#08090b]',
                 showSimulator ? 'grid-cols-1 xl:grid-cols-[minmax(0,1fr)_400px]' : 'grid-cols-1',
               )}
             >
             <div
-              className="relative h-full min-h-[520px] bg-surface-1"
+              className="relative h-full min-h-[520px] bg-[#08090b]"
               onDrop={handleCanvasDrop}
               onDragOver={(event) => {
                 event.preventDefault()
@@ -839,7 +839,7 @@ export default function FlowIntel({
                 />
                 <Controls
                   showInteractive={false}
-                  className="[&>button]:!h-9 [&>button]:!w-9 [&>button]:!border-white/10 [&>button]:!bg-surface-2 [&>button]:!text-white"
+                  className="[&>button]:!h-9 [&>button]:!w-9 [&>button]:!border-white/10 [&>button]:!bg-[#0c0d10] [&>button]:!text-white [&_.react-flow__controls-button]:!h-9 [&_.react-flow__controls-button]:!w-9 [&_.react-flow__controls-button]:!border-white/10 [&_.react-flow__controls-button]:!bg-[#0c0d10] [&_.react-flow__controls-button]:!text-white [&_.react-flow__controls-button>svg]:!fill-white [&_.react-flow__controls-button>svg]:!stroke-white"
                 />
                 <MiniMap
                   pannable
@@ -859,7 +859,7 @@ export default function FlowIntel({
               </ReactFlow>
             </div>
               {showSimulator && (
-                <div className="overflow-y-auto border-l border-white/10 bg-surface-1 p-4">
+                <div className="overflow-y-auto border-l border-white/10 bg-[#08090b] p-4">
                   <TelegramSimulator
                     flowId={flowName || 'default-flow'}
                     flowName={flowName}

@@ -27,7 +27,7 @@ export function BlockPalette({
   return (
     <aside
       className={cn(
-        'flex flex-col overflow-hidden border border-white/10 bg-surface-2 shadow-[0_18px_55px_rgba(0,0,0,0.36)] transition-all',
+        'flex flex-col overflow-hidden border border-white/10 bg-[#0c0d10] shadow-[0_18px_55px_rgba(0,0,0,0.36)] transition-all',
         panelHeightClass,
         isCollapsed
           ? 'w-full rounded-[18px] xl:min-h-[640px] xl:w-[72px]'
@@ -36,7 +36,7 @@ export function BlockPalette({
     >
       <div
         className={cn(
-          'flex items-center justify-between gap-3 border-b border-white/10 bg-surface-1',
+          'flex items-center justify-between gap-3 border-b border-white/10 bg-[#08090b]',
           isCollapsed ? 'px-4 py-4 xl:flex-col xl:px-3 xl:py-5' : 'px-5 py-4',
         )}
       >

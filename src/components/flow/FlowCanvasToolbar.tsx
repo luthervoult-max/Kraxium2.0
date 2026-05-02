@@ -35,12 +35,12 @@ export function FlowCanvasToolbar({
   onToggleSimulator,
 }: FlowCanvasToolbarProps) {
   return (
-    <div className="flex flex-col gap-3 border-b border-white/10 bg-surface-1 px-4 py-3 lg:flex-row lg:items-center">
+    <div className="flex flex-col gap-3 border-b border-white/10 bg-[#08090b] px-4 py-3 lg:flex-row lg:items-center">
       <div className="flex min-w-0 items-center gap-3 lg:w-[260px] xl:w-[320px]">
         <input
           value={flowName}
           onChange={(event) => onFlowNameChange(event.target.value)}
-          className="h-10 w-full rounded-full border border-white/10 bg-surface-2 px-4 text-sm font-bold text-white outline-none transition-colors placeholder:text-gray-600 focus:border-neon-purple/50"
+          className="h-10 w-full appearance-none rounded-full border border-white/10 bg-[#0c0d10] px-4 text-sm font-bold text-white shadow-inner shadow-black/30 outline-none transition-colors placeholder:text-gray-600 focus:border-neon-purple/50"
           placeholder="Nome do fluxo"
         />
       </div>
