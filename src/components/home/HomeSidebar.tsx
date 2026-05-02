@@ -258,7 +258,7 @@ export default function HomeSidebar({
                 height: railMode ? 44 : 'auto',
                 gap: railMode ? 0 : 8,
                 padding: railMode ? 0 : '12px 16px',
-                background: 'linear-gradient(135deg,#b44dff,#ff2a9d)',
+                background: 'linear-gradient(135deg,#5b1fa6,#b44dff)',
                 boxShadow: '0 4px 20px rgba(180,77,255,0.4)',
               }}
               onMouseEnter={(e) => {

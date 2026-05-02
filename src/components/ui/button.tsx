@@ -14,7 +14,7 @@ const buttonVariants = cva(
         ghost: 'hover:bg-accent/10 hover:text-accent',
         link: 'text-primary underline-offset-4 hover:underline',
         neonGradient:
-          'border border-neon-purple/70 bg-[linear-gradient(90deg,#b44dff,#ff2a9d)] text-white shadow-[0_0_18px_rgba(180,77,255,0.25)] transition-all hover:opacity-95',
+          'border border-neon-purple/70 bg-[linear-gradient(135deg,#5b1fa6,#b44dff)] text-white shadow-[0_0_18px_rgba(180,77,255,0.25)] transition-all hover:opacity-95',
         neonOutline:
           'border border-neon-purple bg-neon-purple/20 text-neon-purple shadow-[0_0_15px_rgba(180,77,255,0.3)] hover:bg-neon-purple/30',
         glass:

@@ -795,7 +795,7 @@ function ModalActions({
       <button
         type="submit"
         disabled={saving}
-        className="rounded-2xl border border-neon-purple/50 bg-[linear-gradient(90deg,#8b5cf6,#ec4899)] px-5 py-3 text-sm font-black text-white shadow-[0_0_22px_rgba(139,92,246,0.28)] disabled:opacity-60"
+        className="rounded-2xl border border-neon-purple/50 bg-[linear-gradient(135deg,#5b1fa6,#b44dff)] px-5 py-3 text-sm font-black text-white shadow-[0_0_22px_rgba(180,77,255,0.28)] disabled:opacity-60"
       >
         {saving ? 'Salvando...' : saveLabel}
       </button>
