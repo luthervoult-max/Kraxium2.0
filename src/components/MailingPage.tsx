@@ -705,7 +705,7 @@ function MailingCard({
         <MiniMetric label="Publico" value={formatNumber(campaign.audienceCount)} />
         <MiniMetric label="Enviadas" value={formatNumber(campaign.sentCount)} />
         <MiniMetric label="Falhas" value={formatNumber(campaign.failedCount)} />
-        <MiniMetric label="Proximo" value={campaign.nextRunAt ? formatShortDate(campaign.nextRunAt) : '-'} />
+        <MiniMetric label="Cliques" value={formatNumber(campaign.clickCount)} />
       </div>
       <div className="mt-auto flex flex-col gap-3 pt-5">
         <Button type="button" variant="outline" onClick={onEdit} className="rounded-full border-white/10 bg-white/5 text-gray-200">
@@ -1022,15 +1022,6 @@ function toLocalInputValue(value?: string | null) {
   const offset = date.getTimezoneOffset()
   const local = new Date(date.getTime() - offset * 60 * 1000)
   return local.toISOString().slice(0, 16)
-}
-
-function formatShortDate(value: string) {
-  return new Intl.DateTimeFormat('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(value))
 }
 
 function formatNumber(value: number) {

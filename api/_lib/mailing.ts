@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto'
 import { HttpError } from './http.js'
 import { serviceSupabase } from './supabase.js'
 import {
@@ -88,6 +89,7 @@ export interface PublicMailingCampaign {
   sentCount: number
   failedCount: number
   skippedCount: number
+  clickCount: number
   lastRunAt: string | null
   nextRunAt: string | null
   latestRun: PublicMailingRun | null
@@ -283,8 +285,13 @@ export async function listMailingDashboard(
   const campaignIds = campaigns.map((campaign) => campaign.id)
   const runs = await listRuns(ownerId, campaignIds)
   const runsByCampaign = groupRuns(runs)
+  const clicksByCampaign = await getCampaignClickTotals(campaignIds)
   const publicCampaigns = campaigns.map((campaign) =>
-    toPublicCampaign(campaign, runsByCampaign.get(campaign.id) ?? []),
+    toPublicCampaign(
+      campaign,
+      runsByCampaign.get(campaign.id) ?? [],
+      clicksByCampaign.get(campaign.id) ?? 0,
+    ),
   )
   const groupCounts = botId ? await getGroupCounts(ownerId, botId, null) : emptyGroupCounts()
 
@@ -498,9 +505,11 @@ async function processMailingCampaign(
   if (error) throw error
 
   const recipients = (data ?? []) as MailingRecipientRow[]
+  const buttonsByRecipient = await loadRecipientButtons(recipients.map((recipient) => recipient.id))
   for (const recipient of recipients) {
     try {
-      await sendMailingRecipient(secret.telegram_token, recipient, campaign, signedAssets)
+      const buttons = buttonsByRecipient.get(recipient.id) ?? []
+      await sendMailingRecipient(secret.telegram_token, recipient, campaign, signedAssets, buttons)
       await serviceSupabase
         .from('mailing_recipients')
         .update({
@@ -570,11 +579,35 @@ async function createRun(ownerId: string, campaign: MailingCampaignRow) {
     status: 'queued',
   }))
 
-  const { error: insertError } = await serviceSupabase
+  const { data: insertedRecipients, error: insertError } = await serviceSupabase
     .from('mailing_recipients')
     .insert(recipients)
+    .select('id')
 
   if (insertError) throw insertError
+
+  const buttons = normalizeButtons(campaign.button_config)
+  if (buttons.length > 0 && insertedRecipients) {
+    const clickRows = (insertedRecipients as Array<{ id: string }>).flatMap((recipient) =>
+      buttons.map((button, buttonIndex) => ({
+        token: generateClickToken(),
+        owner_id: ownerId,
+        campaign_id: campaign.id,
+        recipient_id: recipient.id,
+        button_index: buttonIndex,
+        label: button.label,
+        destination_url: button.url,
+      })),
+    )
+
+    for (let i = 0; i < clickRows.length; i += 500) {
+      const { error: clickError } = await serviceSupabase
+        .from('mailing_link_clicks')
+        .insert(clickRows.slice(i, i + 500))
+      if (clickError) throw clickError
+    }
+  }
+
   return run
 }
 
@@ -583,8 +616,8 @@ async function sendMailingRecipient(
   recipient: MailingRecipientRow,
   campaign: MailingCampaignRow,
   assets: { mediaUrl: string | null; audioUrl: string | null },
+  buttons: Array<{ label: string; url: string }>,
 ) {
-  const buttons = normalizeButtons(campaign.button_config)
   const keyboard = buttons.length > 0
     ? buttons.map((button) => [{ text: button.label, url: button.url } satisfies InlineKeyboardButton])
     : undefined
@@ -891,7 +924,45 @@ async function getPublicCampaign(ownerId: string, campaignId: string) {
   const campaign = await getCampaign(ownerId, campaignId)
   if (!campaign) throw new HttpError(404, 'Mailing nao encontrado.')
   const runs = await listRuns(ownerId, [campaignId])
-  return toPublicCampaign(campaign, runs)
+  const clickCount = (await getCampaignClickTotals([campaignId])).get(campaignId) ?? 0
+  return toPublicCampaign(campaign, runs, clickCount)
+}
+
+async function getCampaignClickTotals(campaignIds: string[]) {
+  const totals = new Map<string, number>()
+  if (campaignIds.length === 0) return totals
+  const { data, error } = await serviceSupabase
+    .from('mailing_link_clicks')
+    .select('campaign_id, click_count')
+    .in('campaign_id', campaignIds)
+  if (error) throw error
+  for (const row of (data ?? []) as Array<{ campaign_id: string; click_count: number }>) {
+    totals.set(row.campaign_id, (totals.get(row.campaign_id) ?? 0) + Number(row.click_count ?? 0))
+  }
+  return totals
+}
+
+async function loadRecipientButtons(recipientIds: string[]) {
+  const map = new Map<string, Array<{ label: string; url: string }>>()
+  if (recipientIds.length === 0) return map
+  const baseUrl = getPublicAppUrl()
+  const { data, error } = await serviceSupabase
+    .from('mailing_link_clicks')
+    .select('recipient_id, button_index, label, token')
+    .in('recipient_id', recipientIds)
+    .order('button_index', { ascending: true })
+  if (error) throw error
+  for (const row of (data ?? []) as Array<{
+    recipient_id: string
+    button_index: number
+    label: string
+    token: string
+  }>) {
+    const list = map.get(row.recipient_id) ?? []
+    list.push({ label: row.label, url: `${baseUrl}/api/c?t=${row.token}` })
+    map.set(row.recipient_id, list)
+  }
+  return map
 }
 
 async function getOpenRun(ownerId: string, campaignId: string) {
@@ -931,7 +1002,11 @@ function groupRuns(runs: MailingRunRow[]) {
   return grouped
 }
 
-function toPublicCampaign(campaign: MailingCampaignRow, runs: MailingRunRow[]): PublicMailingCampaign {
+function toPublicCampaign(
+  campaign: MailingCampaignRow,
+  runs: MailingRunRow[],
+  clickCount: number,
+): PublicMailingCampaign {
   const latestRun = runs[0] ? toPublicRun(runs[0]) : null
   return {
     id: campaign.id,
@@ -964,6 +1039,7 @@ function toPublicCampaign(campaign: MailingCampaignRow, runs: MailingRunRow[]): 
     sentCount: runs.reduce((total, run) => total + Number(run.sent_count ?? 0), 0),
     failedCount: runs.reduce((total, run) => total + Number(run.failed_count ?? 0), 0),
     skippedCount: runs.reduce((total, run) => total + Number(run.skipped_count ?? 0), 0),
+    clickCount,
     lastRunAt: campaign.last_run_at,
     nextRunAt: campaign.next_run_at,
     latestRun,
@@ -1172,6 +1248,18 @@ function addHours(date: Date, hours: number) {
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+function generateClickToken() {
+  return randomBytes(8).toString('hex')
+}
+
+function getPublicAppUrl() {
+  const explicit = process.env.PUBLIC_APP_URL?.trim()
+  if (explicit) return explicit.replace(/\/$/, '')
+  const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim() || process.env.VERCEL_URL?.trim()
+  if (vercel) return `https://${vercel.replace(/^https?:\/\//, '').replace(/\/$/, '')}`
+  throw new HttpError(500, 'PUBLIC_APP_URL nao configurado para gerar links de tracking.')
 }
 
 function normalizeRequiredUuid(value: unknown, message: string) {

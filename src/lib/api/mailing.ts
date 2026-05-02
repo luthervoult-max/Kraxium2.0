@@ -63,6 +63,7 @@ export interface MailingCampaign {
   sentCount: number
   failedCount: number
   skippedCount: number
+  clickCount: number
   lastRunAt: string | null
   nextRunAt: string | null
   latestRun: MailingRun | null
