@@ -6,6 +6,7 @@ import {
   sendPhoto,
   sendVideo,
   sendVoice,
+  TelegramApiError,
   type InlineKeyboardButton,
 } from './telegram.js'
 
@@ -515,7 +516,16 @@ async function processMailingCampaign(
         })
         .eq('id', recipient.id)
         .eq('owner_id', ownerId)
+
+      if (error instanceof TelegramApiError && error.telegramCode === 403) {
+        await serviceSupabase
+          .from('telegram_leads')
+          .update({ status: 'bloqueado' })
+          .eq('id', recipient.lead_id)
+          .eq('owner_id', ownerId)
+      }
     }
+    await sleep(80 + Math.floor(Math.random() * 100))
   }
 
   await refreshRunCounters(ownerId, campaign.id, run.id)
@@ -1144,6 +1154,10 @@ function booleanValue(value: unknown) {
 
 function addHours(date: Date, hours: number) {
   return new Date(date.getTime() + hours * 60 * 60 * 1000)
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 function normalizeRequiredUuid(value: unknown, message: string) {
