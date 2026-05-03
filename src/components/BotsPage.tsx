@@ -8,6 +8,7 @@ import {
   Loader2,
   Plus,
   Power,
+  RefreshCw,
   Server,
   ShieldAlert,
   Trash2,
@@ -19,6 +20,7 @@ import {
   deleteBot,
   fetchTelegramBotPhotoUrl,
   listBots,
+  reconnectTelegramBot,
   validateTelegramBotToken,
   type Bot,
   type TelegramBotPreview,
@@ -112,6 +114,16 @@ export default function BotsPage({ selectedBotId, onSelectBot }: BotsPageProps) 
     }
   }
 
+  async function handleReconnect(bot: Bot) {
+    setError(null)
+    try {
+      await reconnectTelegramBot(bot.id)
+      await refresh()
+    } catch (err) {
+      setError(normalizeError(err))
+    }
+  }
+
   const stats = useMemo(() => {
     const active = bots.filter((bot) => isBotOnline(bot)).length
     return {
@@ -184,6 +196,7 @@ export default function BotsPage({ selectedBotId, onSelectBot }: BotsPageProps) 
               selected={bot.id === selectedBotId}
               onSelect={() => onSelectBot(bot.id)}
               onDelete={() => void handleDelete(bot)}
+              onReconnect={() => void handleReconnect(bot)}
             />
           ))}
 
@@ -407,6 +420,7 @@ function BotCard({
   selected,
   onSelect,
   onDelete,
+  onReconnect,
 }: {
   bot: Bot
   metrics: BotMetrics
@@ -414,6 +428,7 @@ function BotCard({
   selected: boolean
   onSelect: () => void
   onDelete: () => void
+  onReconnect: () => void
 }) {
   const online = isBotOnline(bot)
   const displayName = bot.telegram_first_name || bot.name
@@ -477,14 +492,25 @@ function BotCard({
           <span className="font-mono text-neon-purple">&gt;_</span>
           <span className="truncate">{metrics.flowName ?? 'Nenhum fluxo ativo'}</span>
         </div>
-        <button
-          type="button"
-          onClick={onDelete}
-          className="rounded-lg p-2 text-gray-600 opacity-0 transition-all hover:bg-red-500/10 hover:text-red-300 group-hover:opacity-100 focus:opacity-100"
-          aria-label={`Desconectar ${displayName}`}
-        >
-          <Trash2 size={16} aria-hidden="true" />
-        </button>
+        <div className="flex shrink-0 items-center gap-1 opacity-0 transition-all group-hover:opacity-100 focus-within:opacity-100">
+          <button
+            type="button"
+            onClick={onReconnect}
+            className="rounded-lg p-2 text-gray-600 transition-all hover:bg-neon-purple/10 hover:text-neon-purple"
+            aria-label={`Reconectar webhook do bot ${displayName}`}
+            title="Reconectar webhook"
+          >
+            <RefreshCw size={16} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            onClick={onDelete}
+            className="rounded-lg p-2 text-gray-600 transition-all hover:bg-red-500/10 hover:text-red-300"
+            aria-label={`Desconectar ${displayName}`}
+          >
+            <Trash2 size={16} aria-hidden="true" />
+          </button>
+        </div>
       </div>
     </article>
   )

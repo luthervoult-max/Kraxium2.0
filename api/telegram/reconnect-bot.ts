@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto'
-import { getMe, setWebhook } from '../_lib/telegram.js'
+import { setWebhook } from '../_lib/telegram.js'
 import { requireMethod, readJsonBody, sendError, withCors, type ApiRequest, type ApiResponse } from '../_lib/http.js'
 import { requireUser, serviceSupabase } from '../_lib/supabase.js'
 
@@ -30,70 +30,68 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   try {
     requireMethod(req, 'POST')
     const user = await requireUser(req)
-    const { token } = await readJsonBody<{ token?: string }>(req)
-    const telegramToken = String(token ?? '').trim()
-    const telegramBot = await getMe(telegramToken)
-    const webhookSecret = randomBytes(24).toString('hex')
+    const { botId } = await readJsonBody<{ botId?: string }>(req)
 
-    const { data: bot, error: upsertError } = await serviceSupabase
+    if (!botId) {
+      res.status(400).json({ error: 'botId ausente no corpo da requisição.' })
+      return
+    }
+
+    const { data: bot, error: botError } = await serviceSupabase
       .from('bots')
-      .upsert(
-        {
-          owner_id: user.id,
-          name: telegramBot.first_name || telegramBot.username || 'Bot Telegram',
-          telegram_bot_id: String(telegramBot.id),
-          telegram_username: telegramBot.username ?? null,
-          telegram_first_name: telegramBot.first_name,
-          telegram_can_join_groups: telegramBot.can_join_groups ?? null,
-          telegram_can_read_all_group_messages: telegramBot.can_read_all_group_messages ?? null,
-          telegram_supports_inline_queries: telegramBot.supports_inline_queries ?? null,
-          telegram_token: null,
-          notifications_enabled: true,
-          webhook_enabled: false,
-          connection_status: 'inactive',
-          webhook_last_error: null,
-        },
-        { onConflict: 'owner_id,telegram_bot_id' },
-      )
-      .select('id')
-      .single()
+      .select('id,owner_id')
+      .eq('id', botId)
+      .eq('owner_id', user.id)
+      .maybeSingle()
 
-    if (upsertError) throw upsertError
+    if (botError) throw botError
+    if (!bot) {
+      res.status(404).json({ error: 'Bot não encontrado.' })
+      return
+    }
 
-    const webhookUrl = `${getWebhookBaseUrl()}/api/telegram/webhook/${bot.id}`
-
-    const { error: secretError } = await serviceSupabase
+    const { data: secret, error: secretError } = await serviceSupabase
       .from('bot_secrets')
-      .upsert({
-        bot_id: bot.id,
-        telegram_token: telegramToken,
-        webhook_secret: webhookSecret,
-      })
+      .select('telegram_token')
+      .eq('bot_id', bot.id)
+      .maybeSingle()
 
     if (secretError) throw secretError
+    if (!secret?.telegram_token) {
+      res.status(404).json({ error: 'Token do bot não encontrado.' })
+      return
+    }
+
+    const webhookSecret = randomBytes(24).toString('hex')
+    const webhookUrl = `${getWebhookBaseUrl()}/api/telegram/webhook/${bot.id}`
+
+    const { error: updateSecretError } = await serviceSupabase
+      .from('bot_secrets')
+      .update({ webhook_secret: webhookSecret })
+      .eq('bot_id', bot.id)
+
+    if (updateSecretError) throw updateSecretError
 
     try {
-      await setWebhook(telegramToken, webhookUrl, webhookSecret)
+      await setWebhook(secret.telegram_token, webhookUrl, webhookSecret)
     } catch (error) {
       await serviceSupabase
         .from('bots')
         .update({
           connection_status: 'error',
           webhook_enabled: false,
-          webhook_url: webhookUrl,
-          webhook_last_error: error instanceof Error ? error.message : 'Falha ao registrar webhook.',
+          webhook_last_error: error instanceof Error ? error.message : 'Falha ao re-registrar webhook.',
         })
         .eq('id', bot.id)
       throw error
     }
 
-    const { data: connectedBot, error: updateError } = await serviceSupabase
+    const { data: updatedBot, error: updateError } = await serviceSupabase
       .from('bots')
       .update({
         webhook_enabled: true,
         webhook_url: webhookUrl,
         connection_status: 'active',
-        connected_at: new Date().toISOString(),
         webhook_last_error: null,
       })
       .eq('id', bot.id)
@@ -103,7 +101,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
     if (updateError) throw updateError
 
-    res.status(200).json({ bot: connectedBot })
+    res.status(200).json({ bot: updatedBot })
   } catch (error) {
     sendError(res, error)
   }
@@ -113,7 +111,6 @@ function getWebhookBaseUrl() {
   const configured = process.env.TELEGRAM_WEBHOOK_BASE_URL?.trim()
   if (configured) return configured.replace(/\/+$/, '')
 
-  // URL estável de produção (não muda entre deploys)
   const vercelProd = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim()
   if (vercelProd) return `https://${vercelProd.replace(/\/+$/, '')}`
 
