@@ -30,83 +30,124 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
   try {
     requireMethod(req, 'POST')
     const user = await requireUser(req)
-    const { token } = await readJsonBody<{ token?: string }>(req)
-    const telegramToken = String(token ?? '').trim()
-    const telegramBot = await getMe(telegramToken)
-    const webhookSecret = randomBytes(24).toString('hex')
+    const body = await readJsonBody<{ token?: string; botId?: string }>(req)
 
-    const { data: bot, error: upsertError } = await serviceSupabase
-      .from('bots')
-      .upsert(
-        {
-          owner_id: user.id,
-          name: telegramBot.first_name || telegramBot.username || 'Bot Telegram',
-          telegram_bot_id: String(telegramBot.id),
-          telegram_username: telegramBot.username ?? null,
-          telegram_first_name: telegramBot.first_name,
-          telegram_can_join_groups: telegramBot.can_join_groups ?? null,
-          telegram_can_read_all_group_messages: telegramBot.can_read_all_group_messages ?? null,
-          telegram_supports_inline_queries: telegramBot.supports_inline_queries ?? null,
-          telegram_token: null,
-          notifications_enabled: true,
-          webhook_enabled: false,
-          connection_status: 'inactive',
-          webhook_last_error: null,
-        },
-        { onConflict: 'owner_id,telegram_bot_id' },
-      )
-      .select('id')
-      .single()
-
-    if (upsertError) throw upsertError
-
-    const webhookUrl = `${getWebhookBaseUrl()}/api/telegram/webhook/${bot.id}`
-
-    const { error: secretError } = await serviceSupabase
-      .from('bot_secrets')
-      .upsert({
-        bot_id: bot.id,
-        telegram_token: telegramToken,
-        webhook_secret: webhookSecret,
-      })
-
-    if (secretError) throw secretError
-
-    try {
-      await setWebhook(telegramToken, webhookUrl, webhookSecret)
-    } catch (error) {
-      await serviceSupabase
-        .from('bots')
-        .update({
-          connection_status: 'error',
-          webhook_enabled: false,
-          webhook_url: webhookUrl,
-          webhook_last_error: error instanceof Error ? error.message : 'Falha ao registrar webhook.',
-        })
-        .eq('id', bot.id)
-      throw error
+    if (body.botId) {
+      const connectedBot = await handleReconnect(user.id, body.botId)
+      res.status(200).json({ bot: connectedBot })
+      return
     }
 
-    const { data: connectedBot, error: updateError } = await serviceSupabase
-      .from('bots')
-      .update({
-        webhook_enabled: true,
-        webhook_url: webhookUrl,
-        connection_status: 'active',
-        connected_at: new Date().toISOString(),
-        webhook_last_error: null,
-      })
-      .eq('id', bot.id)
-      .eq('owner_id', user.id)
-      .select(botPublicColumns)
-      .single()
-
-    if (updateError) throw updateError
-
+    const connectedBot = await handleConnect(user.id, String(body.token ?? '').trim())
     res.status(200).json({ bot: connectedBot })
   } catch (error) {
     sendError(res, error)
   }
+}
+
+async function handleReconnect(userId: string, botId: string) {
+  const { data: bot, error: botError } = await serviceSupabase
+    .from('bots')
+    .select('id,owner_id')
+    .eq('id', botId)
+    .eq('owner_id', userId)
+    .maybeSingle()
+
+  if (botError) throw botError
+  if (!bot) throw new Error('Bot não encontrado.')
+
+  const { data: secret, error: secretError } = await serviceSupabase
+    .from('bot_secrets')
+    .select('telegram_token')
+    .eq('bot_id', bot.id)
+    .maybeSingle()
+
+  if (secretError) throw secretError
+  if (!secret?.telegram_token) throw new Error('Token do bot não encontrado.')
+
+  return registerWebhook(bot.id, userId, secret.telegram_token)
+}
+
+async function handleConnect(userId: string, telegramToken: string) {
+  const telegramBot = await getMe(telegramToken)
+
+  const { data: bot, error: upsertError } = await serviceSupabase
+    .from('bots')
+    .upsert(
+      {
+        owner_id: userId,
+        name: telegramBot.first_name || telegramBot.username || 'Bot Telegram',
+        telegram_bot_id: String(telegramBot.id),
+        telegram_username: telegramBot.username ?? null,
+        telegram_first_name: telegramBot.first_name,
+        telegram_can_join_groups: telegramBot.can_join_groups ?? null,
+        telegram_can_read_all_group_messages: telegramBot.can_read_all_group_messages ?? null,
+        telegram_supports_inline_queries: telegramBot.supports_inline_queries ?? null,
+        telegram_token: null,
+        notifications_enabled: true,
+        webhook_enabled: false,
+        connection_status: 'inactive',
+        webhook_last_error: null,
+      },
+      { onConflict: 'owner_id,telegram_bot_id' },
+    )
+    .select('id')
+    .single()
+
+  if (upsertError) throw upsertError
+
+  const { error: secretError } = await serviceSupabase
+    .from('bot_secrets')
+    .upsert({ bot_id: bot.id, telegram_token: telegramToken, webhook_secret: randomBytes(24).toString('hex') })
+
+  if (secretError) throw secretError
+
+  return registerWebhook(bot.id, userId, telegramToken)
+}
+
+async function registerWebhook(botId: string, userId: string, telegramToken: string) {
+  const webhookSecret = randomBytes(24).toString('hex')
+  const webhookUrl = `${getWebhookBaseUrl()}/api/telegram/webhook/${botId}`
+
+  const { error: secretUpdateError } = await serviceSupabase
+    .from('bot_secrets')
+    .update({ webhook_secret: webhookSecret })
+    .eq('bot_id', botId)
+
+  if (secretUpdateError) throw secretUpdateError
+
+  try {
+    await setWebhook(telegramToken, webhookUrl, webhookSecret)
+  } catch (error) {
+    await serviceSupabase
+      .from('bots')
+      .update({
+        connection_status: 'error',
+        webhook_enabled: false,
+        webhook_url: webhookUrl,
+        webhook_last_error: error instanceof Error ? error.message : 'Falha ao registrar webhook.',
+      })
+      .eq('id', botId)
+    throw error
+  }
+
+  const { data: connectedBot, error: updateError } = await serviceSupabase
+    .from('bots')
+    .update({
+      webhook_enabled: true,
+      webhook_url: webhookUrl,
+      connection_status: 'active',
+      connected_at: new Date().toISOString(),
+      webhook_last_error: null,
+    })
+    .eq('id', botId)
+    .eq('owner_id', userId)
+    .select(botPublicColumns)
+    .single()
+
+  if (updateError) throw updateError
+
+  return connectedBot
 }
 
 function getWebhookBaseUrl() {

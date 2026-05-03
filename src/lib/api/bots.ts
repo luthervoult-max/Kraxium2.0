@@ -98,7 +98,7 @@ export async function connectTelegramBot(token: string) {
 }
 
 export async function reconnectTelegramBot(botId: string) {
-  const data = await telegramApiFetch<{ bot: Bot }>('/api/telegram/reconnect-bot', {
+  const data = await telegramApiFetch<{ bot: Bot }>('/api/telegram/connect-bot', {
     method: 'POST',
     body: JSON.stringify({ botId }),
   })
