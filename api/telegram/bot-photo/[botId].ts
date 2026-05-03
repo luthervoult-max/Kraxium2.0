@@ -74,7 +74,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
 
     const photoFileId =
       (await getLargestProfilePhotoFileId(secret.telegram_token, bot.telegram_bot_id)) ??
-      (await getChatPhotoFileId(secret.telegram_token, bot.telegram_username))
+      (await getChatPhotoFileId(secret.telegram_token, bot.telegram_username, bot.telegram_bot_id))
 
     if (!photoFileId) {
       res.status(204).end()
@@ -136,13 +136,14 @@ async function getTelegramFilePath(token: string, fileId: string) {
   return data?.ok ? data.result?.file_path ?? null : null
 }
 
-async function getChatPhotoFileId(token: string, username?: string | null) {
-  if (!username) return null
+async function getChatPhotoFileId(token: string, username?: string | null, userId?: string | null) {
+  const chatId = username ? `@${username}` : userId ? Number(userId) : null
+  if (!chatId) return null
 
   const response = await fetch(`https://api.telegram.org/bot${token}/getChat`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: `@${username}` }),
+    body: JSON.stringify({ chat_id: chatId }),
   })
 
   const data = (await response.json().catch(() => null)) as TelegramChatResponse | null

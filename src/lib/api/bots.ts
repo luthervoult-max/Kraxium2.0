@@ -97,6 +97,15 @@ export async function connectTelegramBot(token: string) {
   return { ...data.bot, telegram_token: null } as Bot
 }
 
+export async function reconnectTelegramBot(botId: string) {
+  const data = await telegramApiFetch<{ bot: Bot }>('/api/telegram/reconnect-bot', {
+    method: 'POST',
+    body: JSON.stringify({ botId }),
+  })
+
+  return { ...data.bot, telegram_token: null } as Bot
+}
+
 export async function fetchTelegramBotPhotoUrl(botId: string) {
   const { data } = await supabase.auth.getSession()
   const accessToken = data.session?.access_token
