@@ -492,7 +492,7 @@ function BotCard({
           <span className="font-mono text-neon-purple">&gt;_</span>
           <span className="truncate">{metrics.flowName ?? 'Nenhum fluxo ativo'}</span>
         </div>
-        <div className="flex shrink-0 items-center gap-1 opacity-0 transition-all group-hover:opacity-100 focus-within:opacity-100">
+        <div className="flex shrink-0 items-center gap-1">
           <button
             type="button"
             onClick={onReconnect}
